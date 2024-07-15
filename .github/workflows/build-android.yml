@@ -1,0 +1,28 @@
+name: Build and distribute
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: cedvdb/action-flutter-build-android@v1
+        with:
+          keystore-base64: ${{ secrets.ANDROID_RELEASE_KEY }}
+          keystore-password: "${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}"
+          # optionals
+          build-cmd: flutter build appbundle
+          working-directory: ./
+          
+      - name: Archive APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-appbundle
+          # Try running the build locally with the build command to be sure of this path
+          path: build/app/outputs/bundle/release/app-release.aab
