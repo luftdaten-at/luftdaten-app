@@ -1,0 +1,8 @@
+** Icons:
+
+configure in pubspec.yaml
+$ dart run flutter_launcher_icons
+
+** Splash:
+update flutter_native_splash.yaml
+$dart run flutter_native_splash:create
