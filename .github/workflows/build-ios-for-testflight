@@ -1,0 +1,77 @@
+name: Build and Deploy iOS to TestFlight
+
+on:
+  workflow_dispatch
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Read build number
+        id: read_build_number
+        run: |
+          if [ ! -f build-number.txt ]; then echo "0" > build-number.txt; fi
+          BUILD_NUMBER=$(cat build-number.txt)
+          echo "Current build number: $BUILD_NUMBER"
+          echo "::set-output name=current_build_number::$BUILD_NUMBER"
+
+      - name: Increment build number
+        id: increment_build_number
+        run: |
+          BUILD_NUMBER=$((${{ steps.read_build_number.outputs.current_build_number }} + 1))
+          echo $BUILD_NUMBER > build-number.txt
+          echo "New build number: $BUILD_NUMBER"
+          echo "::set-output name=new_build_number::$BUILD_NUMBER"
+
+      - name: Commit new build number
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add build-number.txt
+          git commit -m "Increment build number to ${{ steps.increment_build_number.outputs.new_build_number }}"
+          git push  
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build iOS
+        run: flutter build ios --release --no-codesign
+
+      - name: Set up Ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+
+      - name: Install Fastlane
+        run: gem install fastlane
+
+      - name: Prepare App Store Connect API Key
+        run: |
+          mkdir -p ~/.private_keys
+          echo "${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}" > ~/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+
+      - name: Fastlane Match
+        run: bundle exec fastlane match appstore
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          FASTLANE_USER: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+
+      - name: Deploy to TestFlight
+        run: bundle exec fastlane beta
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          FASTLANE_USER: ${{ secrets.APPLE_ID }}
+          FASTLANE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
