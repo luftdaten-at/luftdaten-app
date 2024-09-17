@@ -3,11 +3,12 @@ name: Build and distribute
 on:
   push:
     branches:
-      - main  
-  pull_requests:
+      - main
+  pull_request:
     branches:
       - main
-   workflow_dispatch:
+  workflow_dispatch:  # Ermöglicht die manuelle Auslösung
+
 
 jobs:
   build:
