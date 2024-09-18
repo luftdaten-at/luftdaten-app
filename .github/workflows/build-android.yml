@@ -1,4 +1,4 @@
-name: Build and distribute
+name: Build Android Appbundle
 
 on:
   push:
