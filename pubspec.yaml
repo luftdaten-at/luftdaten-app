@@ -22,14 +22,14 @@ dependencies:
   flutter_map: ^6.0.0
   geolocator: ^11.0.0
   json_annotation: ^4.8.1
-  syncfusion_flutter_charts: ^26.1.41
+  syncfusion_flutter_charts: ^27.1.48
   flutter_background_service: ^5.0.1
   flutter_local_notifications: ^17.0.0
   flutter_native_splash: ^2.3.2
   flutter_map_location_marker: ^8.0.0
   flutter_compass: ^0.8.0
   path_provider: ^2.1.1
-  share_plus: ^9.0.0
+  share_plus: ^10.0.2
   package_info_plus: ^8.0.0
   bluetooth_enable_fork: ^0.1.6
   app_settings: ^5.1.1
@@ -50,12 +50,12 @@ dependencies:
   flutter_displaymode: ^0.6.0
   screenshot: ^3.0.0
   flutter_file_dialog: ^3.0.2
-  vibration: ^1.8.3
+  vibration: ^2.0.0
   get_it: ^7.6.4
   logger: ^2.0.2+1
   http: ^1.1.0
-  network_info_plus: ^5.0.2
-  syncfusion_flutter_datepicker: ^26.1.41
+  network_info_plus: ^6.0.1
+  syncfusion_flutter_datepicker: ^27.1.48
   file_picker: ^8.0.0+1
   csv: ^6.0.0
   uuid: ^4.3.3
