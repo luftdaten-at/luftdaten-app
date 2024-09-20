@@ -16,7 +16,6 @@ import 'package:luftdaten.at/widget/device_connect_button.dart';
 import 'package:luftdaten.at/widget/rotating_widget.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart';
 
 import '../controller/app_settings.dart';
 import '../main.dart';
@@ -858,7 +857,7 @@ class QRCodePage extends StatefulWidget {
 }
 
 class _QRCodePageState extends State<QRCodePage> {
-  QRViewController? controller;
+  //QRViewController? controller;
   final GlobalKey key = GlobalKey();
   DateTime lastError = DateTime.now();
 
@@ -867,19 +866,23 @@ class _QRCodePageState extends State<QRCodePage> {
   @override
   void reassemble() {
     super.reassemble();
+    /*
     if (Platform.isAndroid) {
       controller!.pauseCamera();
     }
     controller!.resumeCamera();
+    */
   }
 
   @override
   void dispose() {
+    /*
     controller?.dispose();
     super.dispose();
     if (kDebugMode) {
       print("QR Widget disposed");
     }
+    */
   }
 
   bool missingCameraPermission = false;
@@ -891,6 +894,7 @@ class _QRCodePageState extends State<QRCodePage> {
         (MediaQuery.of(context).size.width < 400 || MediaQuery.of(context).size.height < 400)
             ? 150.0
             : 300.0;
+    /*
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).primaryColor,
@@ -974,6 +978,8 @@ class _QRCodePageState extends State<QRCodePage> {
         ),
       ),
     );
+  */
+    return Scaffold();
   }
 }
 
