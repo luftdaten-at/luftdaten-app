@@ -50,7 +50,7 @@ dependencies:
   screenshot: ^3.0.0
   flutter_file_dialog: ^3.0.2
   vibration: ^2.0.0
-  get_it: ^7.6.4
+  get_it: ^8.0.0
   logger: ^2.0.2+1
   http: ^1.1.0
   network_info_plus: ^6.0.1
@@ -72,7 +72,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  flutter_launcher_icons: ^0.13.1
+  flutter_launcher_icons: ^0.14.0
   flutter_lints: ^4.0.0
   build_runner: ^2.4.6
   json_serializable: ^6.7.1
