@@ -121,9 +121,22 @@ class BleControllerV2 implements BleControllerForProtocol {
   }
 
   @override
-  Future<bool> sendAirStationConfig(BleDevice device, List<int> bytes) {
-    // TODO there is no Air Station Protocol V2 yet
-    throw UnimplementedError();
+  Future<bool> sendAirStationConfig(BleDevice device, List<int> bytes) async {
+    if(device.state != BleDeviceState.connected){
+      return false;
+    }
+    QualifiedCharacteristic qc = QualifiedCharacteristic(
+      serviceId: _serviceId,
+      characteristicId: _commandId,
+      deviceId: device.bleId!
+    );
+    try {
+      await _ble.writeCharacteristicWithResponse(qc, value: bytes);
+      return true;
+    } catch (_, trace) {
+      logger.d(trace);
+      return false;
+    }
   }
 
   @override

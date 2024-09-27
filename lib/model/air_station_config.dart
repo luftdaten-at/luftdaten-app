@@ -34,7 +34,7 @@ class AirStationConfig {
   List<int> toBytes() {
     List<int> bytes = [];
     // Byte 0: Protocol version
-    bytes.add(1);
+    bytes.add(2);
     // Byte 1: (Critical updates, all updates, ultra battery saver mode, battery saver mode)
     bytes.add(autoUpdateMode.encoded << 2 | batterySaverMode.encoded);
     // Byte 2: Placeholder empty byte
