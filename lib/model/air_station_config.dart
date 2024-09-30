@@ -28,21 +28,11 @@ class AirStationConfig {
   }
 
   List<int> toBytes() {
-    List<int> bytes = [];
-    // Byte 0: Protocol version
-    bytes.add(2);
-    // Byte 1: (Critical updates, all updates, ultra battery saver mode, battery saver mode)
-    bytes.add(autoUpdateMode.encoded << 2 | batterySaverMode.encoded);
-    // Byte 2: Placeholder empty byte
-    bytes.add(0);
-    // Bytes 3 & 4: Measurement interval as i16
-    bytes.add(measurementInterval.seconds >> 8);
-    bytes.add(measurementInterval.seconds & 0xff);
-    // Bytes 5 to 32: placeholders for future config options
-    for (int i = 0; i < 28; i++) {
-      bytes.add(0);
-    }
-    // Add the Wifi configuration below from here if needed
+    List<int> bytes = [
+      autoUpdateMode.encoded, 
+      batterySaverMode.encoded,
+      measurementInterval.seconds 
+    ];
     return bytes;
   }
 

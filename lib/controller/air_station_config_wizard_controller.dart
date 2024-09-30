@@ -260,6 +260,10 @@ class AirStationConfigWizardController extends ChangeNotifier {
     BleDevice dev = getIt<DeviceManager>().devices.where((e) => e.bleName == id).first;
     try {
       List<int> bytes = config!.toBytes();
+
+      print("airstation config bytes");
+      print(bytes);
+
       if(wifi?.valid ?? false) bytes.addAll(wifi!.toBytes());
       bool success = await getIt<BleController>().sendAirStationConfig(dev, bytes);
       dev.disconnect();

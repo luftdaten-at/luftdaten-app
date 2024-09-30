@@ -132,8 +132,7 @@ class BleControllerV2 implements BleControllerForProtocol {
       deviceId: device.bleId!
     );
     try {
-      await _ble.writeCharacteristicWithoutResponse(qc, value: [0x01, 0x02]);
-      //await _ble.writeCharacteristicWithoutResponse(qc, value: bytes);
+      await _ble.writeCharacteristicWithoutResponse(qc, value: bytes);
       return true;
     } catch (e) {
       logger.d(e);
