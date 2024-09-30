@@ -20,14 +20,10 @@ class AirStationConfig {
         measurementInterval = AirStationMeasurementInterval.min5;
 
   factory AirStationConfig.fromBytes(List<int> bytes) {
-    int initialOffset = bytes[0] + 1;
-    int settingsByte = bytes[initialOffset];
     return AirStationConfig(
-      autoUpdateMode: AutoUpdateMode.parseBinary(settingsByte >> 2),
-      batterySaverMode: BatterySaverMode.parseBinary(settingsByte & 3),
-      measurementInterval: AirStationMeasurementInterval.parseSeconds(
-        bytes[initialOffset + 2] << 8 | bytes[initialOffset + 3],
-      ),
+      autoUpdateMode: AutoUpdateMode.parseBinary(bytes[0]),
+      batterySaverMode: BatterySaverMode.parseBinary(bytes[1]),
+      measurementInterval: AirStationMeasurementInterval.parseSeconds(bytes[2])
     );
   }
 

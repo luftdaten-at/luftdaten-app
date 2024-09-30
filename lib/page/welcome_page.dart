@@ -456,6 +456,7 @@ class _WelcomePageState extends State<WelcomePage> {
         if (Platform.isIOS) {
           return (await Permission.bluetooth.request()).isGranted;
         } else {
+          await Permission.location.request();
           return (await Permission.bluetoothConnect.request()).isGranted;
         }
       case _Permission.locationWhileInUse:

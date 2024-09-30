@@ -29,6 +29,7 @@ class BleControllerV2 implements BleControllerForProtocol {
   final Uuid _deviceDetailsId = Uuid.parse("8d473240-13cb-1776-b1f2-823711b3ffff");
   final Uuid _sensorDetailsId = Uuid.parse("13fa8751-57af-4597-a0bb-b202f6111ae6");
   final Uuid _deviceStatusId = Uuid.parse("77db81d9-9773-49b4-aa17-16a2f93e95f2");
+  final Uuid _airStationConfigId = Uuid.parse("b47b0cdf-0ced-49a9-86a5-d78a03ea7674");
 
   @override
   Future<void> getDeviceDetails(BleDevice device) async {
@@ -131,18 +132,28 @@ class BleControllerV2 implements BleControllerForProtocol {
       deviceId: device.bleId!
     );
     try {
-      await _ble.writeCharacteristicWithResponse(qc, value: bytes);
+      await _ble.writeCharacteristicWithoutResponse(qc, value: [0x01, 0x02]);
+      //await _ble.writeCharacteristicWithoutResponse(qc, value: bytes);
       return true;
-    } catch (_, trace) {
-      logger.d(trace);
+    } catch (e) {
+      logger.d(e);
       return false;
     }
   }
 
   @override
-  Future<List<int>?> readAirStationConfiguration(BleDevice device) {
-    // TODO there is no Air Station Protocol V2 yet
-    throw UnimplementedError();
+  Future<List<int>?> readAirStationConfiguration(BleDevice device) async {
+    logger.d('Reading AirStation Configuration Start');
+
+    List<int> rawData = await _ble.readCharacteristic(QualifiedCharacteristic(
+      serviceId: _serviceId,
+      characteristicId: _airStationConfigId,
+      deviceId: device.bleId!,
+    ));
+
+    logger.d('Reading AirStation Configuration Done');
+
+    return rawData;
   }
 
   QualifiedCharacteristic _characteristic(Uuid characteristicId, BleDevice device) {
