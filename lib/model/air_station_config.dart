@@ -29,9 +29,11 @@ class AirStationConfig {
 
   List<int> toBytes() {
     List<int> bytes = [
+      0x06,
       autoUpdateMode.encoded, 
       batterySaverMode.encoded,
-      measurementInterval.seconds 
+      measurementInterval.seconds >> 8,
+      measurementInterval.seconds & ((1<<8) - 1)
     ];
     return bytes;
   }
@@ -74,10 +76,8 @@ class AirStationWifiConfig {
   List<int> toBytes() {
     List<int> bytes = [];
     bytes.add(ssid.length);
-    bytes.add(0); // Flag for SSID
     bytes.addAll(utf8.encode(ssid));
     bytes.add(password.length);
-    bytes.add(1); // Flag for password
     bytes.addAll(utf8.encode(password));
     return bytes;
   }
