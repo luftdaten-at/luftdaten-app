@@ -23,7 +23,7 @@ class AirStationConfig {
     return AirStationConfig(
       autoUpdateMode: AutoUpdateMode.parseBinary(bytes[0]),
       batterySaverMode: BatterySaverMode.parseBinary(bytes[1]),
-      measurementInterval: AirStationMeasurementInterval.parseSeconds(bytes[2])
+      measurementInterval: AirStationMeasurementInterval.parseSeconds((bytes[2] << 8) + bytes[3])
     );
   }
 
