@@ -16,7 +16,6 @@ import 'package:luftdaten.at/widget/device_connect_button.dart';
 import 'package:luftdaten.at/widget/rotating_widget.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart';
 
 import '../controller/app_settings.dart';
 import '../main.dart';
@@ -24,6 +23,8 @@ import '../model/ble_device.dart';
 import '../widget/change_notifier_builder.dart';
 import '../widget/ui.dart';
 import 'device_manager_page.i18n.dart';
+
+import 'package:mobile_scanner/mobile_scanner.dart'; // Import the new library
 
 class DeviceManagerPage extends StatefulWidget {
   const DeviceManagerPage({super.key});
@@ -857,40 +858,40 @@ class QRCodePage extends StatefulWidget {
   State<QRCodePage> createState() => _QRCodePageState();
 }
 
+
 class _QRCodePageState extends State<QRCodePage> {
-  QRViewController? controller;
-  final GlobalKey key = GlobalKey();
+  late MobileScannerController controller; // Declare controller as late
   DateTime lastError = DateTime.now();
-
-  // In order to get hot reload to work we need to pause the camera if the platform
-  // is android, or resume the camera if the platform is iOS.
-  @override
-  void reassemble() {
-    super.reassemble();
-    if (Platform.isAndroid) {
-      controller!.pauseCamera();
-    }
-    controller!.resumeCamera();
-  }
-
-  @override
-  void dispose() {
-    controller?.dispose();
-    super.dispose();
-    if (kDebugMode) {
-      print("QR Widget disposed");
-    }
-  }
-
   bool missingCameraPermission = false;
   bool lockedState = false;
 
   @override
+  void initState() {
+    super.initState();
+    controller = MobileScannerController(
+      detectionSpeed: DetectionSpeed.noDuplicates, // Set detection speed
+    );
+    _checkCameraPermission(); // Check camera permission on init
+  }
+
+  // Method to check camera permissions
+  Future<void> _checkCameraPermission() async {
+    final status = await Permission.camera.status;
+    if (!status.isGranted) {
+      final result = await Permission.camera.request();
+      if (!result.isGranted) {
+        setState(() {
+          missingCameraPermission = true; // Update the state to indicate missing permission
+        });
+      }
+    } else {
+      // Start the scanner if permission is granted
+      await controller.start(); // Start the scanner
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    var scanArea =
-        (MediaQuery.of(context).size.width < 400 || MediaQuery.of(context).size.height < 400)
-            ? 150.0
-            : 300.0;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).primaryColor,
@@ -901,63 +902,37 @@ class _QRCodePageState extends State<QRCodePage> {
           icon: const Icon(Icons.chevron_left, color: Colors.white),
         ),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Expanded(
-              flex: 4,
-              child: QRView(
-                onQRViewCreated: (ctrl) {
-                  setState(() {
-                    controller = ctrl;
-                  });
-                  controller!.scannedDataStream.listen((data) {
-                    DeviceManager deviceManager = getIt<DeviceManager>();
-                    if (lockedState) return;
-                    lockedState = true;
-                    logger.d("Got it: ${data.code}");
-                    BleDevice? addedDevice = deviceManager.addDeviceByCode(data.code);
-                    if (addedDevice != null) {
-                      setState(() {
-                        deviceManager.scanForDevices(2000);
-                        Navigator.of(context).pop(addedDevice);
-                      });
-                    } else {
-                      if (DateTime.now().difference(lastError).inSeconds > 4) {
-                        snackMessage(context, "QR-Code ungültig".i18n);
-                        lastError = DateTime.now();
-                      }
-                      lockedState = false;
+      body: missingCameraPermission
+          ? Center(child: Text('Bitte erlauben Sie den Zugriff auf die Kamera, um fortzufahren.'.i18n))
+          : MobileScanner(
+              controller: controller,
+              onDetect: (barcode) {
+                if (lockedState) return; // Prevent re-entry while processing
+                lockedState = true;
+
+                // Get the first barcode detected
+                String txt = barcode.barcodes.first.rawValue?? ''; // Get the QR code string
+                if (txt.isNotEmpty) {
+                  DeviceManager deviceManager = getIt<DeviceManager>();
+                  BleDevice? addedDevice = deviceManager.addDeviceByCode(txt);
+
+                  if (addedDevice != null) {
+                    setState(() {
+                      deviceManager.scanForDevices(2000);
+                      Navigator.of(context).pop(addedDevice);
+                    });
+                  } else {
+                    // Show an error message if the QR code is invalid
+                    if (DateTime.now().difference(lastError).inSeconds > 4) {
+                      snackMessage(context, "QR-Code ungültig".i18n);
+                      lastError = DateTime.now();
                     }
-                  });
-                },
-                key: key,
-                overlay: QrScannerOverlayShape(
-                    borderColor: Colors.red,
-                    borderRadius: 10,
-                    borderLength: 30,
-                    borderWidth: 10,
-                    cutOutSize: scanArea),
-                onPermissionSet: (_, granted) {
-                  if (!granted && !missingCameraPermission) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Brauche Zugriffsrechte für Kamera'.i18n),
-                        action: SnackBarAction(
-                          label: 'Anfordern'.i18n,
-                          onPressed: () => Permission.camera.request(),
-                        ),
-                      ),
-                    );
-                    missingCameraPermission = true;
                   }
-                },
-              ),
+                }
+
+                lockedState = false; // Unlock after processing
+              },
             ),
-          ],
-        ),
-      ),
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         color: Colors.blue.withOpacity(0.5),

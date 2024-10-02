@@ -20,33 +20,21 @@ class AirStationConfig {
         measurementInterval = AirStationMeasurementInterval.min5;
 
   factory AirStationConfig.fromBytes(List<int> bytes) {
-    int initialOffset = bytes[0] + 1;
-    int settingsByte = bytes[initialOffset];
     return AirStationConfig(
-      autoUpdateMode: AutoUpdateMode.parseBinary(settingsByte >> 2),
-      batterySaverMode: BatterySaverMode.parseBinary(settingsByte & 3),
-      measurementInterval: AirStationMeasurementInterval.parseSeconds(
-        bytes[initialOffset + 2] << 8 | bytes[initialOffset + 3],
-      ),
+      autoUpdateMode: AutoUpdateMode.parseBinary(bytes[0]),
+      batterySaverMode: BatterySaverMode.parseBinary(bytes[1]),
+      measurementInterval: AirStationMeasurementInterval.parseSeconds((bytes[2] << 8) + bytes[3])
     );
   }
 
   List<int> toBytes() {
-    List<int> bytes = [];
-    // Byte 0: Protocol version
-    bytes.add(1);
-    // Byte 1: (Critical updates, all updates, ultra battery saver mode, battery saver mode)
-    bytes.add(autoUpdateMode.encoded << 2 | batterySaverMode.encoded);
-    // Byte 2: Placeholder empty byte
-    bytes.add(0);
-    // Bytes 3 & 4: Measurement interval as i16
-    bytes.add(measurementInterval.seconds >> 8);
-    bytes.add(measurementInterval.seconds & 0xff);
-    // Bytes 5 to 32: placeholders for future config options
-    for (int i = 0; i < 28; i++) {
-      bytes.add(0);
-    }
-    // Add the Wifi configuration below from here if needed
+    List<int> bytes = [
+      0x06,
+      autoUpdateMode.encoded, 
+      batterySaverMode.encoded,
+      measurementInterval.seconds >> 8,
+      measurementInterval.seconds & ((1<<8) - 1)
+    ];
     return bytes;
   }
 
@@ -88,10 +76,8 @@ class AirStationWifiConfig {
   List<int> toBytes() {
     List<int> bytes = [];
     bytes.add(ssid.length);
-    bytes.add(0); // Flag for SSID
     bytes.addAll(utf8.encode(ssid));
     bytes.add(password.length);
-    bytes.add(1); // Flag for password
     bytes.addAll(utf8.encode(password));
     return bytes;
   }
