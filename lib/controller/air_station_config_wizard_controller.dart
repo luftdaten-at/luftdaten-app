@@ -147,6 +147,8 @@ class AirStationConfigWizardController extends ChangeNotifier {
         stage = AirStationConfigWizardStage.bluetoothTurnedOff;
         break;
       case BleStatus.locationServicesDisabled:
+        stage = AirStationConfigWizardStage.gpsPermissionMissing;
+        break;
       case BleStatus.unauthorized:
         stage = AirStationConfigWizardStage.blePermissionMissing;
         break;
@@ -179,6 +181,12 @@ class AirStationConfigWizardController extends ChangeNotifier {
   Future<void> requestNearbyDevicesPermission() async {
     // Make sure to also include text on enabling this from settings
     if ((await Permission.bluetoothScan.request()) == PermissionStatus.granted) {
+      verifyDeviceState();
+    }
+  }
+
+  Future<void> requestGpsPermission() async {
+    if((await Permission.location.request()) == PermissionStatus.granted) {
       verifyDeviceState();
     }
   }
@@ -367,4 +375,6 @@ enum AirStationConfigWizardStage {
   firstDataSuccess,
   firstDataFailed,
   firstDataCheckFailed,
+  setLocation,
+  gpsPermissionMissing
 }

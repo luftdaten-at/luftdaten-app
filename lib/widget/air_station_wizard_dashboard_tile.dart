@@ -25,6 +25,7 @@ class _AirStationWizardDashboardTileState extends State<AirStationWizardDashboar
   Widget build(BuildContext context) {
     _WizardTileStatus status;
     switch (widget.controller.stage) {
+      case AirStationConfigWizardStage.setLocation:
       case AirStationConfigWizardStage.verifyingDeviceState:
       case AirStationConfigWizardStage.deviceDoesNotSupportBLE:
       case AirStationConfigWizardStage.bluetoothTurnedOff:
@@ -44,7 +45,6 @@ class _AirStationWizardDashboardTileState extends State<AirStationWizardDashboar
       case AirStationConfigWizardStage.configureWifiChoice:
       case AirStationConfigWizardStage.editWifi:
       case AirStationConfigWizardStage.sending:
-      case AirStationConfigWizardStage.editWifi:
       case AirStationConfigWizardStage.configTransmissionFailed:
       case AirStationConfigWizardStage.connectionLostAndNotReestablished:
       case AirStationConfigWizardStage.loadingStatus:

@@ -183,6 +183,50 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
             ),
           ],
         );
+      case AirStationConfigWizardStage.gpsPermissionMissing:
+        return buildInfoScreen(
+          title: 'Berechtigung benötigt',
+          body: [
+            'Um deine Air Station zu konfigurieren, wird die Berechtigung „GPS“ '
+                'benötigt.',
+            'Bitte erteile diese Berechtigung, um fortzufahren.',
+          ],
+          icon: Icons.location_off,
+          buttons: [
+            FilledButton(
+              onPressed: () async {
+                if (await Permission.location.isPermanentlyDenied) {
+                  if (!mounted) return;
+                  showLDDialog(
+                    context,
+                    title: 'Berechtigung permanent abgelehnt',
+                    icon: Icons.error_outline,
+                    text: 'Du hast diese Berechtigung zuvor permanent abgelehnt. Bitte erteile '
+                        'manuell in deinen App-Einstellungen.',
+                  );
+                } else {
+                  widget.controller.requestGpsPermission();
+                }
+              },
+              child: Text('Berechtigung anfragen'.i18n),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (await Permission.location.status == PermissionStatus.denied) {
+                  showLDDialog(
+                    context,
+                    title: 'Berechtigung abgelehnt',
+                    icon: Icons.error_outline,
+                    text: 'Die Berechtigung wurde noch nicht erteilt.',
+                  );
+                } else {
+                  widget.controller.verifyDeviceState();
+                }
+              },
+              child: Text('Erneut prüfen'.i18n),
+            ),
+          ],
+        );
       case AirStationConfigWizardStage.scanFailed:
         return buildInfoScreen(
           title: 'Bluetooth-Scan fehlgeschlagen',
@@ -536,6 +580,8 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
         return buildEditWifiScreen();
       case AirStationConfigWizardStage.waitingForFirstData:
         return buildWaitForDataScreen();
+      case AirStationConfigWizardStage.setLocation:
+        return buildSetLocationScreen();
       default:
         return buildLoadingScreen('This should not happen...');
     }
@@ -736,13 +782,27 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
             const SizedBox(height: 30),
             FilledButton(
               onPressed: () {
-                widget.controller.stage = AirStationConfigWizardStage.configureWifiChoice;
+                widget.controller.stage = AirStationConfigWizardStage.setLocation;
               },
               child: Text('Weiter'.i18n),
             ),
             const Spacer(flex: 3),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget buildSetLocationScreen() {
+    return Center(
+      child: ElevatedButton(
+        onPressed: () {
+          // Set the wizard stage to configureWifiChoice when the button is pressed
+          setState(() {
+            widget.controller.stage = AirStationConfigWizardStage.configureWifiChoice;
+          });
+        },
+        child: Text('Continue to WiFi Configuration'.i18n), // Button label text
       ),
     );
   }
