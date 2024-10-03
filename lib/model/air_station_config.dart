@@ -7,23 +7,35 @@ class AirStationConfig {
   AutoUpdateMode autoUpdateMode;
   BatterySaverMode batterySaverMode;
   AirStationMeasurementInterval measurementInterval;
+  double longitude = 0;
+  double latitude = 0;
+  double height = 0;
 
   AirStationConfig({
     required this.autoUpdateMode,
     required this.batterySaverMode,
     required this.measurementInterval,
+    required this.longitude,
+    required this.latitude,
+    required this.height,
   });
 
   AirStationConfig.defaultConfig()
       : autoUpdateMode = AutoUpdateMode.on,
         batterySaverMode = BatterySaverMode.normal,
-        measurementInterval = AirStationMeasurementInterval.min5;
+        measurementInterval = AirStationMeasurementInterval.min5,
+        longitude = 0,
+        latitude = 0,
+        height = 0;
 
   factory AirStationConfig.fromBytes(List<int> bytes) {
     return AirStationConfig(
       autoUpdateMode: AutoUpdateMode.parseBinary(bytes[0]),
       batterySaverMode: BatterySaverMode.parseBinary(bytes[1]),
-      measurementInterval: AirStationMeasurementInterval.parseSeconds((bytes[2] << 8) + bytes[3])
+      measurementInterval: AirStationMeasurementInterval.parseSeconds((bytes[2] << 8) + bytes[3]),
+      longitude: 0,
+      latitude: 0,
+      height: 0
     );
   }
 

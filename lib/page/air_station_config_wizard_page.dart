@@ -162,6 +162,7 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
                   );
                 } else {
                   widget.controller.requestNearbyDevicesPermission();
+                  widget.controller.requestGpsPermission();
                 }
               },
               child: Text('Berechtigung anfragen'.i18n),
@@ -794,15 +795,78 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
   }
 
   Widget buildSetLocationScreen() {
+    // all permission should have benn granted already
+    widget.controller.getCurrentLocation();
     return Center(
-      child: ElevatedButton(
-        onPressed: () {
-          // Set the wizard stage to configureWifiChoice when the button is pressed
-          setState(() {
-            widget.controller.stage = AirStationConfigWizardStage.configureWifiChoice;
-          });
-        },
-        child: Text('Continue to WiFi Configuration'.i18n), // Button label text
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Longitude Input Field
+            TextFormField(
+              initialValue: widget.controller.current_position.longitude.toString(), 
+              decoration: InputDecoration(
+                labelText: 'Longitude',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                setState(() {
+                  // Parse input to double and store in config
+                  widget.controller.config!.longitude = double.tryParse(value) ?? 0.0;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Latitude Input Field
+            TextFormField(
+              initialValue: widget.controller.current_position.latitude.toString(),
+              decoration: InputDecoration(
+                labelText: 'Latitude',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                setState(() {
+                  // Parse input to double and store in config
+                  widget.controller.config!.latitude = double.tryParse(value) ?? 0.0;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Height Input Field
+            TextFormField(
+              initialValue: widget.controller.config!.height.toString(),
+              decoration: InputDecoration(
+                labelText: 'Height',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                setState(() {
+                  // Parse input to double and store in config
+                  widget.controller.config!.height = double.tryParse(value) ?? 0.0;
+                });
+              },
+            ),
+            const SizedBox(height: 30),
+
+            // Button to proceed to WiFi Configuration
+            ElevatedButton(
+              onPressed: () {
+                // Set the wizard stage to configureWifiChoice when the button is pressed
+                setState(() {
+                  widget.controller.stage = AirStationConfigWizardStage.configureWifiChoice;
+                });
+              },
+              child: Text('Continue to WiFi Configuration'.i18n),
+            ),
+          ],
+        ),
       ),
     );
   }

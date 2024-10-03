@@ -25,6 +25,7 @@ class _AirStationWizardDashboardTileState extends State<AirStationWizardDashboar
   Widget build(BuildContext context) {
     _WizardTileStatus status;
     switch (widget.controller.stage) {
+      case AirStationConfigWizardStage.gpsPermissionMissing:
       case AirStationConfigWizardStage.setLocation:
       case AirStationConfigWizardStage.verifyingDeviceState:
       case AirStationConfigWizardStage.deviceDoesNotSupportBLE:

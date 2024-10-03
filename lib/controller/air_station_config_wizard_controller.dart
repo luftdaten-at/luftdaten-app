@@ -9,6 +9,7 @@ import 'package:luftdaten.at/main.dart';
 import 'package:luftdaten.at/model/air_station_config.dart';
 import 'package:luftdaten.at/model/ble_device.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:geolocator/geolocator.dart'; // Import geolocator package for GPS
 
 import 'ble_controller.dart';
 
@@ -17,6 +18,19 @@ class AirStationConfigWizardController extends ChangeNotifier {
   static final GetStorage _box = GetStorage('air-station-wizard');
 
   static MapChangeNotifier<String, AirStationConfigWizardController> get activeControllers => _activeControllers;
+
+  Position current_position = Position(
+    latitude: 0.0,
+    longitude: 0.0,
+    timestamp: DateTime.now(),
+    altitude: 0.0,
+    accuracy: 0.0,
+    heading: 0.0,
+    speed: 0.0,
+    speedAccuracy: 0.0,
+    altitudeAccuracy: 0.0,
+    headingAccuracy: 0.0
+  );
 
   static Future<void> init() async {
     await GetStorage.init('air-station-wizard');
@@ -137,6 +151,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
   }
 
   void verifyDeviceState() async {
+    // update position
     switch (FlutterReactiveBle().status) {
       case BleStatus.unknown:
         logger.e('BleStatus unknown (this should not happen)');
@@ -156,6 +171,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
         checkDeviceConnection();
         break;
     }
+    getCurrentLocation();
     notifyListeners();
   }
 
@@ -339,6 +355,13 @@ class AirStationConfigWizardController extends ChangeNotifier {
         }
       }
       await Future.delayed(const Duration(seconds: 10));
+    }
+  }
+
+  // Method to fetch current location
+  Future<void> getCurrentLocation() async {
+    if(await Permission.location.request() == PermissionStatus.granted){
+      current_position = await Geolocator.getCurrentPosition();
     }
   }
 }
