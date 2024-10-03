@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:ffi';
+import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 import 'package:i18n_extension/default.i18n.dart';
+import 'package:luftdaten.at/util/util.dart';
 
 class AirStationConfig {
   AutoUpdateMode autoUpdateMode;
@@ -40,13 +43,31 @@ class AirStationConfig {
   }
 
   List<int> toBytes() {
-    List<int> bytes = [
-      0x06,
-      autoUpdateMode.encoded, 
+    // 0x06 indicates that the AirStation configuration is sent
+    List<int> bytes = [0x06];
+    
+    // data to send
+    List<Object> data = [
+      autoUpdateMode.encoded,
       batterySaverMode.encoded,
-      measurementInterval.seconds >> 8,
-      measurementInterval.seconds & ((1<<8) - 1)
+      measurementInterval.seconds,
+      longitude,
+      latitude,
+      height
     ];
+
+    for(int i=0; i<data.length; i++){
+      List<int> l = Util.toByteArray(data[i]);
+      // flag
+      bytes.add(i);
+      // lenght
+      bytes.add(l.length);
+      // data
+      bytes.addAll(l);
+    }
+
+    print(bytes);
+
     return bytes;
   }
 

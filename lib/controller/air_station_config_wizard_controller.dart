@@ -285,16 +285,9 @@ class AirStationConfigWizardController extends ChangeNotifier {
     try {
       List<int> bytes = config!.toBytes();
 
-      print("airstation config bytes");
-      print(bytes);
-      
       if(wifi?.valid??false) {
-        print("add wifi config");
         bytes.addAll(wifi!.toBytes());
       }
-
-      print("bytes with wifi config");
-      print(bytes);
 
       bool success = await getIt<BleController>().sendAirStationConfig(dev, bytes);
       dev.disconnect();

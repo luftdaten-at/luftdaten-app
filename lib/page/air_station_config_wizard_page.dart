@@ -1,3 +1,4 @@
+import 'package:convert/convert.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:lottie/lottie.dart';
@@ -797,6 +798,10 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
   Widget buildSetLocationScreen() {
     // all permission should have benn granted already
     widget.controller.getCurrentLocation();
+    double longitude = widget.controller.current_position.longitude;
+    double latitude = widget.controller.current_position.latitude;
+    double height = widget.controller.config!.height;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -806,7 +811,7 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
           children: [
             // Longitude Input Field
             TextFormField(
-              initialValue: widget.controller.current_position.longitude.toString(), 
+              initialValue: longitude.toString(), 
               decoration: InputDecoration(
                 labelText: 'Longitude',
                 border: OutlineInputBorder(),
@@ -815,7 +820,7 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
               onChanged: (value) {
                 setState(() {
                   // Parse input to double and store in config
-                  widget.controller.config!.longitude = double.tryParse(value) ?? 0.0;
+                  longitude = double.tryParse(value) ?? 0.0;
                 });
               },
             ),
@@ -823,7 +828,7 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
 
             // Latitude Input Field
             TextFormField(
-              initialValue: widget.controller.current_position.latitude.toString(),
+              initialValue: latitude.toString(),
               decoration: InputDecoration(
                 labelText: 'Latitude',
                 border: OutlineInputBorder(),
@@ -832,7 +837,7 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
               onChanged: (value) {
                 setState(() {
                   // Parse input to double and store in config
-                  widget.controller.config!.latitude = double.tryParse(value) ?? 0.0;
+                  latitude = double.tryParse(value) ?? 0.0;
                 });
               },
             ),
@@ -840,7 +845,7 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
 
             // Height Input Field
             TextFormField(
-              initialValue: widget.controller.config!.height.toString(),
+              initialValue: height.toString(),
               decoration: InputDecoration(
                 labelText: 'Height',
                 border: OutlineInputBorder(),
@@ -849,7 +854,7 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
               onChanged: (value) {
                 setState(() {
                   // Parse input to double and store in config
-                  widget.controller.config!.height = double.tryParse(value) ?? 0.0;
+                  height = double.tryParse(value) ?? 0.0;
                 });
               },
             ),
@@ -860,6 +865,10 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
               onPressed: () {
                 // Set the wizard stage to configureWifiChoice when the button is pressed
                 setState(() {
+                  widget.controller.config!.longitude = longitude;
+                  widget.controller.config!.latitude = latitude;
+                  widget.controller.config!.height = height;
+
                   widget.controller.stage = AirStationConfigWizardStage.configureWifiChoice;
                 });
               },
