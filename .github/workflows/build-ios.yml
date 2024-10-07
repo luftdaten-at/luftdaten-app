@@ -31,7 +31,7 @@ jobs:
           pod install
 
       - name: Set up Signing Certificates
-        uses: apple-actions/import-codesign-certs@v1
+        uses: apple-actions/import-codesign-certs@v3
         with:
           # Base64-kodierte .p12-Zertifikatsdatei
           p12-file-base64: ${{ secrets.IOS_CERTIFICATE_P12 }}
