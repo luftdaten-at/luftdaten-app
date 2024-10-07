@@ -9,6 +9,7 @@ import 'package:luftdaten.at/main.dart';
 import 'package:luftdaten.at/model/air_station_config.dart';
 import 'package:luftdaten.at/model/ble_device.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:geolocator/geolocator.dart'; // Import geolocator package for GPS
 
 import 'ble_controller.dart';
 
@@ -17,6 +18,19 @@ class AirStationConfigWizardController extends ChangeNotifier {
   static final GetStorage _box = GetStorage('air-station-wizard');
 
   static MapChangeNotifier<String, AirStationConfigWizardController> get activeControllers => _activeControllers;
+
+  Position current_position = Position(
+    latitude: 0.0,
+    longitude: 0.0,
+    timestamp: DateTime.now(),
+    altitude: 0.0,
+    accuracy: 0.0,
+    heading: 0.0,
+    speed: 0.0,
+    speedAccuracy: 0.0,
+    altitudeAccuracy: 0.0,
+    headingAccuracy: 0.0
+  );
 
   static Future<void> init() async {
     await GetStorage.init('air-station-wizard');
@@ -137,6 +151,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
   }
 
   void verifyDeviceState() async {
+    // update position
     switch (FlutterReactiveBle().status) {
       case BleStatus.unknown:
         logger.e('BleStatus unknown (this should not happen)');
@@ -147,13 +162,18 @@ class AirStationConfigWizardController extends ChangeNotifier {
         stage = AirStationConfigWizardStage.bluetoothTurnedOff;
         break;
       case BleStatus.locationServicesDisabled:
+        stage = AirStationConfigWizardStage.gpsPermissionMissing;
+        break;
       case BleStatus.unauthorized:
         stage = AirStationConfigWizardStage.blePermissionMissing;
         break;
       case BleStatus.ready:
+        // for Android >= 12
+        await Permission.bluetoothConnect.request();
         checkDeviceConnection();
         break;
     }
+    getCurrentLocation();
     notifyListeners();
   }
 
@@ -178,7 +198,15 @@ class AirStationConfigWizardController extends ChangeNotifier {
 
   Future<void> requestNearbyDevicesPermission() async {
     // Make sure to also include text on enabling this from settings
+    await Permission.bluetooth.request();
+    await Permission.bluetoothConnect.request();
     if ((await Permission.bluetoothScan.request()) == PermissionStatus.granted) {
+      verifyDeviceState();
+    }
+  }
+
+  Future<void> requestGpsPermission() async {
+    if((await Permission.location.request()) == PermissionStatus.granted) {
       verifyDeviceState();
     }
   }
@@ -261,16 +289,9 @@ class AirStationConfigWizardController extends ChangeNotifier {
     try {
       List<int> bytes = config!.toBytes();
 
-      print("airstation config bytes");
-      print(bytes);
-      
       if(wifi?.valid??false) {
-        print("add wifi config");
         bytes.addAll(wifi!.toBytes());
       }
-
-      print("bytes with wifi config");
-      print(bytes);
 
       bool success = await getIt<BleController>().sendAirStationConfig(dev, bytes);
       dev.disconnect();
@@ -333,6 +354,13 @@ class AirStationConfigWizardController extends ChangeNotifier {
       await Future.delayed(const Duration(seconds: 10));
     }
   }
+
+  // Method to fetch current location
+  Future<void> getCurrentLocation() async {
+    if(await Permission.location.request() == PermissionStatus.granted){
+      current_position = await Geolocator.getCurrentPosition();
+    }
+  }
 }
 
 /// These correspond to different pages that are shown in the wizard.
@@ -367,4 +395,6 @@ enum AirStationConfigWizardStage {
   firstDataSuccess,
   firstDataFailed,
   firstDataCheckFailed,
+  setLocation,
+  gpsPermissionMissing
 }
