@@ -41,7 +41,7 @@ jobs:
           mobileprovision-base64: ${{ secrets.IOS_PROVISIONING_PROFILE }}
 
       - name: Build iOS IPA
-        run: flutter build ipa --export-options-plist=ExportOptions.plist
+        run: flutter build ipa --export-options-plist=ios/ExportOptions.plist
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
