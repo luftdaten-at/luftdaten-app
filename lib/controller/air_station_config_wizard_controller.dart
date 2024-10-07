@@ -168,6 +168,8 @@ class AirStationConfigWizardController extends ChangeNotifier {
         stage = AirStationConfigWizardStage.blePermissionMissing;
         break;
       case BleStatus.ready:
+        // for Android >= 12
+        await Permission.bluetoothConnect.request();
         checkDeviceConnection();
         break;
     }
@@ -196,6 +198,8 @@ class AirStationConfigWizardController extends ChangeNotifier {
 
   Future<void> requestNearbyDevicesPermission() async {
     // Make sure to also include text on enabling this from settings
+    await Permission.bluetooth.request();
+    await Permission.bluetoothConnect.request();
     if ((await Permission.bluetoothScan.request()) == PermissionStatus.granted) {
       verifyDeviceState();
     }
