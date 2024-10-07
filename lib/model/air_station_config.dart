@@ -108,8 +108,10 @@ class AirStationWifiConfig {
 
   List<int> toBytes() {
     List<int> bytes = [];
+    bytes.add(6);
     bytes.add(ssid.length);
     bytes.addAll(utf8.encode(ssid));
+    bytes.add(7);
     bytes.add(password.length);
     bytes.addAll(utf8.encode(password));
     return bytes;
