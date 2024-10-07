@@ -1,4 +1,3 @@
-import 'package:convert/convert.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:lottie/lottie.dart';
@@ -10,8 +9,12 @@ import 'package:luftdaten.at/widget/change_notifier_builder.dart';
 import 'package:luftdaten.at/widget/ui.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'dart:async';
+import 'package:latlong2/latlong.dart'; // For LatLng
+import 'package:luftdaten.at/util/map_select_marker.dart';
 
-import '../main.dart';
+import 'package:luftdaten.at/main.dart';
+
 import '../widget/ellipsis.dart';
 
 class AirStationConfigWizardPage extends StatefulWidget {
@@ -796,88 +799,7 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
   }
 
   Widget buildSetLocationScreen() {
-    // all permission should have benn granted already
-    widget.controller.getCurrentLocation();
-    double longitude = widget.controller.current_position.longitude;
-    double latitude = widget.controller.current_position.latitude;
-    double height = widget.controller.config!.height;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Longitude Input Field
-            TextFormField(
-              initialValue: longitude.toString(), 
-              decoration: InputDecoration(
-                labelText: 'Longitude',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-              onChanged: (value) {
-                setState(() {
-                  // Parse input to double and store in config
-                  longitude = double.tryParse(value) ?? 0.0;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Latitude Input Field
-            TextFormField(
-              initialValue: latitude.toString(),
-              decoration: InputDecoration(
-                labelText: 'Latitude',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-              onChanged: (value) {
-                setState(() {
-                  // Parse input to double and store in config
-                  latitude = double.tryParse(value) ?? 0.0;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Height Input Field
-            TextFormField(
-              initialValue: height.toString(),
-              decoration: InputDecoration(
-                labelText: 'Height',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-              onChanged: (value) {
-                setState(() {
-                  // Parse input to double and store in config
-                  height = double.tryParse(value) ?? 0.0;
-                });
-              },
-            ),
-            const SizedBox(height: 30),
-
-            // Button to proceed to WiFi Configuration
-            ElevatedButton(
-              onPressed: () {
-                // Set the wizard stage to configureWifiChoice when the button is pressed
-                setState(() {
-                  widget.controller.config!.longitude = longitude;
-                  widget.controller.config!.latitude = latitude;
-                  widget.controller.config!.height = height;
-
-                  widget.controller.stage = AirStationConfigWizardStage.configureWifiChoice;
-                });
-              },
-              child: Text('Continue to WiFi Configuration'.i18n),
-            ),
-          ],
-        ),
-      ),
-    );
+    return MapScreen(controller: widget.controller);
   }
 
   Widget buildEditWifiScreen() {
