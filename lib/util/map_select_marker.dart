@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:luftdaten.at/controller/air_station_config_wizard_controller.dart';
 import 'package:luftdaten.at/model/ble_device.i18n.dart';
 
-
 class MapScreen extends StatefulWidget {
-  final AirStationConfigWizardController controller; // Use final for immutability
+  final AirStationConfigWizardController controller;
 
   // Constructor to accept the controller
   MapScreen({required this.controller});
@@ -23,12 +21,31 @@ class _MapScreenState extends State<MapScreen> {
   double latitude = 0;
   double height = 0;
 
+  // Controllers for the input fields
+  final TextEditingController longitudeController = TextEditingController();
+  final TextEditingController latitudeController = TextEditingController();
+  final TextEditingController heightController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     widget.controller.getCurrentLocation();
     longitude = widget.controller.current_position.longitude;
     latitude = widget.controller.current_position.latitude;
+
+    // Initialize controllers with the initial values
+    longitudeController.text = longitude.toString();
+    latitudeController.text = latitude.toString();
+    heightController.text = height.toString();
+  }
+
+  @override
+  void dispose() {
+    // Dispose of the controllers when not needed
+    longitudeController.dispose();
+    latitudeController.dispose();
+    heightController.dispose();
+    super.dispose();
   }
 
   @override
@@ -53,7 +70,9 @@ class _MapScreenState extends State<MapScreen> {
                       selectedPosition = point;
                       longitude = point.longitude;
                       latitude = point.latitude;
-                      print(selectedPosition);
+                      // Update text controllers whenever a marker is set
+                      longitudeController.text = longitude.toString();
+                      latitudeController.text = latitude.toString();
                     });
                   },
                 ),
@@ -63,7 +82,7 @@ class _MapScreenState extends State<MapScreen> {
                     userAgentPackageName: 'com.pmble.app',
                   ),
                   IgnorePointer(child: CurrentLocationLayer()),
-                  if(selectedPosition != null)
+                  if (selectedPosition != null)
                     MarkerLayer(
                       markers: [
                         Marker(
@@ -74,12 +93,13 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                       ],
                     ),
-                  ],
+                ],
               ),
             ),
             const SizedBox(height: 16),
+            // Longitude Input Field
             TextFormField(
-              initialValue: longitude.toString(),
+              controller: longitudeController,
               decoration: InputDecoration(
                 labelText: 'Longitude',
                 border: OutlineInputBorder(),
@@ -87,7 +107,6 @@ class _MapScreenState extends State<MapScreen> {
               keyboardType: TextInputType.number,
               onChanged: (value) {
                 setState(() {
-                  // Parse input to double and store in config
                   longitude = double.tryParse(value) ?? 0.0;
                 });
               },
@@ -95,7 +114,7 @@ class _MapScreenState extends State<MapScreen> {
             const SizedBox(height: 16),
             // Latitude Input Field
             TextFormField(
-              initialValue: latitude.toString(),
+              controller: latitudeController,
               decoration: InputDecoration(
                 labelText: 'Latitude',
                 border: OutlineInputBorder(),
@@ -103,16 +122,14 @@ class _MapScreenState extends State<MapScreen> {
               keyboardType: TextInputType.number,
               onChanged: (value) {
                 setState(() {
-                  // Parse input to double and store in config
                   latitude = double.tryParse(value) ?? 0.0;
                 });
               },
             ),
             const SizedBox(height: 16),
-
             // Height Input Field
             TextFormField(
-              initialValue: height.toString(),
+              controller: heightController,
               decoration: InputDecoration(
                 labelText: 'Height',
                 border: OutlineInputBorder(),
@@ -120,17 +137,14 @@ class _MapScreenState extends State<MapScreen> {
               keyboardType: TextInputType.number,
               onChanged: (value) {
                 setState(() {
-                  // Parse input to double and store in config
                   height = double.tryParse(value) ?? 0.0;
                 });
               },
             ),
             const SizedBox(height: 30),
-
             // Button to proceed to WiFi Configuration
             ElevatedButton(
               onPressed: () {
-                // Set the wizard stage to configureWifiChoice when the button is pressed
                 setState(() {
                   widget.controller.config!.longitude = longitude;
                   widget.controller.config!.latitude = latitude;
@@ -141,9 +155,9 @@ class _MapScreenState extends State<MapScreen> {
               },
               child: Text('Continue to WiFi Configuration'.i18n),
             ),
-          ]
-        )
-      )
+          ],
+        ),
+      ),
     );
   }
 }
