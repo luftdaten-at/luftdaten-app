@@ -1,0 +1,50 @@
+name: Build iOS App
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build iOS App
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      - name: Flutter Pub Get
+        run: flutter pub get
+
+      - name: Install CocoaPods Dependencies
+        run: |
+          cd ios
+          pod install
+
+      - name: Set up Signing Certificates
+        uses: apple-actions/import-codesign-certs@v1
+        with:
+          # Base64-kodierte .p12-Zertifikatsdatei
+          p12-file-base64: ${{ secrets.IOS_CERTIFICATE_P12 }}
+          # Passwort für die .p12-Datei
+          p12-password: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          # Base64-kodierte mobileprovision-Datei
+          mobileprovision-base64: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+
+      - name: Build iOS IPA
+        run: flutter build ipa --export-options-plist=ExportOptions.plist
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app
+          path: build/ios/ipa/*.ipa
