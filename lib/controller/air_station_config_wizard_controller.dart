@@ -269,7 +269,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
       config = AirStationConfig.fromBytes(bytes);
       configLoadedAt = DateTime.now();
       saveAll();
-    } catch (_) {
+    } catch (e) {
       // Reading or parsing failed
       stage = AirStationConfigWizardStage.failedToLoadConfig;
       return;
