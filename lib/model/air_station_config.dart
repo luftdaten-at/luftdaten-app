@@ -6,13 +6,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:i18n_extension/default.i18n.dart';
 import 'package:luftdaten.at/util/util.dart';
 
+
 class AirStationConfig {
   AutoUpdateMode autoUpdateMode;
   BatterySaverMode batterySaverMode;
   AirStationMeasurementInterval measurementInterval;
-  double longitude = 0;
-  double latitude = 0;
-  double height = 0;
+  double? longitude;
+  double? latitude;
+  double? height;
+  String? deviceId;
 
   AirStationConfig({
     required this.autoUpdateMode,
@@ -21,25 +23,72 @@ class AirStationConfig {
     required this.longitude,
     required this.latitude,
     required this.height,
+    required this.deviceId
   });
 
   AirStationConfig.defaultConfig()
       : autoUpdateMode = AutoUpdateMode.on,
         batterySaverMode = BatterySaverMode.normal,
         measurementInterval = AirStationMeasurementInterval.min5,
-        longitude = 0,
-        latitude = 0,
-        height = 0;
+        longitude = null,
+        latitude = null,
+        height = null,
+        deviceId = null;
 
   factory AirStationConfig.fromBytes(List<int> bytes) {
-    return AirStationConfig(
-      autoUpdateMode: AutoUpdateMode.parseBinary(bytes[0]),
-      batterySaverMode: BatterySaverMode.parseBinary(bytes[1]),
-      measurementInterval: AirStationMeasurementInterval.parseSeconds((bytes[2] << 8) + bytes[3]),
-      longitude: 0,
-      latitude: 0,
-      height: 0
-    );
+    print('RECIEVED DATA');
+    print(bytes);
+
+    AutoUpdateMode autoUpdateMode = AutoUpdateMode.on;
+    BatterySaverMode batterySaverMode = BatterySaverMode.normal;
+    AirStationMeasurementInterval measurementInterval = AirStationMeasurementInterval.min5;
+    double? longitude;
+    double? latitude;
+    double? height;
+    String? deviceId;
+
+    double? parseStringToDouble(String value) {
+      return value.isNotEmpty ? double.tryParse(value) : null;
+    }
+    final byteData = ByteData.sublistView(Uint8List.fromList(bytes)); // Create ByteData from byte array
+    int idx = 0;
+    while (idx < bytes.length) {
+      final flag = AirStationConfigFlags.fromValue(byteData.getUint8(idx++)); // Get enum from byte
+      final int length = byteData.getUint8(idx++);
+      switch (flag) {
+        case AirStationConfigFlags.AUTO_UPDATE_MODE:
+          autoUpdateMode = AutoUpdateMode.parseBinary(byteData.getInt32(idx)); // Read as a 32-bit int
+          break;
+        case AirStationConfigFlags.BATTERY_SAVE_MODE:
+          batterySaverMode = BatterySaverMode.parseBinary(byteData.getInt32(idx));
+          break;
+        case AirStationConfigFlags.MEASUREMENT_INTERVAL:
+          measurementInterval = AirStationMeasurementInterval.parseSeconds(byteData.getInt32(idx));
+          break;
+        case AirStationConfigFlags.LONGITUDE:
+          longitude = parseStringToDouble(String.fromCharCodes(bytes.sublist(idx, idx + length)));
+          break;
+        case AirStationConfigFlags.LATITUDE:
+          latitude = parseStringToDouble(String.fromCharCodes(bytes.sublist(idx, idx + length)));
+          break;
+        case AirStationConfigFlags.HEIGHT:
+          height = parseStringToDouble(String.fromCharCodes(bytes.sublist(idx, idx + length)));
+          break;
+        case AirStationConfigFlags.DEVICE_ID:
+          deviceId = String.fromCharCodes(bytes.sublist(idx, idx + length));
+          break;
+      }
+      idx += length;
+    }
+
+    return AirStationConfig(autoUpdateMode: autoUpdateMode,
+      batterySaverMode: batterySaverMode,
+      measurementInterval: measurementInterval,
+      longitude: longitude,
+      latitude: latitude,
+      height: height,
+      deviceId: deviceId
+    ); 
   }
 
   List<int> toBytes() {
@@ -51,9 +100,9 @@ class AirStationConfig {
       autoUpdateMode.encoded,
       batterySaverMode.encoded,
       measurementInterval.seconds,
-      longitude,
-      latitude,
-      height
+      longitude.toString(),
+      latitude.toString(),
+      height.toString()
     ];
 
     for(int i=0; i<data.length; i++){
@@ -66,8 +115,6 @@ class AirStationConfig {
       bytes.addAll(l);
     }
 
-    print(bytes);
-
     return bytes;
   }
 
@@ -79,6 +126,23 @@ class AirStationConfig {
 
   factory AirStationConfig.fromJson(Map<String, dynamic> json) {
     return AirStationConfig.fromBytes((json['bytes'] as List).cast<int>());
+  }
+}
+
+enum AirStationConfigFlags {
+  AUTO_UPDATE_MODE(0),
+  BATTERY_SAVE_MODE(1),
+  MEASUREMENT_INTERVAL(2),
+  LONGITUDE(3),
+  LATITUDE(4),
+  HEIGHT(5),
+  DEVICE_ID(8);
+
+  final int value;
+  
+  const AirStationConfigFlags(this.value);
+  factory AirStationConfigFlags.fromValue(int x) {
+    return AirStationConfigFlags.values.where((e) => e.value == x).first;
   }
 }
 
