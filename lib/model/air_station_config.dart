@@ -51,8 +51,8 @@ class AirStationConfig {
       autoUpdateMode.encoded,
       batterySaverMode.encoded,
       measurementInterval.seconds,
-      longitude,
-      latitude,
+      longitude.toString(),
+      latitude.toString(),
       height
     ];
 
