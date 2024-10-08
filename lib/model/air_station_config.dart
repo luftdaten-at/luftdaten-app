@@ -53,7 +53,7 @@ class AirStationConfig {
       measurementInterval.seconds,
       longitude.toString(),
       latitude.toString(),
-      height
+      height.toString()
     ];
 
     for(int i=0; i<data.length; i++){
@@ -65,8 +65,6 @@ class AirStationConfig {
       // data
       bytes.addAll(l);
     }
-
-    print(bytes);
 
     return bytes;
   }
