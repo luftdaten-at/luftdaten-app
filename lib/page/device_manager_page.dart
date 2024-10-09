@@ -884,43 +884,98 @@ class _QRCodePageState extends State<QRCodePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Gerät hinzufügen"),
+    return GestureDetector(
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).primaryColor,
+          title: Text("Gerät hinzufügen", style: const TextStyle(color: Colors.white)),
+          centerTitle: true,
+          leading: IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.chevron_left, color: Colors.white),
+          ),
+        ),
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20), // Matches DashboardPage padding
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 20), // Adjusted to match the dashboard
+                  _buildTappableTile(
+                    title: "QrCode Scannen",
+                    icon: Icons.qr_code_scanner,
+                    onTap: () async {
+                      // Aktion für QR Code Scannen
+                      try {
+                        NativeQr nativeQr = NativeQr();
+                        String? result = await nativeQr.get();
+                        BleDevice? dev = getIt<DeviceManager>().addDeviceByCode(result);
+                        if (dev != null && context.mounted) {
+                          Navigator.of(context).pop(dev);
+                        }
+                      } catch (err) {
+                        print(err);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 15), // Spacing to match dashboard buttons
+                  _buildTappableTile(
+                    title: "Daten manuell eingeben",
+                    icon: Icons.edit,
+                    onTap: () async {
+                      // Aktion für Daten manuell eingeben
+                      BleDevice? dev =
+                          await Navigator.pushNamed(context, QRCodeManualEntryPage.route) as BleDevice?;
+                      if (dev != null && context.mounted) {
+                        Navigator.of(context).pop(dev);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 20), // Bottom spacing
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: () async {
-                // Aktion für QR Code Scannen
-                try {
-                  NativeQr nativeQr = NativeQr();
-                  String? result = await nativeQr.get();
-                  BleDevice? dev = getIt<DeviceManager>().addDeviceByCode(result); 
-                  if (dev != null) {
-                    Navigator.of(context).pop(dev);
-                  }
-                } catch(err) {
-                  print(err);
-                }
-              },
-              child: Text("QrCode Scannen"),
+    );
+  }
+
+  Widget _buildTappableTile({required String title, required IconData icon, required void Function() onTap}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, left: 12, right: 12, bottom: 0),
+      child: Container(
+        height: 70,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+              child: Row(
+                children: [
+                  Icon(icon, size: 24),
+                  const SizedBox(width: 15), // Space between icon and text
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right), // Right chevron icon
+                ],
+              ),
             ),
-            SizedBox(height: 20), // Abstand zwischen den Buttons
-            ElevatedButton(
-              onPressed: () async {
-                // Aktion für Daten manuell eingeben
-                BleDevice? dev =
-                await Navigator.pushNamed(context, QRCodeManualEntryPage.route) as BleDevice?;
-                if (dev != null && context.mounted) {
-                  Navigator.of(context).pop(dev);
-                }
-              },
-              child: Text("Daten manuell eingeben"),
-            ),
-          ],
+          ),
         ),
       ),
     );
