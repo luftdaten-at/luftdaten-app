@@ -1,9 +1,10 @@
+import 'dart:async';
 import 'dart:collection';
-import 'dart:io';
+import 'package:native_qr/native_qr.dart';
 
+import 'package:flutter/foundation.dart';
 import 'package:clipboard/clipboard.dart';
 import 'package:convert/convert.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -24,7 +25,6 @@ import '../widget/change_notifier_builder.dart';
 import '../widget/ui.dart';
 import 'device_manager_page.i18n.dart';
 
-import 'package:mobile_scanner/mobile_scanner.dart'; // Import the new library
 
 class DeviceManagerPage extends StatefulWidget {
   const DeviceManagerPage({super.key});
@@ -61,6 +61,7 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
   }
 
   void addDevice(BuildContext context) async {
+    assert(false);
     var status = await Permission.camera.status;
     logger.d("Status = $status");
     var perm = await Permission.camera.request();
@@ -860,17 +861,11 @@ class QRCodePage extends StatefulWidget {
 
 
 class _QRCodePageState extends State<QRCodePage> {
-  late MobileScannerController controller; // Declare controller as late
-  DateTime lastError = DateTime.now();
   bool missingCameraPermission = false;
-  bool lockedState = false;
 
   @override
   void initState() {
     super.initState();
-    controller = MobileScannerController(
-      detectionSpeed: DetectionSpeed.noDuplicates, // Set detection speed
-    );
     _checkCameraPermission(); // Check camera permission on init
   }
 
@@ -884,68 +879,103 @@ class _QRCodePageState extends State<QRCodePage> {
           missingCameraPermission = true; // Update the state to indicate missing permission
         });
       }
-    } else {
-      // Start the scanner if permission is granted
-      await controller.start(); // Start the scanner
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).primaryColor,
-        title: Text("QR-Code Scannen".i18n, style: const TextStyle(color: Colors.white)),
-        centerTitle: true,
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.chevron_left, color: Colors.white),
+    return GestureDetector(
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).primaryColor,
+          title: Text("Gerät hinzufügen", style: const TextStyle(color: Colors.white)),
+          centerTitle: true,
+          leading: IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.chevron_left, color: Colors.white),
+          ),
+        ),
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20), // Matches DashboardPage padding
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 20), // Adjusted to match the dashboard
+                  _buildTappableTile(
+                    title: "QrCode Scannen",
+                    icon: Icons.qr_code_scanner,
+                    onTap: () async {
+                      // Aktion für QR Code Scannen
+                      try {
+                        NativeQr nativeQr = NativeQr();
+                        String? result = await nativeQr.get();
+                        BleDevice? dev = getIt<DeviceManager>().addDeviceByCode(result);
+                        if (dev != null && context.mounted) {
+                          Navigator.of(context).pop(dev);
+                        }
+                      } catch (err) {
+                        print(err);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 15), // Spacing to match dashboard buttons
+                  _buildTappableTile(
+                    title: "Daten manuell eingeben",
+                    icon: Icons.edit,
+                    onTap: () async {
+                      // Aktion für Daten manuell eingeben
+                      BleDevice? dev =
+                          await Navigator.pushNamed(context, QRCodeManualEntryPage.route) as BleDevice?;
+                      if (dev != null && context.mounted) {
+                        Navigator.of(context).pop(dev);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 20), // Bottom spacing
+                ],
+              ),
+            ),
+          ),
         ),
       ),
-      body: missingCameraPermission
-          ? Center(child: Text('Bitte erlauben Sie den Zugriff auf die Kamera, um fortzufahren.'.i18n))
-          : MobileScanner(
-              controller: controller,
-              onDetect: (barcode) {
-                if (lockedState) return; // Prevent re-entry while processing
-                lockedState = true;
+    );
+  }
 
-                // Get the first barcode detected
-                String txt = barcode.barcodes.first.rawValue?? ''; // Get the QR code string
-                if (txt.isNotEmpty) {
-                  DeviceManager deviceManager = getIt<DeviceManager>();
-                  BleDevice? addedDevice = deviceManager.addDeviceByCode(txt);
-
-                  if (addedDevice != null) {
-                    setState(() {
-                      deviceManager.scanForDevices(2000);
-                      Navigator.of(context).pop(addedDevice);
-                    });
-                  } else {
-                    // Show an error message if the QR code is invalid
-                    if (DateTime.now().difference(lastError).inSeconds > 4) {
-                      snackMessage(context, "QR-Code ungültig".i18n);
-                      lastError = DateTime.now();
-                    }
-                  }
-                }
-
-                lockedState = false; // Unlock after processing
-              },
+  Widget _buildTappableTile({required String title, required IconData icon, required void Function() onTap}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, left: 12, right: 12, bottom: 0),
+      child: Container(
+        height: 70,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+              child: Row(
+                children: [
+                  Icon(icon, size: 24),
+                  const SizedBox(width: 15), // Space between icon and text
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right), // Right chevron icon
+                ],
+              ),
             ),
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        color: Colors.blue.withOpacity(0.5),
-        child: FilledButton.tonalIcon(
-          label: Text("Daten manuell eingeben".i18n),
-          icon: const Icon(Icons.short_text),
-          onPressed: () async {
-            BleDevice? dev =
-                await Navigator.pushNamed(context, QRCodeManualEntryPage.route) as BleDevice?;
-            if (dev != null && context.mounted) {
-              Navigator.of(context).pop(dev);
-            }
-          },
+          ),
         ),
       ),
     );

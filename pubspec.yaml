@@ -12,7 +12,6 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  mobile_scanner: ^5.2.3
   cupertino_icons: ^1.0.2
   shared_preferences: ^2.2.0
   provider: ^6.0.5
@@ -67,6 +66,7 @@ dependencies:
   collection_providers: ^0.2.1
   flutter_map_animations: ^0.7.1
   just_audio: ^0.9.37
+  native_qr: ^0.0.3
   #oauth2_client: ^3.2.2
 
 dev_dependencies:
