@@ -986,14 +986,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
-  mobile_scanner:
-    dependency: "direct main"
-    description:
-      name: mobile_scanner
-      sha256: "145500ef1cdaa569c26d626336048fd0b0a9d00014e69af67baf632295fd8b40"
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.0.0"
   native_qr:
     dependency: "direct main"
     description:
