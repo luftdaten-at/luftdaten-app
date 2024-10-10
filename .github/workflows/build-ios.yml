@@ -17,17 +17,15 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # 2. Install Flutter (optional, if not using Flutter pre-installed on macOS-latest)
-    - name: Install Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: "stable"
+    # 2. Use Pre-installed Flutter Version
+    - name: Check Flutter Version (pre-installed)
+      run: flutter --version
 
     # 3. Install dependencies
     - name: Install dependencies
       run: flutter pub get
 
-    # 4. Set up signing environment
+    # 4. Set up iOS Signing Keychain and Certificates
     - name: Set up iOS Signing Keychain and Certificates
       env:
         IOS_CERTIFICATE_P12: ${{ secrets.IOS_CERTIFICATE_P12 }}
@@ -62,12 +60,8 @@ jobs:
     - name: Build iOS app for release
       run: flutter build ios --release --no-codesign
 
-    # 7. Archive and sign the iOS app
+    # 7. Archive and Export IPA
     - name: Archive and Export IPA
-      env:
-        IOS_CERTIFICATE_P12: ${{ secrets.IOS_CERTIFICATE_P12 }}
-        IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
-        IOS_PROVISIONING_PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
       run: |
         # Archive the app
         xcodebuild -workspace ios/Runner.xcworkspace \
