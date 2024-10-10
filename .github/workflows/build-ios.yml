@@ -20,9 +20,6 @@ jobs:
     # 2. Install Flutter with subosito/flutter-action@v2
     - name: Install Flutter
       uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.5.0'  # Specify the version to avoid architecture issues
-        channel: 'stable'          # Use the stable channel explicitly
 
     # 3. Install dependencies
     - name: Install dependencies
