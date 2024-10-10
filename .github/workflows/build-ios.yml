@@ -33,11 +33,11 @@ jobs:
         uses: apple-actions/import-codesign-certs@v3
         with:
           # Base64-kodierte .p12-Zertifikatsdatei
-          certificate-base64: ${{ secrets.IOS_CERTIFICATE_P12 }}
+          p12-file-base64: ${{ secrets.IOS_CERTIFICATE_P12 }}
           # Passwort für die .p12-Datei
-          certificate-password: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          p12-password: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
           # Base64-kodierte mobileprovision-Datei
-          provisioning-profile-base64: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+          #mobileprovision-base64: ${{ secrets.IOS_PROVISIONING_PROFILE }}
 
       - name: Build iOS IPA
         run: flutter build ipa --export-options-plist=ios/ExportOptions.plist
