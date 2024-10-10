@@ -11,5 +11,9 @@
         <key>L5SFHX64QR.at.luftdaten.app</key>
         <string>GitHub workflow</string>
     </dict>
+    <key>uploadBitcode</key>
+    <true/>
+    <key>thinning</key>
+    <string>&lt;none&gt;</string>
 </dict>
 </plist>
