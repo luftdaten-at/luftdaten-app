@@ -37,7 +37,7 @@ jobs:
           # Passwort für die .p12-Datei
           p12-password: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
           # Base64-kodierte mobileprovision-Datei
-          #mobileprovision-base64: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+          p12-filepath: ${{ secrets.IOS_PROVISIONING_PROFILE }}
 
       - name: Build iOS IPA
         run: flutter build ipa --export-options-plist=ios/ExportOptions.plist
