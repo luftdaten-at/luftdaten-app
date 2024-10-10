@@ -54,6 +54,8 @@
 	<string>Standort wird benötigt, um Messwerte zu lokalisieren.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Standort wird benötigt, um Messwerte zu lokalisieren.</string>
+	<key>PermissionGroupNotification</key>
+	<string>Notification</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>
@@ -86,7 +88,5 @@
 	<false/>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
-	<key>PermissionGroupNotification</key>
-    <string>Notification</string>
 </dict>
 </plist>
