@@ -20,12 +20,15 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:intl/intl.dart'; // For date formatting
+import 'package:csv/csv.dart';
 import 'package:convert/convert.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:luftdaten.at/controller/air_station_config_wizard_controller.dart';
 import 'package:luftdaten.at/controller/device_info.dart';
 
 import '../main.dart';
@@ -252,6 +255,75 @@ abstract class SingleHttpProvider extends HttpProvider {
 
   // check for new data 
   Future<void> refetch();
+}
+
+class AirStationSingleHttpProvider extends SingleHttpProvider{
+  @override
+  bool finished = true;
+  @override
+  List<List<LDItem>> items = [[], [], []];
+  final Uri apiUrl = Uri.parse("https://staging.api.luftdaten.at/v1/station/historical");
+  late final String deviceId;
+  late final String bleMacAddress;
+  late final bool isAirStation;
+
+  AirStationSingleHttpProvider(String bleMacAddress, {bool isAirStation = false}){
+    this.bleMacAddress = bleMacAddress;
+    this.isAirStation = isAirStation;
+    this.deviceId = AirStationConfigWizardController(bleMacAddress).config!.deviceId??"";
+  }
+
+  @override
+  Future<void> refetch() async{
+    finished = false;
+    await _fetch();
+    finished = true;
+  }
+
+  Future<void> _fetch() async{
+    // Date formatting to get the last 1 month date range
+    final now = DateTime.now();
+    final oneMonthAgo = DateTime(now.year, now.month - 1, now.day);
+  
+    // Format dates to match the API's expected format
+    final DateFormat dateFormat = DateFormat('yyyy-MM-ddTHH:mm');
+    final String startDate = dateFormat.format(oneMonthAgo); // 1 month ago
+    final String endDate = dateFormat.format(now); // Now
+    
+    // Set up query parameters
+    final Map<String, String> queryParams = {
+      'station_ids': deviceId,
+      'start': startDate,
+      'end': endDate,
+      'output_format': 'csv', // Assuming 'csv' as output format
+    };
+
+    // Construct the URI with query parameters
+    final uri = apiUrl.replace(queryParameters: queryParams);
+
+    try {
+      // Make the GET request
+      final http.Response response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        // Successfully got the CSV response
+        String csvData = response.body;
+        
+        // Parse CSV data
+        List<List<dynamic>> csvTable = CsvToListConverter().convert(csvData);
+        
+        // Print the CSV data (or process it as needed)
+        for (List<dynamic> row in csvTable) {
+          print(row);
+        }
+
+      } else {
+        print('Failed to fetch data. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error occurred while fetching data: $e');
+    }
+  }
 }
 
 class SingleStationHttpProvider extends SingleHttpProvider{
