@@ -252,6 +252,7 @@ abstract class SingleHttpProvider extends HttpProvider {
   abstract List<List<LDItem>> items;
   // if fetch is finisched
   abstract bool finished;
+  abstract bool error;
 
   // check for new data 
   Future<void> refetch();
@@ -262,6 +263,8 @@ class AirStationSingleHttpProvider extends SingleHttpProvider{
   bool finished = true;
   @override
   List<List<LDItem>> items = [[], [], []];
+  @override
+  bool error = false;
   final Uri apiUrl = Uri.parse("https://staging.api.luftdaten.at/v1/station/historical");
   late final String deviceId;
   late final String bleMacAddress;
@@ -271,6 +274,9 @@ class AirStationSingleHttpProvider extends SingleHttpProvider{
     this.bleMacAddress = bleMacAddress;
     this.isAirStation = isAirStation;
     this.deviceId = AirStationConfigWizardController(bleMacAddress).config!.deviceId??"";
+
+    print("INITIALIZED PROVIDER");
+    print(deviceId);
   }
 
   @override
@@ -308,7 +314,7 @@ class AirStationSingleHttpProvider extends SingleHttpProvider{
       if (response.statusCode == 200) {
         // Successfully got the CSV response
         String csvData = response.body;
-        
+        error = false; 
         // Parse CSV data
         List<List<dynamic>> csvTable = CsvToListConverter().convert(csvData);
         
@@ -319,9 +325,11 @@ class AirStationSingleHttpProvider extends SingleHttpProvider{
 
       } else {
         print('Failed to fetch data. Status code: ${response.statusCode}');
+        error = true;
       }
     } catch (e) {
       print('Error occurred while fetching data: $e');
+      error = true;
     }
   }
 }
@@ -331,6 +339,7 @@ class SingleStationHttpProvider extends SingleHttpProvider{
   List<List<LDItem>> items = [[], [], []];
   @override
   bool finished = false;
+  @override
   bool error = false;
   final String baseURL = "https://dev.luftdaten.at/d";
   late String pollURL = "$baseURL/station/register/poll?id=";

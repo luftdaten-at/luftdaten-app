@@ -18,7 +18,7 @@ class StationDetailsPage extends StatefulWidget {
 
   final int? id;
   final BleDevice? device;
-  final SingleStationHttpProvider? httpProvider;
+  final SingleHttpProvider? httpProvider;
 
   @override
   State<StatefulWidget> createState() => _StationDetailsPageState();
@@ -28,7 +28,7 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
   Set<String> period = {'7d'};
   int selectedIndex = 1;
 
-  late SingleStationHttpProvider provider;
+  late SingleHttpProvider provider;
 
   @override
   void initState() {

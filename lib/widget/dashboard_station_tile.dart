@@ -27,15 +27,14 @@ class DashboardStationTile extends StatefulWidget {
 }
 
 class _DashboardStationTileState extends State<DashboardStationTile> {
-  late SingleStationHttpProvider provider;
+  late AirStationSingleHttpProvider provider;
 
   TextEditingController nameController = TextEditingController();
 
   @override
   void initState() {
-    provider = SingleStationHttpProvider(
+    provider = AirStationSingleHttpProvider(
       widget.favorite?.id.toString() ?? widget.device!.bleMacAddress,
-      widget.device != null,
     );
     super.initState();
   }
