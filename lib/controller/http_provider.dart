@@ -31,7 +31,7 @@ import 'package:luftdaten.at/controller/device_info.dart';
 import '../main.dart';
 import '../model/sensor_data.dart';
 
-class HttpProvider with ChangeNotifier {
+abstract class HttpProvider with ChangeNotifier {
   Map<String, String> get httpHeaders {
     String platform;
     if(Platform.isIOS) {
@@ -243,8 +243,21 @@ class LDHttpProvider extends HttpProvider {
   }
 }
 
-class SingleStationHttpProvider extends HttpProvider {
+abstract class SingleHttpProvider extends HttpProvider {
+  // Data
+  // [[last 24h], [last 7d], [last 1m]]
+  abstract List<List<LDItem>> items;
+  // if fetch is finisched
+  abstract bool finished;
+
+  // check for new data 
+  Future<void> refetch();
+}
+
+class SingleStationHttpProvider extends SingleHttpProvider{
+  @override
   List<List<LDItem>> items = [[], [], []];
+  @override
   bool finished = false;
   bool error = false;
   final String baseURL = "https://dev.luftdaten.at/d";
@@ -269,6 +282,7 @@ class SingleStationHttpProvider extends HttpProvider {
 
   static final Map<String, SingleStationHttpProvider> _providers = {};
 
+  @override
   Future<void> refetch() async {
     await _fetch();
   }
