@@ -34,7 +34,7 @@ class _DashboardStationTileState extends State<DashboardStationTile> {
   @override
   void initState() {
     provider = AirStationSingleHttpProvider(
-      widget.favorite?.id.toString() ?? widget.device!.bleMacAddress,
+      widget.favorite?.id.toString() ?? widget.device!.bleName,
     );
     super.initState();
   }

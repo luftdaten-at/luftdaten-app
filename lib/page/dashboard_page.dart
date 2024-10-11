@@ -127,6 +127,9 @@ class _DashboardPage extends State<DashboardPage> {
           getIt<DeviceManager>().devices.where((e) => e.model == LDDeviceModel.station).toList();
       content = [];
       for (BleDevice device in devices) {
+        print("NAME AND CONTROLLERS");
+        print(device.bleName);
+        print(AirStationConfigWizardController.activeControllers);
         if (AirStationConfigWizardController.activeControllers.containsKey(device.bleName)) {
           // Show wizard tile
           content.add(AirStationWizardDashboardTile(

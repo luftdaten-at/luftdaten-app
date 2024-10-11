@@ -54,6 +54,8 @@ class AirStationConfigWizardController extends ChangeNotifier {
       } else {
         // Resume from standard connection screen
       }
+      print("LOAD CONTROLLER");
+      print(c.id);
       _activeControllers[c.id] = c;
     }
   }
@@ -66,8 +68,8 @@ class AirStationConfigWizardController extends ChangeNotifier {
   }
 
   static void removeController(String id) {
-    _activeControllers.remove(id);
-    _activeControllers[id]?.notifyListeners();
+    //_activeControllers.remove(id);
+    //_activeControllers[id]?.notifyListeners();
     saveAll();
   }
 

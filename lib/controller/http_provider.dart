@@ -273,7 +273,14 @@ class AirStationSingleHttpProvider extends SingleHttpProvider{
   AirStationSingleHttpProvider(String bleMacAddress, {bool isAirStation = false}){
     this.bleMacAddress = bleMacAddress;
     this.isAirStation = isAirStation;
-    this.deviceId = AirStationConfigWizardController(bleMacAddress).config!.deviceId??"";
+    print('DEVICE:');
+    print(bleMacAddress);
+    print('ACTIVE CONTROLLERS:');
+    print(AirStationConfigWizardController.activeControllers);
+    // controller must be active
+    //this.deviceId = AirStationConfigWizardController(bleMacAddress).config!.deviceId??"";
+    AirStationConfigWizardController(bleMacAddress);
+    deviceId = "ESP32S3-F09E9E21F23D-AAA";
 
     print("INITIALIZED PROVIDER");
     print(deviceId);
@@ -306,6 +313,8 @@ class AirStationSingleHttpProvider extends SingleHttpProvider{
 
     // Construct the URI with query parameters
     final uri = apiUrl.replace(queryParameters: queryParams);
+    print(uri);
+    print(AirStationConfigWizardController.activeControllers);
 
     try {
       // Make the GET request
