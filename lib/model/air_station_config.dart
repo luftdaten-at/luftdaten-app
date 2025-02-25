@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
 import 'package:i18n_extension/default.i18n.dart';
 import 'package:luftdaten.at/util/util.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 class AirStationConfig {
@@ -25,21 +26,32 @@ class AirStationConfig {
     required this.longitude,
     required this.latitude,
     required this.height,
-    required this.deviceId
-  });
+    required this.deviceId,
+  }) {
+    _saveToStorage();
+  }
 
   AirStationConfig.defaultConfig(String id)
-      : this.id = id,
+      : id = id,
         autoUpdateMode = AutoUpdateMode.on,
         batterySaverMode = BatterySaverMode.normal,
         measurementInterval = AirStationMeasurementInterval.min5,
         longitude = null,
         latitude = null,
         height = null,
-        deviceId = null;
+        deviceId = null {
+    _saveToStorage();
+  }
+
+  Future<void> _saveToStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final configJson = jsonEncode(toJson());
+    await prefs.setString('air_station_config_$id', configJson);
+    AirStationConfigManager._cache[id] = this;
+  }
 
   factory AirStationConfig.fromBytes(String id, List<int> bytes) {
-    print('RECIEVED DATA');
+    print('RECEIVED DATA');
     print(bytes);
 
     AutoUpdateMode autoUpdateMode = AutoUpdateMode.on;
@@ -53,14 +65,15 @@ class AirStationConfig {
     double? parseStringToDouble(String value) {
       return value.isNotEmpty ? double.tryParse(value) : null;
     }
-    final byteData = ByteData.sublistView(Uint8List.fromList(bytes)); // Create ByteData from byte array
+
+    final byteData = ByteData.sublistView(Uint8List.fromList(bytes));
     int idx = 0;
     while (idx < bytes.length) {
-      final flag = AirStationConfigFlags.fromValue(byteData.getUint8(idx++)); // Get enum from byte
+      final flag = AirStationConfigFlags.fromValue(byteData.getUint8(idx++));
       final int length = byteData.getUint8(idx++);
       switch (flag) {
         case AirStationConfigFlags.AUTO_UPDATE_MODE:
-          autoUpdateMode = AutoUpdateMode.parseBinary(byteData.getInt32(idx)); // Read as a 32-bit int
+          autoUpdateMode = AutoUpdateMode.parseBinary(byteData.getInt32(idx));
           break;
         case AirStationConfigFlags.BATTERY_SAVE_MODE:
           batterySaverMode = BatterySaverMode.parseBinary(byteData.getInt32(idx));
@@ -84,7 +97,7 @@ class AirStationConfig {
       idx += length;
     }
 
-    return AirStationConfig(
+    final config = AirStationConfig(
       id: id,
       autoUpdateMode: autoUpdateMode,
       batterySaverMode: batterySaverMode,
@@ -92,47 +105,68 @@ class AirStationConfig {
       longitude: longitude,
       latitude: latitude,
       height: height,
-      deviceId: deviceId
-    ); 
-  }
+      deviceId: deviceId,
+    );
 
-  List<int> toBytes() {
-    // 0x06 indicates that the AirStation configuration is sent
-    List<int> bytes = [0x06];
-    
-    // data to send
-    List<Object> data = [
-      autoUpdateMode.encoded,
-      batterySaverMode.encoded,
-      measurementInterval.seconds,
-      longitude.toString(),
-      latitude.toString(),
-      height.toString()
-    ];
-
-    for(int i=0; i<data.length; i++){
-      List<int> l = Util.toByteArray(data[i]);
-      // flag
-      bytes.add(i);
-      // lenght
-      bytes.add(l.length);
-      // data
-      bytes.addAll(l);
-    }
-
-    return bytes;
+    config._saveToStorage();
+    return config;
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'bytes': toBytes(),
+      'id': id,
+      'autoUpdateMode': autoUpdateMode.encoded,
+      'batterySaverMode': batterySaverMode.encoded,
+      'measurementInterval': measurementInterval.seconds,
+      'longitude': longitude,
+      'latitude': latitude,
+      'height': height,
+      'deviceId': deviceId,
     };
   }
 
-  factory AirStationConfig.fromJson(String id, Map<String, dynamic> json) {
-    return AirStationConfig.fromBytes(id, (json['bytes'] as List).cast<int>());
+  factory AirStationConfig.fromJson(Map<String, dynamic> json) {
+    return AirStationConfig(
+      id: json['id'],
+      autoUpdateMode: AutoUpdateMode.parseBinary(json['autoUpdateMode']),
+      batterySaverMode: BatterySaverMode.parseBinary(json['batterySaverMode']),
+      measurementInterval: AirStationMeasurementInterval.parseSeconds(json['measurementInterval']),
+      longitude: (json['longitude'] as num?)?.toDouble(),
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      height: (json['height'] as num?)?.toDouble(),
+      deviceId: json['deviceId'],
+    );
   }
 }
+
+class AirStationConfigManager {
+  static final Map<String, AirStationConfig> _cache = {};
+
+  static Future<void> loadAllConfigs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((key) => key.startsWith('air_station_config_'));
+
+    for (var key in keys) {
+      final jsonString = prefs.getString(key);
+      if (jsonString != null) {
+        final Map<String, dynamic> json = jsonDecode(jsonString);
+        final config = AirStationConfig.fromJson(json);
+        _cache[config.id] = config;
+      }
+    }
+  }
+
+  static AirStationConfig? getConfig(String id) {
+    return _cache[id];
+  }
+
+  static Future<void> deleteConfig(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('air_station_config_$id');
+    _cache.remove(id);
+  }
+}
+
 
 enum AirStationConfigFlags {
   AUTO_UPDATE_MODE(0),

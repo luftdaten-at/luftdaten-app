@@ -59,6 +59,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'controller/air_station_config_wizard_controller.dart';
+import 'model/air_station_config.dart';
 import 'controller/file_handler.dart';
 import 'controller/news_controller.dart';
 import 'page/device_manager_page.dart';
@@ -105,6 +106,7 @@ void main() async {
   getIt.registerSingleton<BatteryInfoAggregator>(BatteryInfoAggregator());
 
   await AirStationConfigWizardController.init();
+  await AirStationConfigManager.loadAllConfigs();
 
   // Initialise the OAuth2 client
   //OAuth2Helper oauth2Helper = OAuth2Helper(
