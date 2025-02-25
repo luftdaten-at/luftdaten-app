@@ -133,15 +133,6 @@ class _DashboardPage extends State<DashboardPage> {
             AirStationConfigWizardController(device.bleName),
           ));
         } else {
-          // load AirStationConfigWizardController to get device id and delete it afterwards
-          AirStationConfigWizardController controller = AirStationConfigWizardController(device.bleName);           
-          String? device_id = controller.config?.deviceId;
-          AirStationConfigWizardController.removeController(controller.id);
-
-          print("DEBUG");
-          print(device_id);
-          print("DEBUG END");
-
           // Show station tile
           content.add(DashboardStationTile(device: device));
         }
