@@ -336,6 +336,99 @@ class SingleStationHttpProvider extends HttpProvider {
   }
 }
 
+class SingleStationHttpProviderNew extends HttpProvider {
+  // ([Data last day], [last week], [last month]):
+  List<List<LDItem>> items = [[], [], []];
+  bool finished = false;
+  bool error = false;
+  final String API_URL = "https://staging.api.luftdaten.at/station/current";
+
+  final String device_id;
+  final bool isAirStation;
+
+  SingleStationHttpProviderNew._(this.device_id, [this.isAirStation = false]);
+
+  factory SingleStationHttpProviderNew(String device_id,
+      [bool isAirStation = false, bool initialFetch = true]) {
+    if (_providers[device_id] != null) {
+      return _providers[device_id]!;
+    } else {
+      SingleStationHttpProviderNew provider = SingleStationHttpProviderNew._(device_id, isAirStation);
+      if (initialFetch) provider._fetch();
+      _providers[device_id] = provider;
+      return provider;
+    }
+  }
+
+  static final Map<String, SingleStationHttpProviderNew> _providers = {};
+
+  Future<void> refetch() async {
+    await _fetch();
+  }
+
+  Future<void> _fetch() async {
+    finished = false;
+    error = false;
+    notifyListeners();
+    logger.d('Fetching data for $device_id (${isAirStation ? 'AirStation' : 'Sensor.Community'}) ...');
+    await _fetchForPeriod(0, 60 * 60 * 24);
+    await _fetchForPeriod(1, 60 * 60 * 24 * 7);
+    await _fetchForPeriod(2, 60 * 60 * 24 * 30);
+    finished = true;
+    logger.d('Fetch done for $device_id.');
+    notifyListeners();
+  }
+
+  Future<void> _fetchForPeriod(int index, int backsecs) async {
+    items[index] = [];
+    DateTime ts = DateTime.now().subtract(Duration(seconds: backsecs));
+
+    String url;
+    if (isAirStation) {
+      List<int> macBytes = hex.decode(device_id);
+      macBytes[macBytes.length - 1] = macBytes[macBytes.length - 1] - 1;
+      List<int> chipIdBytes = macBytes.reversed.toList();
+      String chipId = hex.encode(chipIdBytes);
+      url =
+          "https://dev.luftdaten.at/d/station/history?sid=$chipId&smooth=100&from=${ts.toLocal()}&ldstation=1";
+    } else {
+      url = "";
+    }
+
+    logger.d('Fetching data for $device_id($index) for past $backsecs seconds from ${ts.toLocal()} ...');
+    logger.d('URL: $url');
+
+    Response response = await http.get(Uri.parse(url), headers: httpHeaders);
+    logger.d('Received HTTP ${response.statusCode}');
+
+    if (response.statusCode == 200) {
+      List<String> lines = response.body.split('\n');
+      for (var line in lines) {
+        List<String> entries = line.split(';');
+        if (entries.length <= 1) continue;
+        double? pm1 = double.parse(entries[1]);
+        if (pm1.isNaN || pm1 == 0.0) pm1 = null;
+        DateTime ts;
+        try {
+          ts = DateTime.fromMillisecondsSinceEpoch(int.parse(entries[0]) * 1000);
+        } catch(_) {
+          ts = DateTime.parse('${entries[0]}Z').toLocal();
+        }
+        items[index].add(LDItem(
+          ts,
+          pm1,
+          double.parse(entries[2]),
+          double.parse(entries[3]),
+        ));
+      }
+      logger.d('Added ${items[index].length} entries for $device_id ($index)');
+    } else {
+      logger.d("Unexpected, not adding entries for $device_id ($index)");
+      error = true;
+    }
+  }
+}
+
 class AirStationHttpProvider extends HttpProvider {
   Future<List<LDItem>> fetch(String mac, int backsecs) async {
     List<int> macBytes = hex.decode(mac);

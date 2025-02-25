@@ -8,6 +8,7 @@ import 'package:luftdaten.at/util/util.dart';
 
 
 class AirStationConfig {
+  final String id;
   AutoUpdateMode autoUpdateMode;
   BatterySaverMode batterySaverMode;
   AirStationMeasurementInterval measurementInterval;
@@ -17,6 +18,7 @@ class AirStationConfig {
   String? deviceId;
 
   AirStationConfig({
+    required this.id,
     required this.autoUpdateMode,
     required this.batterySaverMode,
     required this.measurementInterval,
@@ -26,8 +28,9 @@ class AirStationConfig {
     required this.deviceId
   });
 
-  AirStationConfig.defaultConfig()
-      : autoUpdateMode = AutoUpdateMode.on,
+  AirStationConfig.defaultConfig(String id)
+      : this.id = id,
+        autoUpdateMode = AutoUpdateMode.on,
         batterySaverMode = BatterySaverMode.normal,
         measurementInterval = AirStationMeasurementInterval.min5,
         longitude = null,
@@ -35,7 +38,7 @@ class AirStationConfig {
         height = null,
         deviceId = null;
 
-  factory AirStationConfig.fromBytes(List<int> bytes) {
+  factory AirStationConfig.fromBytes(String id, List<int> bytes) {
     print('RECIEVED DATA');
     print(bytes);
 
@@ -81,7 +84,9 @@ class AirStationConfig {
       idx += length;
     }
 
-    return AirStationConfig(autoUpdateMode: autoUpdateMode,
+    return AirStationConfig(
+      id: id,
+      autoUpdateMode: autoUpdateMode,
       batterySaverMode: batterySaverMode,
       measurementInterval: measurementInterval,
       longitude: longitude,
@@ -124,8 +129,8 @@ class AirStationConfig {
     };
   }
 
-  factory AirStationConfig.fromJson(Map<String, dynamic> json) {
-    return AirStationConfig.fromBytes((json['bytes'] as List).cast<int>());
+  factory AirStationConfig.fromJson(String id, Map<String, dynamic> json) {
+    return AirStationConfig.fromBytes(id, (json['bytes'] as List).cast<int>());
   }
 }
 

@@ -87,7 +87,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
   factory AirStationConfigWizardController.fromJson(Map<String, dynamic> json) {
     AirStationConfigWizardController c = AirStationConfigWizardController._(json['id']);
     if(json['config'] != null) {
-      c.config = AirStationConfig.fromJson((json['config'] as Map).cast<String, dynamic>());
+      c.config = AirStationConfig.fromJson(c.id, (json['config'] as Map).cast<String, dynamic>());
     }
     if(json['wifi'] != null) {
       c.wifi = AirStationWifiConfig.fromJson((json['wifi'] as Map).cast<String, dynamic>());
@@ -266,7 +266,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
     BleDevice dev = getIt<DeviceManager>().devices.where((e) => e.bleName == id).first;
     try {
       List<int> bytes = await getIt<BleController>().readAirStationConfiguration(dev) ?? [];
-      config = AirStationConfig.fromBytes(bytes);
+      config = AirStationConfig.fromBytes(id, bytes);
       configLoadedAt = DateTime.now();
       saveAll();
     } catch (e) {
@@ -318,6 +318,12 @@ class AirStationConfigWizardController extends ChangeNotifier {
   bool _shouldStillCheckForData = false;
 
   Future<void> _checkForDataOnline() async {
+
+    // directly go to station detail view
+    stage = AirStationConfigWizardStage.firstDataSuccess;
+
+    return;
+
     DateTime scanningFrom = DateTime.now();
     while(true) {
       if(!_shouldStillCheckForData) {
