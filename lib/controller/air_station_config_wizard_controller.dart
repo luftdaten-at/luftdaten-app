@@ -87,7 +87,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
   factory AirStationConfigWizardController.fromJson(Map<String, dynamic> json) {
     AirStationConfigWizardController c = AirStationConfigWizardController._(json['id']);
     if(json['config'] != null) {
-      c.config = AirStationConfig.fromJson(c.id, (json['config'] as Map).cast<String, dynamic>());
+      c.config = AirStationConfig.fromJson((json['config'] as Map).cast<String, dynamic>());
     }
     if(json['wifi'] != null) {
       c.wifi = AirStationWifiConfig.fromJson((json['wifi'] as Map).cast<String, dynamic>());

@@ -112,6 +112,33 @@ class AirStationConfig {
     return config;
   }
 
+  List<int> toBytes() {
+    // 0x06 indicates that the AirStation configuration is sent
+    List<int> bytes = [0x06];
+    
+    // data to send
+    List<Object> data = [
+      autoUpdateMode.encoded,
+      batterySaverMode.encoded,
+      measurementInterval.seconds,
+      longitude.toString(),
+      latitude.toString(),
+      height.toString()
+    ];
+
+    for(int i=0; i<data.length; i++){
+      List<int> l = Util.toByteArray(data[i]);
+      // flag
+      bytes.add(i);
+      // lenght
+      bytes.add(l.length);
+      // data
+      bytes.addAll(l);
+    }
+
+    return bytes;
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
