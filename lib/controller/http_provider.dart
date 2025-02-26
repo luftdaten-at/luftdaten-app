@@ -192,9 +192,9 @@ class SingleStationHttpProvider extends HttpProvider {
 
       for(var entry in data.entries){
         DataItem item = DataItem(
-          entry.value[Dimension.PM1_0.value] ?? 0, // when not present insert 0
-          entry.value[Dimension.PM2_5.value] ?? 0,
-          entry.value[Dimension.PM10_0.value] ?? 0,
+          entry.value[Dimension.PM1_0] ?? 0, // when not present insert 0
+          entry.value[Dimension.PM2_5] ?? 0,
+          entry.value[Dimension.PM10_0] ?? 0,
           entry.key, 
         );
         items[index].add(item);
