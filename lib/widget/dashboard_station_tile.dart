@@ -45,13 +45,11 @@ class _DashboardStationTileState extends State<DashboardStationTile> {
     if(widget.device != null){
       device_id = AirStationConfigManager.getConfig(widget.device!.bleName)!.deviceId!;
     }else{
-      logger.d('3.14159 SC device: ${widget.favorite!.id}');
-      logger.d('3.14159 SC device: ${widget.favorite!.name}');
+      device_id = widget.favorite!.id;
     }
 
-    provider = SingleStationHttpProviderNew(
+    provider = SingleStationHttpProvider(
       device_id,
-      widget.device != null,
     );
     super.initState();
   }

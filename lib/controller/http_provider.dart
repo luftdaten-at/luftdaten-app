@@ -255,6 +255,7 @@ class LDHttpProvider extends HttpProvider {
   }
 }
 
+/*
 class SingleStationHttpProvider extends HttpProvider {
   List<List<LDItem>> items = [[], [], []];
   bool finished = false;
@@ -347,40 +348,41 @@ class SingleStationHttpProvider extends HttpProvider {
     }
   }
 }
+*/
 
-class SingleStationHttpProviderNew extends SingleStationHttpProvider {
+class SingleStationHttpProvider extends HttpProvider {
+  /// device_id: Device id in api.luftdaten.at format
+  /// for the given station data is fetch from API_URL
+  /// items contains 3 resolutions of the fetched data. See definition of items
+
   final String API_URL = "https://api.luftdaten.at/v1/station/historical";
   final String device_id;
-  final bool isAirStation;
 
-  // ([Data last day], [last week], [last month]):
+  /// ([Data last day], [last week], [last month]):
   List<List<LDItem>> items = [[], [], []];
   bool finished = false;
   bool error = false;
 
-  //SingleStationHttpProviderNew._(this.sid, [this.isAirStation = false]);
-  SingleStationHttpProviderNew._(this.device_id, [this.isAirStation = false]) : super._(device_id, isAirStation);
+  //SingleStationHttpProvider._(this.sid, [this.isAirStation = false]);
+  SingleStationHttpProvider._(this.device_id);
 
-  factory SingleStationHttpProviderNew(String device_id,
-      [bool isAirStation = false, bool initialFetch = true]) {
+  factory SingleStationHttpProvider(String device_id) {
     if (_providers[device_id] != null) {
       return _providers[device_id]!;
     } else {
-      SingleStationHttpProviderNew provider = SingleStationHttpProviderNew._(device_id, isAirStation);
-      if (initialFetch) provider._fetch();
+      SingleStationHttpProvider provider = SingleStationHttpProvider._(device_id);
+      provider._fetch();
       _providers[device_id] = provider;
       return provider;
     }
   }
 
-  static final Map<String, SingleStationHttpProviderNew> _providers = {};
+  static final Map<String, SingleStationHttpProvider> _providers = {};
 
-  @override
   Future<void> refetch() async {
     await _fetch();
   }
 
-  @override
   Future<void> _fetch() async {
     /**
      * fetches data for last day, week and month
@@ -388,7 +390,7 @@ class SingleStationHttpProviderNew extends SingleStationHttpProvider {
     finished = false;
     error = false;
     notifyListeners();
-    logger.d('SingleStationHttpProviderNew: Fetching data for $device_id $isAirStation');
+    logger.d('SingleStationHttpProvider: Fetching data for $device_id');
     await _fetchForPrecision(0, "all");
     await _fetchForPrecision(1, "hour");
     await _fetchForPrecision(2, "hour");
@@ -431,7 +433,6 @@ class SingleStationHttpProviderNew extends SingleStationHttpProvider {
       }
 
       for(var entry in data.entries){
-        String kk = entry.key.toString();
         LDItem item = LDItem(
           entry.key, 
           entry.value[Dimension.PM1_0.value] ?? 0, // when not present insert 0

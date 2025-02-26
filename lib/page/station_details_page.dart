@@ -38,9 +38,8 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
     } else {
       String device_id = AirStationConfigManager.getConfig(widget.device!.bleName)!.deviceId!;
 
-      provider = SingleStationHttpProviderNew(
+      provider = SingleStationHttpProvider(
         device_id,
-        widget.device != null,
       );
     }
     super.initState();

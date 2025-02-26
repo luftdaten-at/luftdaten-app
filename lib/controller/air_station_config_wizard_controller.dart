@@ -323,42 +323,6 @@ class AirStationConfigWizardController extends ChangeNotifier {
     stage = AirStationConfigWizardStage.firstDataSuccess;
 
     return;
-
-    DateTime scanningFrom = DateTime.now();
-    while(true) {
-      if(!_shouldStillCheckForData) {
-        return;
-      }
-      int waitedForSeconds = DateTime.now().difference(configSentAt!).inSeconds;
-      int shouldWaitFor = config!.measurementInterval.seconds * 3 + 60;
-      int scanningForSeconds = DateTime.now().difference(scanningFrom).inSeconds;
-      int shouldScanForAtLeast = 60;
-      if(waitedForSeconds > shouldWaitFor && scanningForSeconds > shouldScanForAtLeast) {
-        stage = AirStationConfigWizardStage.firstDataFailed;
-        return;
-      }
-      SingleStationHttpProvider provider = SingleStationHttpProvider(id.split('-').last, true, false);
-      await provider.refetch();
-      if(provider.error) {
-        stage = AirStationConfigWizardStage.firstDataCheckFailed;
-        return;
-      } else if(provider.items[1].isEmpty) {
-        // Continue waiting
-      } else {
-        // Check if there's data that is more recent than our config changes
-        if(provider.items[1].last.timestamp.compareTo(configSentAt!) < 0) {
-          logger.d('Config sent at: ${configSentAt!}');
-          logger.d('Most recent values: ${provider.items[1].last.timestamp}');
-          // Most recent values were sent before config changed, keep waiting
-        } else {
-          // New data has been found, finish
-          stage = AirStationConfigWizardStage.firstDataSuccess;
-          firstDataSuccessReceivedAt = DateTime.now();
-          return;
-        }
-      }
-      await Future.delayed(const Duration(seconds: 10));
-    }
   }
 
   // Method to fetch current location
