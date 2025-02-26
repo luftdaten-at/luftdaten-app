@@ -29,6 +29,7 @@ import 'package:http/http.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:luftdaten.at/controller/device_info.dart';
 import 'package:luftdaten.at/controller/news_controller.dart';
+import 'package:luftdaten.at/util/day.dart';
 
 import '../main.dart';
 import '../enums.dart';
@@ -387,12 +388,7 @@ class SingleStationHttpProviderNew extends SingleStationHttpProvider {
     logger.d('SingleStationHttpProviderNew: Fetching data for $device_id $isAirStation');
     await _fetchForPrecision(0, "all");
     await _fetchForPrecision(1, "hour");
-    await _fetchForPrecision(2, "day");
-
-
-    logger.d('3.14159 ${items[0]}');
-    logger.d('3.14159 ${items[1]}');
-    logger.d('3.14159 ${items[2]}');
+    await _fetchForPrecision(2, "hour");
 
     finished = true;
     logger.d('Fetch done for $device_id.');
@@ -403,7 +399,17 @@ class SingleStationHttpProviderNew extends SingleStationHttpProvider {
     items[index] = [];
     // example url
     //https://api.luftdaten.at/v1/station/historical?station_ids=278SC&precision=day&output_format=json'
-    String requestUrl = "$API_URL/?station_ids=$device_id&precision=$precision&output_format=csv";
+    DateTime start = DateTime.now().toUtc();
+
+    if(index == 0){ // 1 day
+      start = start.subtract(Duration(days: 1));
+    }else if(index == 1){ // 1 week
+      start = start.subtract(Duration(days: 7));
+    }else if(index == 2){
+      start = start.subtract(Duration(days: 30));
+    }
+    
+    String requestUrl = "$API_URL/?station_ids=$device_id&precision=$precision&output_format=csv&start=${start.toIso8601String()}";
     Response response = await http.get(Uri.parse(requestUrl), headers: httpHeaders);
 
     if(response.statusCode == 200){
