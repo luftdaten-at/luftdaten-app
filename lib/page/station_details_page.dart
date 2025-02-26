@@ -33,15 +33,18 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
 
   @override
   void initState() {
-    if (widget.httpProvider != null) {
-      provider = widget.httpProvider!;
-    } else {
-      String device_id = AirStationConfigManager.getConfig(widget.device!.bleName)!.deviceId!;
+    String device_id = "";
 
-      provider = SingleStationHttpProvider(
-        device_id,
-      );
+    if(widget.device != null){
+      device_id = AirStationConfigManager.getConfig(widget.device!.bleName)!.deviceId!;
+    }else{
+      device_id = widget.id!;
     }
+
+    provider = SingleStationHttpProvider(
+      device_id,
+    );
+
     super.initState();
   }
 
