@@ -188,7 +188,7 @@ class _DashboardStationTileState extends State<DashboardStationTile> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text('PM2.5', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text(provider.items[0].last.pm25.toStringAsFixed(1)),
+              Text(provider.items[0].last.pm25?.toStringAsFixed(1) ?? "nan"),
             ],
           );
         }
@@ -204,7 +204,7 @@ class _DashboardStationTileState extends State<DashboardStationTile> {
   Color _getColor() {
     if (provider.finished && !provider.error) {
       if (provider.items[0].lastOrNull?.pm25 != null) {
-        double pm25 = provider.items[0].last.pm25;
+        double pm25 = provider.items[0].last.pm25 ?? 0;
         if (pm25 < 5) return Colors.green.shade50;
         if (pm25 < 15) return Colors.orange.shade50;
         return Colors.red.shade50;

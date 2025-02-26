@@ -137,8 +137,8 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
             double? pm1Mean = provider.items[1].first.pm1 != null
                 ? provider.items[1].map((e) => e.pm1).toList().removeListNulls().mean()
                 : null;
-            double? pm25Mean = provider.items[1].map((e) => e.pm25).toList().mean();
-            double? pm10Mean = provider.items[1].map((e) => e.pm10).toList().mean();
+            double? pm25Mean = provider.items[1].where((e) => e.pm25 != null).map((e) => e.pm25!).toList().mean();
+            double? pm10Mean = provider.items[1].where((e) => e.pm10 != null).map((e) => e.pm10!).toList().mean();
             List<int> daysOverLimit = getDaysOverLimit(getDailyMeans(provider.items[1]));
 
             GetStorage box = GetStorage('preferences');
@@ -236,26 +236,26 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
                     ),
                     legend: const Legend(isVisible: true, position: LegendPosition.bottom),
                     tooltipBehavior: TooltipBehavior(enable: true),
-                    series: <CartesianSeries<LDItem, DateTime>>[
+                    series: <CartesianSeries<DataItem, DateTime>>[
                       if (provider.items[selectedIndex].first.pm1 != null)
-                        LineSeries<LDItem, DateTime>(
+                        LineSeries<DataItem, DateTime>(
                           dataSource: provider.items[selectedIndex],
-                          xValueMapper: (LDItem item, _) => item.timestamp,
-                          yValueMapper: (LDItem item, _) => item.pm1,
+                          xValueMapper: (DataItem item, _) => item.timestamp,
+                          yValueMapper: (DataItem item, _) => item.pm1,
                           name: 'PM1.0',
                           dataLabelSettings: const DataLabelSettings(isVisible: false),
                         ),
-                      LineSeries<LDItem, DateTime>(
+                      LineSeries<DataItem, DateTime>(
                         dataSource: provider.items[selectedIndex],
-                        xValueMapper: (LDItem item, _) => item.timestamp,
-                        yValueMapper: (LDItem item, _) => item.pm25,
+                        xValueMapper: (DataItem item, _) => item.timestamp,
+                        yValueMapper: (DataItem item, _) => item.pm25,
                         name: 'PM2.5',
                         dataLabelSettings: const DataLabelSettings(isVisible: false),
                       ),
-                      LineSeries<LDItem, DateTime>(
+                      LineSeries<DataItem, DateTime>(
                         dataSource: provider.items[selectedIndex],
-                        xValueMapper: (LDItem item, _) => item.timestamp,
-                        yValueMapper: (LDItem item, _) => item.pm10,
+                        xValueMapper: (DataItem item, _) => item.timestamp,
+                        yValueMapper: (DataItem item, _) => item.pm10,
                         name: 'PM10.0',
                         dataLabelSettings: const DataLabelSettings(isVisible: false),
                       ),
@@ -407,14 +407,14 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
                         ),
                         const SizedBox(height: 5),
                         Text(
-                          '${"Gemessen".i18n}: ${DateFormat('d.M.y, HH:mm').format(provider.items[1].last.timestamp.toLocal())}.',
+                          '${"Gemessen".i18n}: ${DateFormat('d.M.y, HH:mm').format(provider.items[1].last.timestamp!.toLocal())}.',
                           style: const TextStyle(fontStyle: FontStyle.italic),
                         ),
                         Text(
                           '(vor %s)'.i18n.fill([
                             durationToString(DateTime.now()
                                 .toUtc()
-                                .difference(provider.items[1].last.timestamp.toUtc()))
+                                .difference(provider.items[1].last.timestamp!.toUtc()))
                           ]),
                           style: const TextStyle(fontStyle: FontStyle.italic),
                         ),
@@ -422,8 +422,8 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
                         _DataTable(data: [
                           if (provider.items[1].last.pm1 != null)
                             ['PM1.0', Text(provider.items[1].last.pm1!.toStringAsFixed(2))],
-                          ['PM2.5', Text(provider.items[1].last.pm25.toStringAsFixed(2))],
-                          ['PM10', Text(provider.items[1].last.pm10.toStringAsFixed(2))],
+                          ['PM2.5', Text(provider.items[1].last.pm25!.toStringAsFixed(2))],
+                          ['PM10', Text(provider.items[1].last.pm10!.toStringAsFixed(2))],
                         ]),
                       ],
                     ),
@@ -468,13 +468,13 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
     ];
   }
 
-  List<List<double>> getDailyMeans(List<LDItem> data) {
+  List<List<double>> getDailyMeans(List<DataItem> data) {
     List<List<double>> vals = List.filled(7, [0, 0]);
-    List<List<LDItem>> itemsPerDay = List.filled(7, []);
-    int earliestTime = data.first.timestamp.millisecondsSinceEpoch;
-    for (LDItem item in data) {
+    List<List<DataItem>> itemsPerDay = List.filled(7, []);
+    int earliestTime = data.first.timestamp!.millisecondsSinceEpoch;
+    for (DataItem item in data) {
       int day =
-          ((item.timestamp.millisecondsSinceEpoch - earliestTime) / (1000 * 60 * 60 * 24)).floor();
+          ((item.timestamp!.millisecondsSinceEpoch - earliestTime) / (1000 * 60 * 60 * 24)).floor();
       if (day >= 0 && day < 7) {
         itemsPerDay[day].add(item);
       }
@@ -484,8 +484,8 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
         vals[i] = [0, 0];
       } else {
         vals[i] = [
-          itemsPerDay[i].map((e) => e.pm25).toList().mean(),
-          itemsPerDay[i].map((e) => e.pm10).toList().mean(),
+          itemsPerDay[i].where((e) => e.pm25 != null).map((e) => e.pm25!).toList().mean(),
+          itemsPerDay[i].where((e) => e.pm10 != null).map((e) => e.pm10!).toList().mean(),
         ];
       }
     }

@@ -91,9 +91,7 @@ void main() async {
   getIt.registerSingleton<TripController>(TripController()..init());
   //getIt.registerSingleton<TripController>(MockTripController()..init());
   getIt.registerSingleton<BackgroundService>(BackgroundService.forPlatform()..init());
-  getIt.registerSingleton<LDHttpProvider>(LDHttpProvider());
-  getIt.registerSingleton<SCHttpProvider>(SCHttpProvider()..fetch());
-  getIt.registerSingleton<AirStationHttpProvider>(AirStationHttpProvider());
+  getIt.registerSingleton<MapHttpProvider>(MapHttpProvider()..fetch());
   getIt.registerSingleton<BleController>(BleController());
   getIt.registerSingleton<FileHandler>(FileHandler()..init());
   getIt.registerSingleton<FavoritesManager>(FavoritesManager()..init());
@@ -162,8 +160,7 @@ class _LDAppState extends State<LDApp> with WidgetsBindingObserver {
           ChangeNotifierProvider.value(value: getIt<DeviceManager>()),
           ChangeNotifierProvider.value(value: getIt<TripController>()),
           Provider.value(value: getIt<BackgroundService>()),
-          ChangeNotifierProvider.value(value: getIt<LDHttpProvider>()),
-          ChangeNotifierProvider.value(value: getIt<SCHttpProvider>()),
+          ChangeNotifierProvider.value(value: getIt<MapHttpProvider>()),
           ChangeNotifierProvider.value(value: getIt<FileHandler>()),
           Provider.value(value: getIt<BleController>()),
         ],

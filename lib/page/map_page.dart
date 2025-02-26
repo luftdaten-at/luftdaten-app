@@ -106,8 +106,7 @@ class _MapPageState extends State<MapPage>
   }
 
   void updateStations({bool zoomin = false, MapEvent? event}) {
-    getIt<SCHttpProvider>().fetch(
-        _controller.mapController.camera.visibleBounds, _controller.mapController.camera.zoom);
+    getIt<MapHttpProvider>().fetch();
   }
 
   @override
@@ -128,23 +127,23 @@ class _MapPageState extends State<MapPage>
     super.dispose();
   }
 
-  void showStationDialog(SCItem item) {
-    SingleStationHttpProvider provider = SingleStationHttpProvider(item.sid.toString());
+  void showStationDialog(DataLocationItem item) {
+    SingleStationHttpProvider provider = SingleStationHttpProvider(item.device_id.toString());
     showLDDialog(
       context,
-      title: "Station #%s".i18n.fill([item.sid.toString()]),
+      title: "Station #%s".i18n.fill([item.device_id.toString()]),
       trailing: StatefulBuilder(builder: (_, setState) {
         FavoritesManager favoritesManager = getIt<FavoritesManager>();
-        bool selected = favoritesManager.hasId(item.sid);
+        bool selected = favoritesManager.hasId(item.device_id);
         return IconButton(
           tooltip: selected ? 'Aus Favoriten entfernen'.i18n : 'Zu Favoriten hinzufügen'.i18n,
           onPressed: () async {
             if (selected) {
-              favoritesManager.removeId(item.sid);
+              favoritesManager.removeId(item.device_id);
               setState(() {});
             } else {
               Favorite favorite =
-                  Favorite(id: item.sid, latLng: LatLng(item.latitude, item.longitude));
+                  Favorite(id: item.device_id, latLng: LatLng(item.latitude, item.longitude));
               favoritesManager.add(favorite);
               setState(() {});
               await setLocaleIdentifier(locale ?? 'de');
@@ -193,26 +192,26 @@ class _MapPageState extends State<MapPage>
                 title: ChartTitle(text: 'Feinstaubbelastung (μg/m³)'.i18n),
                 legend: const Legend(isVisible: true),
                 tooltipBehavior: TooltipBehavior(enable: true),
-                series: <CartesianSeries<LDItem, DateTime>>[
+                series: <CartesianSeries<DataItem, DateTime>>[
                   if (provider.items[1][0].pm1 != null)
-                    LineSeries<LDItem, DateTime>(
+                    LineSeries<DataItem, DateTime>(
                       dataSource: provider.items[1],
-                      xValueMapper: (LDItem item, _) => item.timestamp,
-                      yValueMapper: (LDItem item, _) => item.pm1,
+                      xValueMapper: (DataItem item, _) => item.timestamp,
+                      yValueMapper: (DataItem item, _) => item.pm1,
                       name: 'PM1.0',
                       dataLabelSettings: const DataLabelSettings(isVisible: false),
                     ),
-                  LineSeries<LDItem, DateTime>(
+                  LineSeries<DataItem, DateTime>(
                     dataSource: provider.items[1],
-                    xValueMapper: (LDItem item, _) => item.timestamp,
-                    yValueMapper: (LDItem item, _) => item.pm25,
+                    xValueMapper: (DataItem item, _) => item.timestamp,
+                    yValueMapper: (DataItem item, _) => item.pm25,
                     name: 'PM2.5',
                     dataLabelSettings: const DataLabelSettings(isVisible: false),
                   ),
-                  LineSeries<LDItem, DateTime>(
+                  LineSeries<DataItem, DateTime>(
                     dataSource: provider.items[1],
-                    xValueMapper: (LDItem item, _) => item.timestamp,
-                    yValueMapper: (LDItem item, _) => item.pm10,
+                    xValueMapper: (DataItem item, _) => item.timestamp,
+                    yValueMapper: (DataItem item, _) => item.pm10,
                     name: 'PM10.0',
                     dataLabelSettings: const DataLabelSettings(isVisible: false),
                   ),
@@ -230,7 +229,7 @@ class _MapPageState extends State<MapPage>
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => StationDetailsPage(
-                    id: item.sid,
+                    id: item.device_id,
                     httpProvider: provider,
                   ),
                 ),
@@ -345,7 +344,7 @@ class _MapPageState extends State<MapPage>
                     padding: const EdgeInsets.all(50),
                     maxZoom: 15,
                     markers: context
-                        .watch<SCHttpProvider>()
+                        .watch<MapHttpProvider>()
                         .allItems
                         .map(
                           (e) => ValueMarker<StationPM>(
