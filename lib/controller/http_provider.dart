@@ -51,7 +51,7 @@ class SCItem {
   SCItem(this.timestamp, this.sid, this.latitude, this.longitude, this.pm1, this.pm25, this.pm10);
 
   DateTime timestamp;
-  int sid;
+  String sid;
   double latitude;
   double longitude;
   double? pm1;
@@ -106,7 +106,7 @@ class SCHttpProvider extends HttpProvider {
           logger.e("Invalid line: $line");
           continue;
         }
-        allItems.add(SCItem(d2, int.parse(l[0]), double.parse(l[1]), double.parse(l[2]),
+        allItems.add(SCItem(d2, l[0], double.parse(l[1]), double.parse(l[2]),
             double.parse(l[3]), double.parse(l[5]), double.parse(l[4])));
       }
       logger.d("Fetched ${allItems.length} items");
@@ -188,6 +188,9 @@ class LDItem {
 }
 
 class LDHttpProvider extends HttpProvider {
+  /**
+   * 
+   */
   List<LDItem> items = [];
   bool finished = false;
   final String baseURL = "https://dev.luftdaten.at/d";

@@ -17,7 +17,7 @@ import '../model/air_station_config.dart';
 class StationDetailsPage extends StatefulWidget {
   const StationDetailsPage({super.key, this.id, this.device, this.httpProvider});
 
-  final int? id;
+  final String? id;
   final BleDevice? device;
   final SingleStationHttpProvider? httpProvider;
 

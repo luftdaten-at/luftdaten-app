@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:luftdaten.at/controller/favorites_manager.dart';
 import 'package:luftdaten.at/controller/http_provider.dart';
+import 'package:luftdaten.at/main.dart';
 import 'package:luftdaten.at/widget/ui.dart';
 
 import '../model/ble_device.dart';
@@ -34,8 +35,19 @@ class _DashboardStationTileState extends State<DashboardStationTile> {
 
   @override
   void initState() {
-    // user new provider    
-    String device_id = AirStationConfigManager.getConfig(widget.device!.bleName)!.deviceId!;
+    /**
+     * when device != null -> it is a connected ble device and device id can be retrieved via
+     * AirStationConfigManager
+     * Otherwise favorite != null and device id can be retrieved from there
+     */
+    
+    String device_id = "";
+    if(widget.device != null){
+      device_id = AirStationConfigManager.getConfig(widget.device!.bleName)!.deviceId!;
+    }else{
+      logger.d('3.14159 SC device: ${widget.favorite!.id}');
+      logger.d('3.14159 SC device: ${widget.favorite!.name}');
+    }
 
     provider = SingleStationHttpProviderNew(
       device_id,
