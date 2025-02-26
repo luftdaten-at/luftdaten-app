@@ -17,6 +17,7 @@
  */
 
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
@@ -29,6 +30,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:luftdaten.at/controller/device_info.dart';
 
 import '../main.dart';
+import '../enums.dart';
 import '../model/sensor_data.dart';
 
 class HttpProvider with ChangeNotifier {
@@ -337,14 +339,14 @@ class SingleStationHttpProvider extends HttpProvider {
 }
 
 class SingleStationHttpProviderNew extends HttpProvider {
+  final String API_URL = "https://api.luftdaten.at/v1/station/historical";
+  final String device_id;
+  final bool isAirStation;
+
   // ([Data last day], [last week], [last month]):
   List<List<LDItem>> items = [[], [], []];
   bool finished = false;
   bool error = false;
-  final String API_URL = "https://staging.api.luftdaten.at/station/current";
-
-  final String device_id;
-  final bool isAirStation;
 
   SingleStationHttpProviderNew._(this.device_id, [this.isAirStation = false]);
 
@@ -367,62 +369,52 @@ class SingleStationHttpProviderNew extends HttpProvider {
   }
 
   Future<void> _fetch() async {
+    /**
+     * fetches data for last day, week and month
+     */
     finished = false;
     error = false;
     notifyListeners();
-    logger.d('Fetching data for $device_id (${isAirStation ? 'AirStation' : 'Sensor.Community'}) ...');
-    await _fetchForPeriod(0, 60 * 60 * 24);
-    await _fetchForPeriod(1, 60 * 60 * 24 * 7);
-    await _fetchForPeriod(2, 60 * 60 * 24 * 30);
+    logger.d('SingleStationHttpProviderNew: Fetching data for $device_id $isAirStation');
+    await _fetchForPeriod(0, "hour");
+    await _fetchForPeriod(1, "hour");
+    await _fetchForPeriod(2, "day");
     finished = true;
     logger.d('Fetch done for $device_id.');
     notifyListeners();
   }
 
-  Future<void> _fetchForPeriod(int index, int backsecs) async {
-    items[index] = [];
-    DateTime ts = DateTime.now().subtract(Duration(seconds: backsecs));
+  Future<void> _fetchForPeriod(int index, String precision) async {
+    // example url
+    //https://api.luftdaten.at/v1/station/historical?station_ids=278SC&precision=day&output_format=json'
+    String requestUrl = "$API_URL/?station_ids=$device_id&precision=$precision&output_format=csv";
+    Response response = await http.get(Uri.parse(requestUrl), headers: httpHeaders);
+    if(response.statusCode == 200){
+      // all good
+      // header: device,time_measured,dimension,value
+      SplayTreeMap<DateTime, Map<int, double>> data = SplayTreeMap();
+      for(var line in response.body.split("\n").sublist(1)){ // sublist(1) kipp header
+        var [device, time_measured_string, dimension_string, value_string] = line.split(",");
 
-    String url;
-    if (isAirStation) {
-      List<int> macBytes = hex.decode(device_id);
-      macBytes[macBytes.length - 1] = macBytes[macBytes.length - 1] - 1;
-      List<int> chipIdBytes = macBytes.reversed.toList();
-      String chipId = hex.encode(chipIdBytes);
-      url =
-          "https://dev.luftdaten.at/d/station/history?sid=$chipId&smooth=100&from=${ts.toLocal()}&ldstation=1";
-    } else {
-      url = "";
-    }
+        DateTime time_measured = DateTime.parse(time_measured_string);
+        int dimension = int.parse(dimension_string);
+        double value = double.parse(value_string);
 
-    logger.d('Fetching data for $device_id($index) for past $backsecs seconds from ${ts.toLocal()} ...');
-    logger.d('URL: $url');
+        data.putIfAbsent(time_measured, () => {})[dimension] = value;
+      }
 
-    Response response = await http.get(Uri.parse(url), headers: httpHeaders);
-    logger.d('Received HTTP ${response.statusCode}');
-
-    if (response.statusCode == 200) {
-      List<String> lines = response.body.split('\n');
-      for (var line in lines) {
-        List<String> entries = line.split(';');
-        if (entries.length <= 1) continue;
-        double? pm1 = double.parse(entries[1]);
-        if (pm1.isNaN || pm1 == 0.0) pm1 = null;
-        DateTime ts;
-        try {
-          ts = DateTime.fromMillisecondsSinceEpoch(int.parse(entries[0]) * 1000);
-        } catch(_) {
-          ts = DateTime.parse('${entries[0]}Z').toLocal();
-        }
-        items[index].add(LDItem(
-          ts,
-          pm1,
-          double.parse(entries[2]),
-          double.parse(entries[3]),
-        ));
+      for(var entry in data.entries){
+        LDItem item = LDItem(
+          entry.key, 
+          entry.value[Dimension.PM1_0.value] ?? 0, // when not present insert 0
+          entry.value[Dimension.PM2_5.value] ?? 0,
+          entry.value[Dimension.PM10_0.value] ?? 0,
+        );
+        items[index].add(item);
       }
       logger.d('Added ${items[index].length} entries for $device_id ($index)');
-    } else {
+    }else{
+      // bad
       logger.d("Unexpected, not adding entries for $device_id ($index)");
       error = true;
     }
