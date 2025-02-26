@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:luftdaten.at/controller/favorites_manager.dart';
 import 'package:luftdaten.at/controller/http_provider.dart';
+import 'package:luftdaten.at/main.dart';
 import 'package:luftdaten.at/widget/ui.dart';
 
 import '../model/ble_device.dart';
 import '../page/station_details_page.dart';
 import 'change_notifier_builder.dart';
 import 'dashboard_station_tile.i18n.dart';
+import '../model/air_station_config.dart';
 
 class DashboardStationTile extends StatefulWidget {
   const DashboardStationTile({super.key, this.device, this.favorite, this.dragController})
@@ -33,9 +35,21 @@ class _DashboardStationTileState extends State<DashboardStationTile> {
 
   @override
   void initState() {
+    /**
+     * when device != null -> it is a connected ble device and device id can be retrieved via
+     * AirStationConfigManager
+     * Otherwise favorite != null and device id can be retrieved from there
+     */
+    
+    String device_id = "";
+    if(widget.device != null){
+      device_id = AirStationConfigManager.getConfig(widget.device!.bleName)!.deviceId!;
+    }else{
+      device_id = widget.favorite!.id;
+    }
+
     provider = SingleStationHttpProvider(
-      widget.favorite?.id.toString() ?? widget.device!.bleMacAddress,
-      widget.device != null,
+      device_id,
     );
     super.initState();
   }
@@ -174,7 +188,7 @@ class _DashboardStationTileState extends State<DashboardStationTile> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text('PM2.5', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text(provider.items[0].last.pm25.toStringAsFixed(1)),
+              Text(provider.items[0].last.pm25?.toStringAsFixed(1) ?? "nan"),
             ],
           );
         }
@@ -190,7 +204,7 @@ class _DashboardStationTileState extends State<DashboardStationTile> {
   Color _getColor() {
     if (provider.finished && !provider.error) {
       if (provider.items[0].lastOrNull?.pm25 != null) {
-        double pm25 = provider.items[0].last.pm25;
+        double pm25 = provider.items[0].last.pm25 ?? 0;
         if (pm25 < 5) return Colors.green.shade50;
         if (pm25 < 15) return Colors.orange.shade50;
         return Colors.red.shade50;

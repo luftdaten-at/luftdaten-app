@@ -59,6 +59,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'controller/air_station_config_wizard_controller.dart';
+import 'model/air_station_config.dart';
 import 'controller/file_handler.dart';
 import 'controller/news_controller.dart';
 import 'page/device_manager_page.dart';
@@ -90,9 +91,7 @@ void main() async {
   getIt.registerSingleton<TripController>(TripController()..init());
   //getIt.registerSingleton<TripController>(MockTripController()..init());
   getIt.registerSingleton<BackgroundService>(BackgroundService.forPlatform()..init());
-  getIt.registerSingleton<LDHttpProvider>(LDHttpProvider());
-  getIt.registerSingleton<SCHttpProvider>(SCHttpProvider()..fetch());
-  getIt.registerSingleton<AirStationHttpProvider>(AirStationHttpProvider());
+  getIt.registerSingleton<MapHttpProvider>(MapHttpProvider()..fetch());
   getIt.registerSingleton<BleController>(BleController());
   getIt.registerSingleton<FileHandler>(FileHandler()..init());
   getIt.registerSingleton<FavoritesManager>(FavoritesManager()..init());
@@ -105,6 +104,7 @@ void main() async {
   getIt.registerSingleton<BatteryInfoAggregator>(BatteryInfoAggregator());
 
   await AirStationConfigWizardController.init();
+  await AirStationConfigManager.loadAllConfigs();
 
   // Initialise the OAuth2 client
   //OAuth2Helper oauth2Helper = OAuth2Helper(
@@ -160,8 +160,7 @@ class _LDAppState extends State<LDApp> with WidgetsBindingObserver {
           ChangeNotifierProvider.value(value: getIt<DeviceManager>()),
           ChangeNotifierProvider.value(value: getIt<TripController>()),
           Provider.value(value: getIt<BackgroundService>()),
-          ChangeNotifierProvider.value(value: getIt<LDHttpProvider>()),
-          ChangeNotifierProvider.value(value: getIt<SCHttpProvider>()),
+          ChangeNotifierProvider.value(value: getIt<MapHttpProvider>()),
           ChangeNotifierProvider.value(value: getIt<FileHandler>()),
           Provider.value(value: getIt<BleController>()),
         ],

@@ -374,7 +374,7 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
             ),
             TextButton(
               onPressed: () {
-                widget.controller.config = AirStationConfig.defaultConfig();
+                widget.controller.config = AirStationConfig.defaultConfig(widget.controller.id);
                 widget.controller.stage = AirStationConfigWizardStage.editSettings;
               },
               child: Text('Trotzdem fortfahren'.i18n),

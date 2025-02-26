@@ -131,7 +131,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Station #%i'.i18n.fill([favorite.id]),
+                          'Station #%s'.i18n.fill([favorite.id]),
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         if (favorite.locationString != null) Text(favorite.locationString!)
@@ -145,7 +145,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
                         title: 'Favorit löschen?',
                         icon: Icons.delete,
                         color: Colors.red,
-                        text: 'Station #%i aus Favoriten löschen?'.i18n.fill([favorite.id]),
+                        text: 'Station #%s aus Favoriten löschen?'.i18n.fill([favorite.id]),
                         actions: [
                           LDDialogAction(label: 'Abbrechen'.i18n, filled: false),
                           LDDialogAction(

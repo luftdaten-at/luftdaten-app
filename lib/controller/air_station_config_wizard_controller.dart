@@ -266,7 +266,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
     BleDevice dev = getIt<DeviceManager>().devices.where((e) => e.bleName == id).first;
     try {
       List<int> bytes = await getIt<BleController>().readAirStationConfiguration(dev) ?? [];
-      config = AirStationConfig.fromBytes(bytes);
+      config = AirStationConfig.fromBytes(id, bytes);
       configLoadedAt = DateTime.now();
       saveAll();
     } catch (e) {
@@ -318,41 +318,11 @@ class AirStationConfigWizardController extends ChangeNotifier {
   bool _shouldStillCheckForData = false;
 
   Future<void> _checkForDataOnline() async {
-    DateTime scanningFrom = DateTime.now();
-    while(true) {
-      if(!_shouldStillCheckForData) {
-        return;
-      }
-      int waitedForSeconds = DateTime.now().difference(configSentAt!).inSeconds;
-      int shouldWaitFor = config!.measurementInterval.seconds * 3 + 60;
-      int scanningForSeconds = DateTime.now().difference(scanningFrom).inSeconds;
-      int shouldScanForAtLeast = 60;
-      if(waitedForSeconds > shouldWaitFor && scanningForSeconds > shouldScanForAtLeast) {
-        stage = AirStationConfigWizardStage.firstDataFailed;
-        return;
-      }
-      SingleStationHttpProvider provider = SingleStationHttpProvider(id.split('-').last, true, false);
-      await provider.refetch();
-      if(provider.error) {
-        stage = AirStationConfigWizardStage.firstDataCheckFailed;
-        return;
-      } else if(provider.items[1].isEmpty) {
-        // Continue waiting
-      } else {
-        // Check if there's data that is more recent than our config changes
-        if(provider.items[1].last.timestamp.compareTo(configSentAt!) < 0) {
-          logger.d('Config sent at: ${configSentAt!}');
-          logger.d('Most recent values: ${provider.items[1].last.timestamp}');
-          // Most recent values were sent before config changed, keep waiting
-        } else {
-          // New data has been found, finish
-          stage = AirStationConfigWizardStage.firstDataSuccess;
-          firstDataSuccessReceivedAt = DateTime.now();
-          return;
-        }
-      }
-      await Future.delayed(const Duration(seconds: 10));
-    }
+
+    // directly go to station detail view
+    stage = AirStationConfigWizardStage.firstDataSuccess;
+
+    return;
   }
 
   // Method to fetch current location

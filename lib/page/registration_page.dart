@@ -15,6 +15,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../model/ble_device.dart';
 import '../widget/ui.dart';
 
+/*
 class RegistrationData {
   RegistrationData();
 
@@ -649,3 +650,4 @@ class _Register4PageState extends State<Register4Page> {
     );
   }
 }
+*/

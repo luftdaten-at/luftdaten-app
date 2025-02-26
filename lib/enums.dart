@@ -1,0 +1,35 @@
+enum Dimension {
+  PM0_1(1),
+  PM1_0(2),
+  PM2_5(3),
+  PM4_0(4),
+  PM10_0(5),
+  HUMIDITY(6),
+  TEMPERATURE(7),
+  VOC_INDEX(8),
+  NOX_INDEX(9),
+  PRESSURE(10),
+  CO2(11),
+  O3(12),
+  AQI(13),
+  GAS_RESISTANCE(14),
+  TVOC(15),
+  NO2(16),
+  SGP40_RAW_GAS(17),
+  SGP40_ADJUSTED_GAS(18),
+  ADJUSTED_TEMP_CUBE(19),
+  UVS(20),
+  LIGHT(21),
+  ALTITUDE(22),
+  UVI(23),
+  LUX(24),
+  ACCELERATION_X(25),
+  ACCELERATION_Y(26),
+  ACCELERATION_Z(27),
+  GYRO_X(28),
+  GYRO_Y(29),
+  GYRO_Z(30);
+
+  final int value;
+  const Dimension(this.value);
+}

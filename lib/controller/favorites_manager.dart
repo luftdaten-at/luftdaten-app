@@ -25,17 +25,17 @@ class FavoritesManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool hasId(int id) {
+  bool hasId(String id) {
     return _favorites.any((e) => e.id == id);
   }
 
-  void removeId(int id) {
+  void removeId(String id) {
     _favorites.removeWhere((e) => e.id == id);
     save();
     notifyListeners();
   }
 
-  void addByIdAndLocation(int id, LatLng latLng) {
+  void addByIdAndLocation(String id, LatLng latLng) {
     Favorite favorite = Favorite(id: id, latLng: latLng);
     _favorites.add(favorite);
     save();
@@ -67,7 +67,7 @@ class FavoritesManager extends ChangeNotifier {
 }
 
 class Favorite {
-  final int id;
+  final String id;
   final LatLng latLng;
   String? _locationString;
   String? _name;
