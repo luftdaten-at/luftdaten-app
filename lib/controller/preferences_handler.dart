@@ -1,5 +1,5 @@
 import 'package:get_storage/get_storage.dart';
-import 'package:luftdaten.at/page/map_page.dart';
+import 'package:luftdaten.at/enums.dart' as enums;
 
 class PreferencesHandler {
   // This class stores user preferences for consistency between sessions
@@ -8,15 +8,15 @@ class PreferencesHandler {
 
   final GetStorage _box = GetStorage('preferences');
 
-  DisplayType _selectedPM = DisplayType.pm25;
-  DisplayType get selectedPM => _selectedPM;
+  int _selectedPM = enums.Dimension.PM2_5;
+  int get selectedPM => _selectedPM;
   set selectedPM(value) {
     _selectedPM = value;
-    _box.write('mapShowPM', _selectedPM.label);
+    _box.write('mapShowPM', _selectedPM);
   }
 
   void init() async {
     await GetStorage.init('preferences');
-    _selectedPM = DisplayType.values.where((e) => e.label == _box.read('mapShowPM')).firstOrNull ?? DisplayType.pm25;
+    _selectedPM = _box.read('mapShowPM') ?? enums.Dimension.PM2_5;
   }
 }

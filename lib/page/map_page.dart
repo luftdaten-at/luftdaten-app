@@ -52,6 +52,7 @@ import '../model/trip.dart';
 import '../model/value_marker.dart';
 import '../widget/progress.dart';
 import '../widget/ui.dart';
+import 'package:luftdaten.at/enums.dart' as enums;
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -81,7 +82,7 @@ class _MapPageState extends State<MapPage>
 
   bool autoCenter = true;
 
-  DisplayType mapDisplayType = DisplayType.pm25;
+  int mapDisplayType = enums.Dimension.PM2_5;
 
   final CompassController _compassController = CompassController();
 
@@ -89,16 +90,16 @@ class _MapPageState extends State<MapPage>
     //if (item.flatten.pm10 != null) {
     //  return FormattedValue.from(MeasurableQuantity.pm10, item.flatten.pm10!).color;
     //}
-    if (mapDisplayType == DisplayType.pm1) {
+    if (mapDisplayType == enums.Dimension.PM1_0) {
       if (item.flatten.pm1 == null) return Colors.grey;
       return GradientColor.pm1().getColor(item.flatten.pm1!);
-    } else if (mapDisplayType == DisplayType.pm25) {
+    } else if (mapDisplayType == enums.Dimension.PM2_5) {
       if (item.flatten.pm25 == null) return Colors.grey;
       return GradientColor.pm25().getColor(item.flatten.pm25!);
-    } else if (mapDisplayType == DisplayType.pm10) {
+    } else if (mapDisplayType == enums.Dimension.PM10_0) {
       if (item.flatten.pm10 == null) return Colors.grey;
       return GradientColor.pm10().getColor(item.flatten.pm10!);
-    } else if (mapDisplayType == DisplayType.temperature) {
+    } else if (mapDisplayType == enums.Dimension.TEMPERATURE) {
       if (item.flatten.temperature == null) return Colors.grey;
       return GradientColor.temperature().getColor(item.flatten.temperature!);
     }
@@ -358,21 +359,14 @@ class _MapPageState extends State<MapPage>
                               padding: EdgeInsets.zero,
                               icon: Builder(builder: (context) {
                                 double? value;
-                                if (mapDisplayType == DisplayType.pm1) value = e.pm1;
-                                if (mapDisplayType == DisplayType.pm25) value = e.pm25;
-                                if (mapDisplayType == DisplayType.pm10) value = e.pm10;
+                                if (mapDisplayType == enums.Dimension.PM1_0) value = e.pm1;
+                                if (mapDisplayType == enums.Dimension.PM2_5) value = e.pm25;
+                                if (mapDisplayType == enums.Dimension.PM10_0) value = e.pm10;
                                 if (value?.isNaN ?? false) value = null;
                                 Color color;
                                 if (value != null) {
-                                  GradientColor gradient;
-                                  if (mapDisplayType == DisplayType.pm1) {
-                                    gradient = GradientColor.pm1();
-                                  } else if (mapDisplayType == DisplayType.pm25) {
-                                    gradient = GradientColor.pm25();
-                                  } else {
-                                    gradient = GradientColor.pm10();
-                                  }
-                                  color = gradient.getColor(value);
+                                  var [r, g, b] = enums.Dimension.getColor(mapDisplayType, value);
+                                  color = Color.fromRGBO(r, g, b, 1);
                                 } else {
                                   color = Colors.grey;
                                 }
@@ -408,10 +402,10 @@ class _MapPageState extends State<MapPage>
                       for (Marker marker in markers) {
                         StationPM stationPM = (marker as ValueMarker).value as StationPM;
                         double? value;
-                        if (mapDisplayType == DisplayType.pm1) value = stationPM.pm1;
-                        if (mapDisplayType == DisplayType.pm25) value = stationPM.pm25;
-                        if (mapDisplayType == DisplayType.pm10) value = stationPM.pm10;
-                        if (mapDisplayType == DisplayType.temperature) value = null;
+                        if (mapDisplayType == enums.Dimension.PM1_0) value = stationPM.pm1;
+                        if (mapDisplayType == enums.Dimension.PM2_5) value = stationPM.pm25;
+                        if (mapDisplayType == enums.Dimension.PM10_0) value = stationPM.pm10;
+                        if (mapDisplayType == enums.Dimension.TEMPERATURE) value = null;
                         if (value != null && !value.isNaN) {
                           acc += value;
                           count++;
@@ -421,9 +415,9 @@ class _MapPageState extends State<MapPage>
                       Color color;
                       if (value != null) {
                         GradientColor gradient;
-                        if (mapDisplayType == DisplayType.pm1) {
+                        if (mapDisplayType == enums.Dimension.PM1_0) {
                           gradient = GradientColor.pm1();
-                        } else if (mapDisplayType == DisplayType.pm25) {
+                        } else if (mapDisplayType == enums.Dimension.PM2_5) {
                           gradient = GradientColor.pm25();
                         } else {
                           gradient = GradientColor.pm10();
@@ -659,19 +653,19 @@ class _MapPageState extends State<MapPage>
                   child: PopupMenuButton(
                     itemBuilder: (_) => [
                       const PopupMenuItem(
-                        value: DisplayType.pm1,
+                        value: enums.Dimension.PM1_0,
                         child: Text('PM1.0'),
                       ),
                       const PopupMenuItem(
-                        value: DisplayType.pm25,
+                        value: enums.Dimension.PM2_5,
                         child: Text('PM2.5'),
                       ),
                       const PopupMenuItem(
-                        value: DisplayType.pm10,
+                        value: enums.Dimension.PM10_0,
                         child: Text('PM10.0'),
                       ),
                       PopupMenuItem(
-                        value: DisplayType.temperature,
+                        value: enums.Dimension.TEMPERATURE,
                         child: Text('Temperatur'.i18n),
                       ),
                     ],
@@ -697,7 +691,7 @@ class _MapPageState extends State<MapPage>
                         width: 44,
                         child: Center(
                           child: Text(
-                            mapDisplayType.label,
+                            enums.Dimension.get_name(mapDisplayType),
                             textAlign: TextAlign.center,
                             style: GoogleFonts.nunitoSans(
                               fontSize: 11,
@@ -768,17 +762,6 @@ class _MapPageState extends State<MapPage>
 
 extension _RemoveNulls<T extends Object> on List<T?> {
   List<T> removeNulls() => where((element) => element != null).toList().cast<T>();
-}
-
-enum DisplayType {
-  pm1('PM\n1.0'),
-  pm25('PM\n2.5'),
-  pm10('PM\n10.0'),
-  temperature('°C');
-
-  final String label;
-
-  const DisplayType(this.label);
 }
 
 class StationPM {

@@ -103,6 +103,10 @@ class Dimension {
     LUX: "Lux"
   };
 
+  static String get_name(int dim){
+    return _names[dim] ?? "Name not found";
+  }
+
   static dynamic getColor(int dimensionId, double val) {
     if (!thresholds.containsKey(dimensionId)) return null;
     var th = [-double.infinity, ...thresholds[dimensionId]![0], double.infinity];
