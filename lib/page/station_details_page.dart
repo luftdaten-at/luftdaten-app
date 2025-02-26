@@ -12,6 +12,7 @@ import '../controller/http_provider.dart';
 import '../widget/change_notifier_builder.dart';
 import 'air_station_config_wizard_page.dart';
 import 'station_details_page.i18n.dart';
+import '../model/air_station_config.dart';
 
 class StationDetailsPage extends StatefulWidget {
   const StationDetailsPage({super.key, this.id, this.device, this.httpProvider});
@@ -35,8 +36,10 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
     if (widget.httpProvider != null) {
       provider = widget.httpProvider!;
     } else {
-      provider = SingleStationHttpProvider(
-        widget.id?.toString() ?? widget.device!.bleMacAddress,
+      String device_id = AirStationConfigManager.getConfig(widget.device!.bleName)!.deviceId!;
+
+      provider = SingleStationHttpProviderNew(
+        device_id,
         widget.device != null,
       );
     }

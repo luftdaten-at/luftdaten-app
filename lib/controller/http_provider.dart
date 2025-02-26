@@ -28,6 +28,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:luftdaten.at/controller/device_info.dart';
+import 'package:luftdaten.at/controller/news_controller.dart';
 
 import '../main.dart';
 import '../enums.dart';
@@ -178,6 +179,11 @@ class LDItem {
   double? pm1;
   double pm25;
   double pm10;
+
+  @override
+  String toString() {
+    return 'LDItem($timestamp, $pm1, $pm25, $pm10)';
+  }
 }
 
 class LDHttpProvider extends HttpProvider {
@@ -338,7 +344,7 @@ class SingleStationHttpProvider extends HttpProvider {
   }
 }
 
-class SingleStationHttpProviderNew extends HttpProvider {
+class SingleStationHttpProviderNew extends SingleStationHttpProvider {
   final String API_URL = "https://api.luftdaten.at/v1/station/historical";
   final String device_id;
   final bool isAirStation;
@@ -348,7 +354,8 @@ class SingleStationHttpProviderNew extends HttpProvider {
   bool finished = false;
   bool error = false;
 
-  SingleStationHttpProviderNew._(this.device_id, [this.isAirStation = false]);
+  //SingleStationHttpProviderNew._(this.sid, [this.isAirStation = false]);
+  SingleStationHttpProviderNew._(this.device_id, [this.isAirStation = false]) : super._(device_id, isAirStation);
 
   factory SingleStationHttpProviderNew(String device_id,
       [bool isAirStation = false, bool initialFetch = true]) {
@@ -364,10 +371,12 @@ class SingleStationHttpProviderNew extends HttpProvider {
 
   static final Map<String, SingleStationHttpProviderNew> _providers = {};
 
+  @override
   Future<void> refetch() async {
     await _fetch();
   }
 
+  @override
   Future<void> _fetch() async {
     /**
      * fetches data for last day, week and month
@@ -376,24 +385,33 @@ class SingleStationHttpProviderNew extends HttpProvider {
     error = false;
     notifyListeners();
     logger.d('SingleStationHttpProviderNew: Fetching data for $device_id $isAirStation');
-    await _fetchForPeriod(0, "hour");
-    await _fetchForPeriod(1, "hour");
-    await _fetchForPeriod(2, "day");
+    await _fetchForPrecision(0, "all");
+    await _fetchForPrecision(1, "hour");
+    await _fetchForPrecision(2, "day");
+
+
+    logger.d('3.14159 ${items[0]}');
+    logger.d('3.14159 ${items[1]}');
+    logger.d('3.14159 ${items[2]}');
+
     finished = true;
     logger.d('Fetch done for $device_id.');
     notifyListeners();
   }
 
-  Future<void> _fetchForPeriod(int index, String precision) async {
+  Future<void> _fetchForPrecision(int index, String precision) async {
+    items[index] = [];
     // example url
     //https://api.luftdaten.at/v1/station/historical?station_ids=278SC&precision=day&output_format=json'
     String requestUrl = "$API_URL/?station_ids=$device_id&precision=$precision&output_format=csv";
     Response response = await http.get(Uri.parse(requestUrl), headers: httpHeaders);
+
     if(response.statusCode == 200){
       // all good
       // header: device,time_measured,dimension,value
       SplayTreeMap<DateTime, Map<int, double>> data = SplayTreeMap();
       for(var line in response.body.split("\n").sublist(1)){ // sublist(1) kipp header
+        if(line.isEmpty) continue;
         var [device, time_measured_string, dimension_string, value_string] = line.split(",");
 
         DateTime time_measured = DateTime.parse(time_measured_string);
@@ -404,6 +422,7 @@ class SingleStationHttpProviderNew extends HttpProvider {
       }
 
       for(var entry in data.entries){
+        String kk = entry.key.toString();
         LDItem item = LDItem(
           entry.key, 
           entry.value[Dimension.PM1_0.value] ?? 0, // when not present insert 0

@@ -8,6 +8,7 @@ import '../model/ble_device.dart';
 import '../page/station_details_page.dart';
 import 'change_notifier_builder.dart';
 import 'dashboard_station_tile.i18n.dart';
+import '../model/air_station_config.dart';
 
 class DashboardStationTile extends StatefulWidget {
   const DashboardStationTile({super.key, this.device, this.favorite, this.dragController})
@@ -33,8 +34,11 @@ class _DashboardStationTileState extends State<DashboardStationTile> {
 
   @override
   void initState() {
-    provider = SingleStationHttpProvider(
-      widget.favorite?.id.toString() ?? widget.device!.bleMacAddress,
+    // user new provider    
+    String device_id = AirStationConfigManager.getConfig(widget.device!.bleName)!.deviceId!;
+
+    provider = SingleStationHttpProviderNew(
+      device_id,
       widget.device != null,
     );
     super.initState();
