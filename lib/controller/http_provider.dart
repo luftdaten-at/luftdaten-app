@@ -18,6 +18,7 @@
 
 import 'dart:async';
 import 'dart:collection';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -27,6 +28,7 @@ import 'package:http/http.dart';
 import 'package:luftdaten.at/controller/device_info.dart';
 
 import '../main.dart';
+import 'package:luftdaten.at/models.dart';
 import '../enums.dart';
 
 
@@ -67,6 +69,7 @@ class DataLocationItem extends DataItem {
 class MapHttpProvider extends HttpProvider {
   /// for every station fetches the current values with thier location
   final String API_URL = "https://api.luftdaten.at/v1/station/current/all";
+  final String NEW_API_URL = "https://api.luftdaten.at/v1/station/current?last_active=3600&output_format=geojson&calibration_data=false";
   List<DataLocationItem> allItems = [];
   DateTime? _lastfetch;
 
@@ -81,6 +84,16 @@ class MapHttpProvider extends HttpProvider {
   }
 
   Future<void> _fetch() async {
+    // fetch in json format
+    Response resp = await http.get(Uri.parse(NEW_API_URL), headers: httpHeaders);
+    List<Measurement> measurements = [];
+    if(resp.statusCode == 200){
+      var json = jsonDecode(resp.body);
+      for(var data in json['features']){
+        measurements.add(loadMeasurementFromJson(data));
+      }
+      logger.d('3.14159 ${measurements.first}');
+    }
     // returns a csv in the following fromat
     // sid,latitude,longitude,pm1,pm25,pm10
     Response response = await http.get(Uri.parse(API_URL), headers: httpHeaders);

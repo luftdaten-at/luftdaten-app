@@ -32,7 +32,7 @@ class Values {
 
 class Measurement {
   Location? location;
-  int sensorModel;
+  int? sensorModel;
   List<Values> values;
   String device;
   DateTime? time;
@@ -50,8 +50,7 @@ class Measurement {
   }
 }
 
-Measurement loadMeasurementFromJson(String jsonString) {
-  Map<String, dynamic> jsonData = jsonDecode(jsonString);
+Measurement loadMeasurementFromJson(Map<String, dynamic> jsonData) {
   var coordinates = jsonData['geometry']['coordinates'];
   var properties = jsonData['properties'];
   var sensor = properties['sensors'][0];
