@@ -34,11 +34,26 @@ class Dimension {
 
   static final Map<int, List<dynamic>> thresholds = {
     TEMPERATURE: [[18, 24], [Color.BLUE, Color.GREEN, Color.RED]],
-    PM2_5: [[5, 15], [Color.GREEN, Color.YELLOW, Color.RED]],
     TVOC: [[220, 1430], [Color.GREEN, Color.YELLOW, Color.RED]],
     CO2: [[800, 1000, 1400], [Color.GREEN, Color.YELLOW, Color.ORANGE, Color.RED]],
     ADJUSTED_TEMP_CUBE: [[18, 24], [Color.BLUE, Color.GREEN, Color.RED]],
-    UVI: [[3, 6, 8, 11], [Color.GREEN, Color.YELLOW, Color.ORANGE, Color.RED, Color.PURPLE]]
+    UVI: [[3, 6, 8, 11], [Color.GREEN, Color.YELLOW, Color.ORANGE, Color.RED, Color.PURPLE]],
+    // PM1.0 thresholds with exact HSL colors
+    PM1_0: [
+      [0, 9, 35, 55, 125, 250.5], 
+      [Color.GREEN_LIGHT, Color.YELLOW, Color.ORANGE, Color.RED, Color.PURPLE, Color.BROWN_DARK]
+    ],
+    // PM2.5 thresholds with exact HSL colors
+    PM2_5: [
+      [0, 9, 35, 55, 125, 250.5], 
+      [Color.GREEN_LIGHT, Color.YELLOW, Color.ORANGE, Color.RED, Color.PURPLE, Color.BROWN_DARK]
+    ],
+
+    // PM10 thresholds with exact HSL colors
+    PM10_0: [
+      [0, 54, 154, 254, 354, 424], 
+      [Color.GREEN_LIGHT, Color.YELLOW, Color.ORANGE, Color.RED, Color.PURPLE, Color.BROWN_DARK]
+    ]
   };
 
   static final Map<int, String> _units = {
@@ -121,15 +136,17 @@ class Dimension {
 }
 
 class Color {
-  static const RED = [255, 0, 0];
   static const GREEN = [0, 255, 0];
   static const GREEN_LOW = [0, 50, 0];
   static const BLUE = [0, 0, 255];
-  static const YELLOW = [255, 100, 0];
   static const CYAN = [0, 255, 50];
   static const MAGENTA = [255, 0, 20];
   static const WHITE = [255, 150, 40];
-  static const ORANGE = [255, 70, 0];
-  static const PURPLE = [200, 0, 80];
   static const OFF = [0, 0, 0];
+  static const GREEN_LIGHT = [128, 255, 128];  // HSL(120, 1, 0.75)
+  static const YELLOW = [255, 255, 0];         // HSL(60, 1, 1)
+  static const ORANGE = [255, 170, 0];         // HSL(30, 1, 1)
+  static const RED = [255, 0, 0];              // HSL(0, 1, 1)
+  static const PURPLE = [179, 0, 179];         // HSL(300, 1, 0.7)
+  static const BROWN_DARK = [128, 0, 32];      // HSL(330, 1, 0.5)
 }

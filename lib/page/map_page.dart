@@ -36,6 +36,7 @@ import 'package:luftdaten.at/controller/toaster.dart';
 import 'package:luftdaten.at/controller/trip_controller.dart';
 import 'package:luftdaten.at/main.dart';
 import 'package:luftdaten.at/model/measured_data.dart';
+import 'package:luftdaten.at/models.dart';
 import 'package:luftdaten.at/page/annotated_picture_page.dart';
 import 'package:luftdaten.at/page/map_page.i18n.dart';
 import 'package:luftdaten.at/page/station_details_page.dart';
@@ -128,29 +129,29 @@ class _MapPageState extends State<MapPage>
     super.dispose();
   }
 
-  void showStationDialog(DataLocationItem item) {
-    SingleStationHttpProvider provider = SingleStationHttpProvider(item.device_id.toString());
+  void showStationDialog(Measurement item) {
+    SingleStationHttpProvider provider = SingleStationHttpProvider(item.deviceId.toString());
     showLDDialog(
       context,
-      title: "Station #%s".i18n.fill([item.device_id.toString()]),
+      title: "Station #%s".i18n.fill([item.deviceId.toString()]),
       trailing: StatefulBuilder(builder: (_, setState) {
         FavoritesManager favoritesManager = getIt<FavoritesManager>();
-        bool selected = favoritesManager.hasId(item.device_id);
+        bool selected = favoritesManager.hasId(item.deviceId);
         return IconButton(
           tooltip: selected ? 'Aus Favoriten entfernen'.i18n : 'Zu Favoriten hinzufügen'.i18n,
           onPressed: () async {
             if (selected) {
-              favoritesManager.removeId(item.device_id);
+              favoritesManager.removeId(item.deviceId);
               setState(() {});
             } else {
               Favorite favorite =
-                  Favorite(id: item.device_id, latLng: LatLng(item.latitude, item.longitude));
+                  Favorite(id: item.deviceId, latLng: LatLng(item.location.lat, item.location.lon));
               favoritesManager.add(favorite);
               setState(() {});
               await setLocaleIdentifier(locale ?? 'de');
               List<Placemark> placemarks = await placemarkFromCoordinates(
-                item.latitude,
-                item.longitude,
+                item.location.lat,
+                item.location.lon,
               );
               logger.d('Reverse geocoding result:');
               for (Placemark placemark in placemarks) {
@@ -230,7 +231,7 @@ class _MapPageState extends State<MapPage>
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => StationDetailsPage(
-                    id: item.device_id,
+                    id: item.deviceId,
                     httpProvider: provider,
                   ),
                 ),
@@ -349,8 +350,8 @@ class _MapPageState extends State<MapPage>
                         .allItems
                         .map(
                           (e) => ValueMarker<StationPM>(
-                            point: LatLng(e.latitude, e.longitude),
-                            value: StationPM(pm1: e.pm1, pm25: e.pm25, pm10: e.pm10),
+                            point: LatLng(e.location.lat, e.location.lon),
+                            value: StationPM(pm1: e.get_valueByDimension(enums.Dimension.PM1_0), pm25: e.get_valueByDimension(enums.Dimension.PM2_5), pm10: e.get_valueByDimension(enums.Dimension.PM10_0)),
                             width: 40,
                             height: 40,
                             child: IconButton(
@@ -358,10 +359,7 @@ class _MapPageState extends State<MapPage>
                               iconSize: 40,
                               padding: EdgeInsets.zero,
                               icon: Builder(builder: (context) {
-                                double? value;
-                                if (mapDisplayType == enums.Dimension.PM1_0) value = e.pm1;
-                                if (mapDisplayType == enums.Dimension.PM2_5) value = e.pm25;
-                                if (mapDisplayType == enums.Dimension.PM10_0) value = e.pm10;
+                                double? value = e.get_valueByDimension(mapDisplayType);
                                 if (value?.isNaN ?? false) value = null;
                                 Color color;
                                 if (value != null) {

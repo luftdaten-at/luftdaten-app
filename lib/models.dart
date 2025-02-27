@@ -31,38 +31,23 @@ class Values {
 }
 
 class Measurement {
-  Location? location;
-  int? sensorModel;
+  Location location;
   List<Values> values;
-  String device;
+  String deviceId;
   DateTime? time;
 
-  Measurement(this.location, this.sensorModel, this.values, this.device, this.time);
+  Measurement(this.location, this.values, this.deviceId, this.time);
 
-  factory Measurement.fromJson(Map<String, dynamic> json) {
+  factory Measurement.fromJson(Map<String, dynamic> jsonData) {
     return Measurement(
-      json['location'] != null ? Location.fromJson(json['location']) : null,
-      json['sensorModel'],
-      (json['values'] as List).map((v) => Values.fromJson(v)).toList(),
-      json['device'],
-      json['time'] != null ? DateTime.parse(json['time']) : null,
+      Location.fromJson(jsonData['location']),
+      (jsonData['values'] as List).map((item) => Values.fromJson(item)).toList(),
+      jsonData['device'],
+      DateTime.tryParse(jsonData['time_measured']),
     );
   }
-}
 
-Measurement loadMeasurementFromJson(Map<String, dynamic> jsonData) {
-  var coordinates = jsonData['geometry']['coordinates'];
-  var properties = jsonData['properties'];
-  var sensor = properties['sensors'][0];
-
-  Location location = Location(
-      coordinates[1], coordinates[0], properties['height']);
-  return Measurement(
-      location,
-      sensor['sensor_model'],
-      (sensor['values'] as List)
-          .map((v) => Values.fromJson(v))
-          .toList(),
-      properties['device'],
-      properties['time'] != null ? DateTime.parse(properties['time']) : null);
+  double? get_valueByDimension(int dimension){ 
+    return values.where((val) => val.dimension == dimension).firstOrNull?.value;
+  }
 }
