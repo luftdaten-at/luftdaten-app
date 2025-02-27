@@ -349,9 +349,9 @@ class _MapPageState extends State<MapPage>
                         .watch<MapHttpProvider>()
                         .allItems
                         .map(
-                          (e) => ValueMarker<StationPM>(
+                          (e) => ValueMarker<Measurement>(
                             point: LatLng(e.location.lat, e.location.lon),
-                            value: StationPM(pm1: e.get_valueByDimension(enums.Dimension.PM1_0), pm25: e.get_valueByDimension(enums.Dimension.PM2_5), pm10: e.get_valueByDimension(enums.Dimension.PM10_0)),
+                            value: e,
                             width: 40,
                             height: 40,
                             child: IconButton(
@@ -398,11 +398,8 @@ class _MapPageState extends State<MapPage>
                       double acc = 0;
                       int count = 0;
                       for (Marker marker in markers) {
-                        StationPM stationPM = (marker as ValueMarker).value as StationPM;
-                        double? value;
-                        if (mapDisplayType == enums.Dimension.PM1_0) value = stationPM.pm1;
-                        if (mapDisplayType == enums.Dimension.PM2_5) value = stationPM.pm25;
-                        if (mapDisplayType == enums.Dimension.PM10_0) value = stationPM.pm10;
+                        Measurement measurement = (marker as ValueMarker).value as Measurement;
+                        double? value = measurement.get_valueByDimension(mapDisplayType);
                         if (mapDisplayType == enums.Dimension.TEMPERATURE) value = null;
                         if (value != null && !value.isNaN) {
                           acc += value;
@@ -412,15 +409,7 @@ class _MapPageState extends State<MapPage>
                       double? value = count == 0 ? null : acc / count;
                       Color color;
                       if (value != null) {
-                        GradientColor gradient;
-                        if (mapDisplayType == enums.Dimension.PM1_0) {
-                          gradient = GradientColor.pm1();
-                        } else if (mapDisplayType == enums.Dimension.PM2_5) {
-                          gradient = GradientColor.pm25();
-                        } else {
-                          gradient = GradientColor.pm10();
-                        }
-                        color = gradient.getColor(value);
+                        color = enums.Dimension.getColor(mapDisplayType, value);
                       } else {
                         color = Colors.grey;
                       }
