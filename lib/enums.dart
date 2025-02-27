@@ -1,4 +1,6 @@
 import 'dart:collection';
+import 'package:flutter/material.dart' as material;
+
 
 class Dimension {
   static const int PM0_1 = 1;
@@ -40,18 +42,18 @@ class Dimension {
     UVI: [[3, 6, 8, 11], [Color.GREEN, Color.YELLOW, Color.ORANGE, Color.RED, Color.PURPLE]],
     // PM1.0 thresholds with exact HSL colors
     PM1_0: [
-      [0, 9, 35, 55, 125, 250.5], 
+      [9, 35, 55, 125, 250.5], 
       [Color.GREEN_LIGHT, Color.YELLOW, Color.ORANGE, Color.RED, Color.PURPLE, Color.BROWN_DARK]
     ],
     // PM2.5 thresholds with exact HSL colors
     PM2_5: [
-      [0, 9, 35, 55, 125, 250.5], 
+      [9, 35, 55, 125, 250.5], 
       [Color.GREEN_LIGHT, Color.YELLOW, Color.ORANGE, Color.RED, Color.PURPLE, Color.BROWN_DARK]
     ],
 
     // PM10 thresholds with exact HSL colors
     PM10_0: [
-      [0, 54, 154, 254, 354, 424], 
+      [54, 154, 254, 354, 424], 
       [Color.GREEN_LIGHT, Color.YELLOW, Color.ORANGE, Color.RED, Color.PURPLE, Color.BROWN_DARK]
     ]
   };
@@ -128,7 +130,8 @@ class Dimension {
     var colors = thresholds[dimensionId]![1];
     for (int i = 0; i < th.length - 1; i++) {
       if (th[i] <= val && val < th[i + 1]) {
-        return colors[i];
+        var [r, g, b] = colors[i];
+        return material.Color.fromRGBO(r, g, b, 1);
       }
     }
     return null;

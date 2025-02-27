@@ -363,8 +363,7 @@ class _MapPageState extends State<MapPage>
                                 if (value?.isNaN ?? false) value = null;
                                 Color color;
                                 if (value != null) {
-                                  var [r, g, b] = enums.Dimension.getColor(mapDisplayType, value);
-                                  color = Color.fromRGBO(r, g, b, 1);
+                                  color = enums.Dimension.getColor(mapDisplayType, value);
                                 } else {
                                   color = Colors.grey;
                                 }
@@ -400,7 +399,6 @@ class _MapPageState extends State<MapPage>
                       for (Marker marker in markers) {
                         Measurement measurement = (marker as ValueMarker).value as Measurement;
                         double? value = measurement.get_valueByDimension(mapDisplayType);
-                        if (mapDisplayType == enums.Dimension.TEMPERATURE) value = null;
                         if (value != null && !value.isNaN) {
                           acc += value;
                           count++;
