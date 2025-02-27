@@ -12,11 +12,11 @@ class PreferencesHandler {
   int get selectedPM => _selectedPM;
   set selectedPM(value) {
     _selectedPM = value;
-    _box.write('mapShowPM', _selectedPM);
+    _box.write('mapShowPM', _selectedPM.toString());
   }
 
   void init() async {
     await GetStorage.init('preferences');
-    _selectedPM = _box.read('mapShowPM') ?? enums.Dimension.PM2_5;
+    _selectedPM = int.tryParse(_box.read('mapShowPM')) ?? enums.Dimension.PM2_5;
   }
 }
