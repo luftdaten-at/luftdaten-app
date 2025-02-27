@@ -65,6 +65,7 @@ class DataLocationItem extends DataItem {
 }
 
 class MapHttpProvider extends HttpProvider {
+  /// for every station fetches the current values with thier location
   final String API_URL = "https://api.luftdaten.at/v1/station/current/all";
   List<DataLocationItem> allItems = [];
   DateTime? _lastfetch;
@@ -82,15 +83,10 @@ class MapHttpProvider extends HttpProvider {
   Future<void> _fetch() async {
     // returns a csv in the following fromat
     // sid,latitude,longitude,pm1,pm25,pm10
-
-    logger.d("3.14159 Start fetching");
-
     Response response = await http.get(Uri.parse(API_URL), headers: httpHeaders);
     if(response.statusCode == 200){
-      logger.d("3.14159 got data");
       allItems = [];
       for(var line in response.body.split("\n").sublist(1)){ // sublist to skipp header
-        logger.d("3.14159 line $line");
         var [device_id, lat, lon, pm1, pm25, pm10] = line.split(",");
         allItems.add(
           DataLocationItem(
