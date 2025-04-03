@@ -13,6 +13,7 @@ import 'package:luftdaten.at/controller/workshop_controller.dart';
 import 'package:luftdaten.at/main.dart';
 import 'package:luftdaten.at/model/ble_device.dart';
 import 'package:luftdaten.at/model/latlng_with_precision.dart';
+import 'package:luftdaten.at/models.dart';
 import 'package:vibration/vibration.dart';
 
 import '../model/measured_data.dart';
@@ -72,32 +73,46 @@ abstract class BackgroundService {
 
   Future<void> _measureAndHandleForDevice(BleDevice device, TripController tripController, Position? position) async {
     Trip trip = tripController.ongoingTrips[device]!;
+
     logger.d('About to read data points');
-    List<SensorDataPoint> dataPoints =
-        await getIt<BleController>().readSensorValues(device);
+    RawMeasurement rawMeasurement = await getIt<BleController>().readSensorValues(device);
     logger.d('Read data points');
-    DateTime timestamp = DateTime.now();
+
     LatLngWithPrecision? location = position != null
         ? LatLngWithPrecision(position.latitude, position.longitude,
         position.accuracy > 0 ? position.accuracy : null)
         : null;
-    logger.d('Converted Position to LatLng');
-    trip.addDataPoint(MeasuredDataPoint(
-      timestamp: timestamp,
-      sensorData: dataPoints,
-      location: location,
-      mode: tripController.mobilityMode,
-    ));
+
+    // add location to RawMeasurement
+    rawMeasurement.json["station"]["location"] = {
+      "lat": location?.latitude,
+      "lon": location?.longitude,
+      "height": null,
+    };
+    logger.d('Added location data to rawMeasurement');
+
+    // add mobility mode
+    rawMeasurement.json["station"]["mobility_mode"] = tripController.mobilityMode;
+    logger.d('Added mobility mode to rawMeasurement');
+
+
+    trip.addDataPoint(rawMeasurement);
+
     logger.d('Added data point');
     if (trip.data.length % 5 == 2) {
       trip.save();
     }
+
+    // TODO send notification
+    /*
     logger.d('About to handle data');
     _handleData(
       trip.data.last.flatten,
       trip.data.length > 1 ? trip.data[trip.data.length - 2].flatten : null,
     );
+
     logger.d('Handled data');
+    */
   }
 
   void _handleData(FlattenedDataPoint newData, FlattenedDataPoint? mostRecent) {

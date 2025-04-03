@@ -7,6 +7,7 @@ import 'package:luftdaten.at/main.dart';
 import 'package:luftdaten.at/model/ble_device.dart';
 import 'package:luftdaten.at/model/chip_id.dart';
 import 'package:luftdaten.at/model/sensor_details.dart';
+import 'package:luftdaten.at/models.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'measured_data.dart';
@@ -15,7 +16,7 @@ import 'measured_data.dart';
 /// can only be continued from that device. Trips loaded from storage can't be continued
 /// (but maybe there should be a feature to display multiple trips on the map)
 class Trip extends ChangeNotifier {
-  List<MeasuredDataPoint> _data = [];
+  List<RawMeasurement> _data = [];
   final String? deviceDisplayName;
   final String? deviceFourLetterCode;
   final ChipId deviceChipId;
@@ -38,25 +39,25 @@ class Trip extends ChangeNotifier {
     required this.deviceFourLetterCode,
     required this.deviceModel,
     required this.deviceChipId,
-    required List<MeasuredDataPoint> data,
+    required List<RawMeasurement> data,
     this.sensorDetails,
   }) : _data = data;
 
-  set data(List<MeasuredDataPoint> value) {
+  set data(List<RawMeasurement> value) {
     _data = value;
     notifyListeners();
   }
 
-  List<MeasuredDataPoint> get data => _data;
+  List<RawMeasurement> get data => _data;
 
-  void addDataPoint(MeasuredDataPoint dataPoint) {
+  void addDataPoint(RawMeasurement dataPoint) {
     _data.add(dataPoint);
     notifyListeners();
   }
 
-  DateTime? get start => data.firstOrNull?.timestamp;
+  DateTime? get start => data.firstOrNull?.json["station"]["time"];
 
-  DateTime? get end => data.lastOrNull?.timestamp;
+  DateTime? get end => data.lastOrNull?.json["station"]["time"];
 
   Duration? get length => start?.difference(end!);
 
@@ -77,7 +78,7 @@ class Trip extends ChangeNotifier {
         'appBuildNumber': buildNumber,
         'mobileDevice': DeviceInfo.summaryString,
       },
-      'data': data.map((e) => e.toJson()).toList(),
+      'data': data.map((e) => e.json).toList(),
     };
   }
 
@@ -91,7 +92,7 @@ class Trip extends ChangeNotifier {
         sensorDetails = (json['device']['sensors'] as List?)
             ?.map((e) => SensorDetails.fromJson((e as Map).cast<String, dynamic>()))
             .toList(),
-        _data = (json['data'] as List).map((e) => MeasuredDataPoint.fromJson(e)).toList(),
+        _data = (json['data'] as List).map((e) => RawMeasurement(json)).toList(),
         isImported = true;
 
   // File saving
@@ -128,13 +129,15 @@ class Trip extends ChangeNotifier {
     } else {
       lines.add('# No sensor details available');
     }
-    for(MeasuredDataPoint dataPoint in data) {
+    for(RawMeasurement dataPoint in data) {
       lines.addAll(dataPoint.toCsv());
     }
     return lines.join('\n');
   }
 
   factory Trip.fromCsv(String csv) {
+    throw UnimplementedError("Loading trip from CSV is not yet supported");
+    /*
     // TODO change to version 2.0
     List<String> lines = csv.split(',');
     if (lines[0] != '# Luftdaten.at CSV v1.0') {
@@ -153,6 +156,7 @@ class Trip extends ChangeNotifier {
       deviceModel: LDDeviceModel.unknownPortable,
       data: parsedData,
     )..isImported = true;
+    */
   }
 }
 

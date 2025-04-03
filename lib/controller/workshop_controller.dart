@@ -5,6 +5,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart';
 import 'package:luftdaten.at/controller/trip_controller.dart';
 import 'package:luftdaten.at/model/workshop_configuration.dart';
+import 'package:luftdaten.at/models.dart';
 
 import '../main.dart';
 import '../model/measured_data.dart';
@@ -43,15 +44,15 @@ class WorkshopController extends ChangeNotifier {
 
   String get serverUrl => AppSettings.I.useStagingServer ? 'staging.datahub.luftdaten.at' : 'datahub.luftdaten.at';
 
+  void exitWorkshop() {
+    currentWorkshop = null;
+  }
+
   void checkIfWorkshopHasEnded() {
     if (currentWorkshop != null && currentWorkshop!.end.toUtc().isBefore(DateTime.now().toUtc())) {
       exitWorkshop();
     }
-  }
-
-  void exitWorkshop() {
-    currentWorkshop = null;
-  }
+  } 
 
   void attemptSendData() async {
     if (currentWorkshop == null) return;
@@ -60,6 +61,22 @@ class WorkshopController extends ChangeNotifier {
     if (currentWorkshop != null) {
       if (tripController.ongoingTrips.isEmpty) return;
       Trip trip = tripController.ongoingTrips.values.first;
+      // send data to new api
+      for(RawMeasurement measurement in trip.data){
+        Response resp = await post(
+          Uri.parse('https://datahub.luftdaten.at/api/v1/devices/data/'),
+          headers: {"Content-Type": "application/json"},
+          body: measurement.json
+        );
+        // TODO are the datapoints sent just once, what happens if sent failed
+        if(resp.statusCode == 200){
+          logger.d('Trip data sent sucessfully');
+        }else{
+          logger.d('Faild to sent Trip data');
+        }
+      }
+
+      /*
       Iterable<FlattenedDataPoint> data;
       if (lastSent == null) {
         data = trip.data.map((e) => e.flatten);
@@ -86,7 +103,7 @@ class WorkshopController extends ChangeNotifier {
                   if (e.nox != null) "nox": e.nox,
                   "device": trip.deviceChipId.chipId,
                   "workshop": currentWorkshop!.id.toLowerCase(),
-                  if (e.location != null) "lat": e.location!.latitude,
+                  
                   if (e.location != null) "lon": e.location!.longitude,
                   if (e.location?.precision != null) "location_precision": e.location!.precision,
                   if (e.mode != null) "mode": e.mode!.name,
@@ -104,6 +121,7 @@ class WorkshopController extends ChangeNotifier {
         logger.e('Failed to send workshop entries (HTTP ${res.statusCode}):');
         logger.e(res.body);
       }
+      */
     }
   }
 

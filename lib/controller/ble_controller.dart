@@ -1,6 +1,7 @@
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:luftdaten.at/controller/ble_controller_v1.dart';
 import 'package:luftdaten.at/model/ble_device.dart';
+import 'package:luftdaten.at/models.dart';
 
 import '../main.dart';
 import '../model/measured_data.dart';
@@ -43,7 +44,7 @@ class BleController {
     return BleControllerForProtocol(device.protocolVersion!).getDeviceDetails(device);
   }
 
-  Future<List<SensorDataPoint>> readSensorValues(BleDevice device) async {
+  Future<RawMeasurement> readSensorValues(BleDevice device) async {
     await getProtocolVersion(device);
     return BleControllerForProtocol(device.protocolVersion!).readSensorValues(device);
   }
@@ -78,8 +79,6 @@ extension Sum on List<int> {
 abstract class BleControllerForProtocol {
   factory BleControllerForProtocol(int protocolVersion) {
     switch (protocolVersion) {
-      case 1:
-        return BleControllerV1();
       case 2:
         return BleControllerV2();
       default:
@@ -89,7 +88,7 @@ abstract class BleControllerForProtocol {
 
   Future<void> getDeviceDetails(BleDevice device);
 
-  Future<List<SensorDataPoint>> readSensorValues(BleDevice device);
+  Future<RawMeasurement> readSensorValues(BleDevice device);
 
   Future<bool> sendAirStationConfig(BleDevice device, List<int> bytes);
 

@@ -10,6 +10,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:luftdaten.at/controller/trip_controller.dart';
 import 'package:luftdaten.at/main.dart';
+import 'package:luftdaten.at/models.dart';
 import 'package:luftdaten.at/page/annotated_picture_page.i18n.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -18,6 +19,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../model/measured_data.dart';
 import '../model/trip.dart';
+import 'package:luftdaten.at/enums.dart' as enums;
 
 class AnnotatedPicturePage extends StatefulWidget {
   const AnnotatedPicturePage({super.key});
@@ -165,7 +167,7 @@ class _AnnotatedPicturePageState extends State<AnnotatedPicturePage> with Widget
                         builder: (context, tripController, _) {
                           Trip? trip = tripController.ongoingTrips.values.firstOrNull;
                           if (trip?.data.lastOrNull != null) {
-                            List<FormattedValue> maps = FormattedValue.fromDataPoint(trip!.data.last);
+                            List<Values> maps = trip!.data.last.toMeasurement().values;
                             return Container(
                               width: 176 * scaleFactor,
                               decoration: BoxDecoration(
@@ -182,7 +184,7 @@ class _AnnotatedPicturePageState extends State<AnnotatedPicturePage> with Widget
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          "${kv.entry}:",
+                                          "${enums.Dimension.get_name(kv.dimension)}:",
                                           style: TextStyle(
                                             fontSize: 24 * scaleFactor,
                                             fontWeight: FontWeight.bold,
@@ -191,11 +193,11 @@ class _AnnotatedPicturePageState extends State<AnnotatedPicturePage> with Widget
                                           ),
                                         ),
                                         Text(
-                                          kv.value,
+                                          kv.value.toString(),
                                           style: TextStyle(
                                             fontSize: 24 * scaleFactor,
                                             fontWeight: FontWeight.bold,
-                                            color: kv.color.withOpacity(showBoxShadow ? 1 : 0.5),
+                                            color: enums.Dimension.getColor(kv.dimension, kv.value).withOpacity(showBoxShadow ? 1 : 0.5),
                                           ),
                                         )
                                       ],
@@ -452,9 +454,9 @@ class _AnnotatedPicturePageState extends State<AnnotatedPicturePage> with Widget
                   alignment: Alignment.topLeft,
                   child: Builder(
                     builder: (context) {
-                      MeasuredDataPoint? value = getIt<TripController>().ongoingTrips.values.firstOrNull?.data.lastOrNull;
+                      RawMeasurement? value = getIt<TripController>().ongoingTrips.values.firstOrNull?.data.lastOrNull;
                       if (value != null) {
-                        List<FormattedValue> maps = FormattedValue.fromDataPoint(value);
+                        List<Values> maps = value.toMeasurement().values;
                         return Container(
                           width: 176 * scaleFactor,
                           decoration: BoxDecoration(
@@ -471,7 +473,7 @@ class _AnnotatedPicturePageState extends State<AnnotatedPicturePage> with Widget
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      "${kv.entry}:",
+                                      "${enums.Dimension.get_name(kv.dimension)}:",
                                       style: TextStyle(
                                         fontSize: 24 * scaleFactor * extraFontScaling,
                                         fontWeight: FontWeight.bold,
@@ -479,11 +481,11 @@ class _AnnotatedPicturePageState extends State<AnnotatedPicturePage> with Widget
                                       ),
                                     ),
                                     Text(
-                                      kv.value,
+                                      kv.value.toString(),
                                       style: TextStyle(
                                         fontSize: 24 * scaleFactor * extraFontScaling,
                                         fontWeight: FontWeight.bold,
-                                        color: kv.color.withOpacity(showBoxShadow ? 1 : 0.5),
+                                        color: enums.Dimension.getColor(kv.dimension, kv.value).withOpacity(showBoxShadow ? 1 : 0.5),
                                       ),
                                     )
                                   ],
@@ -517,10 +519,10 @@ class _AnnotatedPicturePageState extends State<AnnotatedPicturePage> with Widget
     File('${cache.path}/annotated.png').writeAsBytesSync(data);
     File('${cache.path}/annotatedMeta.json').writeAsStringSync(json.encode({
       'time': DateTime.now().toIso8601String(),
-      if (getIt<TripController>().ongoingTrips.values.first.data.last.location != null)
-        'lat': getIt<TripController>().ongoingTrips.values.first.data.last.location!.latitude,
-      if (getIt<TripController>().ongoingTrips.values.first.data.last.location != null)
-        'long': getIt<TripController>().ongoingTrips.values.first.data.last.location!.longitude,
+      if (getIt<TripController>().ongoingTrips.values.first.data.last.json.containsKey("location"))
+        'lat': getIt<TripController>().ongoingTrips.values.first.data.last.json["location"]["lat"],
+      if (getIt<TripController>().ongoingTrips.values.first.data.last.json.containsKey("location"))
+        'long': getIt<TripController>().ongoingTrips.values.first.data.last.json["location"]["lon"],
     }));
   }
 

@@ -3,7 +3,7 @@ import 'package:luftdaten.at/model/ble_device.dart';
 import 'package:luftdaten.at/model/chip_id.dart';
 import 'package:luftdaten.at/model/measured_data.dart';
 import 'package:luftdaten.at/model/trip.dart';
-
+/*
 class MockTripController extends TripController {
   @override
   Future<void> init() async {
@@ -47,3 +47,4 @@ class MockTripController extends TripController {
     };
   }
 }
+*/

@@ -5,6 +5,7 @@ import 'package:luftdaten.at/controller/device_manager.dart';
 import 'package:luftdaten.at/controller/trip_controller.dart';
 import 'package:luftdaten.at/main.dart';
 import 'package:luftdaten.at/model/measured_data.dart';
+import 'package:luftdaten.at/models.dart';
 import 'package:luftdaten.at/page/chart_page.i18n.dart';
 import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -36,8 +37,8 @@ class _ChartPageState extends State<ChartPage> {
       body: Stack(
         children: [
           Consumer<TripController>(builder: (context, provider, _) {
-            List<FlattenedDataPoint> data =
-                provider.primaryTripToDisplay?.data.map((e) => e.flatten).toList() ?? [];
+            List<Measurement> data =
+                provider.primaryTripToDisplay?.data.map((e) => e.toMeasurement()).toList() ?? [];
             if (data.isEmpty) {
               return ChangeNotifierBuilder(
                   notifier: getIt<DeviceManager>(),
@@ -69,7 +70,7 @@ class _ChartPageState extends State<ChartPage> {
             }
             // Reshape data
             Map<LDSensor, List<_SensorDataPointWithTimestamp>> reshapedDataMap = {};
-            List<MeasuredDataPoint> points = provider.primaryTripToDisplay!.data;
+            List<RawMeasurement> points = provider.primaryTripToDisplay!.data;
             for (LDSensor sensor in points.first.sensorData.map((e) => e.sensor)) {
               reshapedDataMap[sensor] = [];
             }
