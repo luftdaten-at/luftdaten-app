@@ -14,7 +14,7 @@ class SensorDetails {
   List<MeasurableQuantity> get measuresQuantities => model.measures;
 
   // Serialization and de-serialization
-  Map<String, dynamic> toJson() {
+  Map<dynamic, dynamic> toJson() {
     return {
       'model': model.name,
       if (serialNumber != null) 'serialNumber': serialNumber,
@@ -24,7 +24,7 @@ class SensorDetails {
     };
   }
 
-  factory SensorDetails.fromJson(Map<String, dynamic> json) {
+  factory SensorDetails.fromJson(Map<dynamic, dynamic> json) {
     return SensorDetails(
       LDSensor.fromName(json['model']),
       serialNumber: json['serialNumber'],

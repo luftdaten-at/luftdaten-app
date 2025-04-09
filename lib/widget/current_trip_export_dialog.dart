@@ -129,7 +129,7 @@ class _CurrentTripExportDialog extends State<CurrentTripExportDialog> {
       } else {
         String fileName = 'Routes-${DateTime.now().toIso8601String()}';
         String path = '$cache/$fileName.json';
-        Map<String, dynamic> map = {
+        Map<dynamic, dynamic> map = {
           'version': 'Luftdaten.at JSON Collection v1.0',
           'trips': selection.map((e) => e.toJson()).toList(),
         };

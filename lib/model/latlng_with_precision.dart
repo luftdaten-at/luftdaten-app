@@ -21,7 +21,7 @@ class LatLngWithPrecision extends LatLng {
     };
   }
 
-  LatLngWithPrecision.fromJson(Map<String, dynamic> json)
+  LatLngWithPrecision.fromJson(Map<dynamic, dynamic> json)
       : precision = json['precision'],
         super(json['coordinates'][1], json['coordinates'][0]);
 }

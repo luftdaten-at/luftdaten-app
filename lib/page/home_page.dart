@@ -374,7 +374,7 @@ class _PageViewerPageState extends State<PageViewerPage> {
         tripController.loadedTrips.add(trip);
         tripController.notifyListeners();
       } else if (extension == 'json') {
-        Map<String, dynamic> data = json.decode(content);
+        Map<dynamic, dynamic> data = json.decode(content);
         String version = data['version'];
         if (version == 'Luftdaten.at JSON Trip v1.0') {
           Trip trip = Trip.fromJson(data);

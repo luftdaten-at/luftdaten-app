@@ -203,7 +203,7 @@ class MeasuredDataPoint {
     );
   }
 
-  Map<String, dynamic> toJson() => {
+  Map<dynamic, dynamic> toJson() => {
         'timestamp': timestamp.toIso8601String(),
         if (annotation != null) 'annotation': annotation,
         if (location != null) 'location': location!.toJson(),
@@ -211,12 +211,12 @@ class MeasuredDataPoint {
         if (mode != null) 'mode': mode!.name,
       };
 
-  factory MeasuredDataPoint.fromJson(Map<String, dynamic> json) {
+  factory MeasuredDataPoint.fromJson(Map<dynamic, dynamic> json) {
     return MeasuredDataPoint(
       timestamp: DateTime.parse(json['timestamp']),
       annotation: json['annotation'],
       location: json['location'] != null ? LatLngWithPrecision.fromJson(json['location']) : null,
-      sensorData: (json['sensorData'] as List).map((e) => e as Map<String, dynamic>).map((e) {
+      sensorData: (json['sensorData'] as List).map((e) => e as Map<dynamic, dynamic>).map((e) {
         LDSensor sensor = LDSensor.fromName(e['sensor']);
         switch (sensor) {
           case LDSensor.all:
@@ -265,12 +265,12 @@ class SensorDataPoint {
 
   const SensorDataPoint({required this.sensor, required this.values});
 
-  Map<String, dynamic> get toJson => {
+  Map<dynamic, dynamic> get toJson => {
         'sensor': sensor.name,
         ...values.map((key, value) => MapEntry(key.name, value)),
       };
 
-  SensorDataPoint.fromJson(Map<String, dynamic> json)
+  SensorDataPoint.fromJson(Map<dynamic, dynamic> json)
       : sensor = LDSensor.fromName(json['sensor']),
         values = {
           for (MeasurableQuantity quantity in MeasurableQuantity.values)
@@ -397,7 +397,7 @@ class FlattenedDataPoint extends SensorDataPoint {
       };
 
   @override
-  Map<String, dynamic> get toJson => {
+  Map<dynamic, dynamic> get toJson => {
         'sensor': sensor.id,
         'sensorName': sensor.name,
         if (pm1 != null) 'pm1': pm1,
@@ -421,7 +421,7 @@ class FlattenedDataPoint extends SensorDataPoint {
       };
 
   @override
-  FlattenedDataPoint.fromJson(Map<String, dynamic> json)
+  FlattenedDataPoint.fromJson(Map<dynamic, dynamic> json)
       : pm1 = json['pm1'],
         pm25 = json['pm25'],
         pm4 = json['pm4'],

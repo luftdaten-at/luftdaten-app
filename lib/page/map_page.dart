@@ -55,6 +55,7 @@ import '../widget/progress.dart';
 import '../widget/ui.dart';
 import 'package:luftdaten.at/enums.dart' as enums;
 
+
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
 
@@ -86,7 +87,7 @@ class _MapPageState extends State<MapPage>
   int mapDisplayType = enums.Dimension.PM2_5;
 
   final CompassController _compassController = CompassController();
-
+  /*
   Color getLDColor(MeasuredDataPoint item) {
     //if (item.flatten.pm10 != null) {
     //  return FormattedValue.from(MeasurableQuantity.pm10, item.flatten.pm10!).color;
@@ -106,6 +107,7 @@ class _MapPageState extends State<MapPage>
     }
     return Colors.blue;
   }
+  */
 
   void updateStations({bool zoomin = false, MapEvent? event}) {
     getIt<MapHttpProvider>().fetch();
@@ -145,13 +147,13 @@ class _MapPageState extends State<MapPage>
               setState(() {});
             } else {
               Favorite favorite =
-                  Favorite(id: item.deviceId, latLng: LatLng(item.location.lat, item.location.lon));
+                  Favorite(id: item.deviceId, latLng: LatLng(item.location!.lat, item.location!.lon));
               favoritesManager.add(favorite);
               setState(() {});
               await setLocaleIdentifier(locale ?? 'de');
               List<Placemark> placemarks = await placemarkFromCoordinates(
-                item.location.lat,
-                item.location.lon,
+                item.location!.lat,
+                item.location!.lon,
               );
               logger.d('Reverse geocoding result:');
               for (Placemark placemark in placemarks) {
@@ -242,23 +244,23 @@ class _MapPageState extends State<MapPage>
     );
   }
 
-  Marker? getHistoryMarker(MeasuredDataPoint item) {
+  Marker? getHistoryMarker(Measurement item, int dim) {
     if (item.location == null) return null;
     return Marker(
-      point: LatLng(item.location!.latitude, item.location!.longitude),
+      point: item.location!.to_LatLng(),
       width: 42,
       height: 42,
       child: IconButton(
         padding: EdgeInsets.zero,
         icon: Container(
           decoration: BoxDecoration(
-            color: getLDColor(item),
+            color: enums.Dimension.getColor(dim, item.get_valueByDimension(dim)),
             borderRadius: BorderRadius.circular(5),
           ),
           width: 10,
           height: 10,
         ),
-        onPressed: () => showMarkerDialog(item),
+        onPressed: () => (),
       ),
     );
   }
@@ -350,7 +352,7 @@ class _MapPageState extends State<MapPage>
                         .allItems
                         .map(
                           (e) => ValueMarker<Measurement>(
-                            point: LatLng(e.location.lat, e.location.lon),
+                            point: LatLng(e.location!.lat, e.location!.lon),
                             value: e,
                             width: 40,
                             height: 40,
@@ -439,11 +441,11 @@ class _MapPageState extends State<MapPage>
               if (autoCenter &&
                   current != null &&
                   !current.isImported &&
-                  current.data.lastOrNull?.location != null) {
+                  current.data.lastOrNull?.toMeasurement().location != null) {
                 Future.delayed(const Duration(milliseconds: 10)).then((_) {
                   if (AppSettings.I.followUserDuringMeasurements) {
                     _controller.animateTo(
-                      dest: current.data.lastOrNull!.location!,
+                      dest: current.data.lastOrNull!.toMeasurement().location!.to_LatLng(),
                       zoom: 17,
                     );
                   }
@@ -451,7 +453,7 @@ class _MapPageState extends State<MapPage>
               }
               return MarkerLayer(
                 markers:
-                    (current?.data ?? []).map((e) => getHistoryMarker(e)).toList().removeNulls(),
+                    (current?.data ?? []).map((e) => getHistoryMarker(e.toMeasurement(), mapDisplayType)).toList().removeNulls(),
               );
             },
           ),
@@ -505,7 +507,7 @@ class _MapPageState extends State<MapPage>
                               TripController tripController = context.read<TripController>();
                               Trip? trip = tripController.primaryTripToDisplay;
                               if (trip?.data.lastOrNull != null) {
-                                showMarkerDialog(trip!.data.last);
+                                //showMarkerDialog(trip!.data.last);
                               } else {
                                 showLDDialog(
                                   context,
@@ -716,7 +718,7 @@ class _MapPageState extends State<MapPage>
                   TripController tripController = context.read<TripController>();
                   Trip? trip = tripController.primaryTripToDisplay;
                   if (trip?.data.lastOrNull != null) {
-                    showMarkerDialog(trip!.data.last, isInfo: true);
+                    //showMarkerDialog(trip!.data.last, isInfo: true);
                   } else {
                     Toaster.showFailureToast('Starte eine Messung, um Messwerte anzuzeigen'.i18n);
                   }

@@ -34,6 +34,8 @@ class Dimension {
   static const int GYRO_Y = 29;
   static const int GYRO_Z = 30;
 
+  static const MAX_DIM = 30;
+
   static final Map<int, List<dynamic>> thresholds = {
     TEMPERATURE: [[18, 24], [Color.BLUE, Color.GREEN, Color.RED]],
     TVOC: [[220, 1430], [Color.GREEN, Color.YELLOW, Color.RED]],
@@ -124,7 +126,8 @@ class Dimension {
     return _names[dim] ?? "Name not found";
   }
 
-  static dynamic getColor(int dimensionId, double val) {
+  static dynamic getColor(int dimensionId, double? val) {
+    if(val == null) return material.Color.fromRGBO(128, 128, 128, 1);
     if (!thresholds.containsKey(dimensionId)) return null;
     var th = [-double.infinity, ...thresholds[dimensionId]![0], double.infinity];
     var colors = thresholds[dimensionId]![1];
@@ -135,6 +138,10 @@ class Dimension {
       }
     }
     return null;
+  }
+
+  static String? get_unit(int dim){
+    return _units[dim];
   }
 }
 

@@ -26,7 +26,7 @@ class RegistrationData {
   Point? geolocation;
   String? chipid;
 
-  Map<String, dynamic> toJson() => {
+  Map<dynamic, dynamic> toJson() => {
         "mac": device?.bleMacAddress,
         "email": email,
         "height": height?.toString(),

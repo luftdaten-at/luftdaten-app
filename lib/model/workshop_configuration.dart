@@ -14,7 +14,7 @@ class WorkshopConfiguration {
     required this.participantUid,
   });
 
-  Map<String, dynamic> toJson() => {
+  Map<dynamic, dynamic> toJson() => {
     'name': id,
     'title': name,
     'description': description,
@@ -23,7 +23,7 @@ class WorkshopConfiguration {
     'participant_uid': participantUid,
   };
 
-  factory WorkshopConfiguration.fromJson(Map<String, dynamic> json) => WorkshopConfiguration(
+  factory WorkshopConfiguration.fromJson(Map<dynamic, dynamic> json) => WorkshopConfiguration(
     id: json['name'],
     name: json['title'],
     description: json['description'],

@@ -32,7 +32,7 @@ class DeviceManager extends ChangeNotifier {
     await GetStorage.init('devices');
     List<dynamic> raw = box.read('devices') ?? [];
     for (dynamic element in raw) {
-      devices.add(BleDevice.fromJson(element as Map<String, dynamic>));
+      devices.add(BleDevice.fromJson(element as Map<dynamic, dynamic>));
     }
     if(devices.isNotEmpty) {
       Future.delayed(const Duration(seconds: 1)).then((_) => scanForDevices(3000));

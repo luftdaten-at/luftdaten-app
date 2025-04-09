@@ -14,7 +14,7 @@ class NewsItem {
       this.url,
       this.dismissed = false});
 
-  factory NewsItem.fromJson(Map<String, dynamic> json) => NewsItem(
+  factory NewsItem.fromJson(Map<dynamic, dynamic> json) => NewsItem(
         timestamp: DateTime.parse(json['timestamp']),
         uid: json['uid'],
         title: json['title'],
@@ -23,7 +23,7 @@ class NewsItem {
         dismissed: json['dismissed'] ?? false,
       );
 
-  Map<String, dynamic> toJson() => {
+  Map<dynamic, dynamic> toJson() => {
         'timestamp': timestamp.toIso8601String(),
         'uid': uid,
         'title': title,

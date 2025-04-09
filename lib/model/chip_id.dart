@@ -19,7 +19,7 @@ class ChipId {
   String get mac => _mac ?? _chipId!.mac;
 
   // Serialization
-  Map<String, dynamic> toJson() {
+  Map<dynamic, dynamic> toJson() {
     return {
       'chipId': chipId,
       'mac': mac,
@@ -27,7 +27,7 @@ class ChipId {
   }
 
   // Deserialization
-  ChipId.fromJson(Map<String, dynamic> json)
+  ChipId.fromJson(Map<dynamic, dynamic> json)
       : _chipId = json['chipId'],
         _mac = json['mac'],
         assert(json['chipId'] != null || json['mac'] != null, 'Either chipId or mac must be provided');

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:get_it/get_it.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:luftdaten.at/main.dart';
 
 class Location {
@@ -10,12 +11,16 @@ class Location {
 
   Location(this.lat, this.lon, this.height);
 
-  factory Location.fromJson(Map<String, dynamic> json) {
+  factory Location.fromJson(Map<dynamic, dynamic> json) {
     return Location(
       json['lat'],
       json['lon'],
       json['height'],
     );
+  }
+
+  LatLng to_LatLng(){
+    return LatLng(lat, lon);
   }
 }
 
@@ -25,7 +30,7 @@ class Values {
 
   Values(this.dimension, this.value);
 
-  factory Values.fromJson(Map<String, dynamic> json) {
+  factory Values.fromJson(Map<dynamic, dynamic> json) {
     return Values(
       json['dimension'],
       json['value'],
@@ -41,7 +46,7 @@ class Measurement {
 
   Measurement(this.location, this.values, this.deviceId, this.time);
 
-  factory Measurement.fromJson(Map<String, dynamic> jsonData) {
+  factory Measurement.fromJson(Map<dynamic, dynamic> jsonData) {
     return Measurement(
       Location.fromJson(jsonData['location']),
       (jsonData['values'] as List).map((item) => Values.fromJson(item)).toList(),
@@ -57,7 +62,7 @@ class Measurement {
 
 class RawMeasurement {
   // the json should be in the luftdaten API format see: api.luftdaten.at/docs, endpoint /station/data
-  Map<String, dynamic> json;
+  Map<dynamic, dynamic> json;
   RawMeasurement(this.json);
 
   List<String> toCsv(){
@@ -69,7 +74,7 @@ class RawMeasurement {
      * returns a measurement base on the raw data
      * since there could be many sensors that have the same dimension we just take the mean
      */
-    List<MapEntry<int, double>> groupedValues = (json["sensors"] as Map<String, dynamic>)
+    List<MapEntry<int, double>> groupedValues = (json["sensors"] as Map<dynamic, dynamic>)
       .values
       .expand((e) => (e['data'] as Map<int, double>).entries)
       .toList();
@@ -88,7 +93,7 @@ class RawMeasurement {
     }
 
     return Measurement(
-      (json["station"] as Map<String, dynamic>).containsKey("location") ? 
+      (json["station"] as Map<dynamic, dynamic>).containsKey("location") ? 
         Location(
           json["station"]["location"]["lat"],
           json["station"]["location"]["lon"], 

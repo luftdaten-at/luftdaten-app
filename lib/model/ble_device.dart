@@ -121,7 +121,7 @@ class BleDevice extends ChangeNotifier {
         _measurementInterval = measurementInterval;
 
   // Serialize & de-serialize properties
-  Map<String, dynamic> toJson() {
+  Map<dynamic, dynamic> toJson() {
     return {
       'deviceBleName': bleName,
       'bleMacAddress': bleMacAddress,
@@ -133,7 +133,7 @@ class BleDevice extends ChangeNotifier {
     };
   }
 
-  factory BleDevice.fromJson(Map<String, dynamic> json) {
+  factory BleDevice.fromJson(Map<dynamic, dynamic> json) {
     return BleDevice(
       model: json['model'] != null
           ? LDDeviceModel.fromId(json['model'])

@@ -62,7 +62,7 @@ class Trip extends ChangeNotifier {
   Duration? get length => start?.difference(end!);
 
   // Serialization and de-serialization
-  Map<String, dynamic> toJson() {
+  Map<dynamic, dynamic> toJson() {
     return {
       'version': 'Luftdaten.at JSON Trip v1.1',
       'device': {
@@ -82,11 +82,11 @@ class Trip extends ChangeNotifier {
     };
   }
 
-  Trip.fromJson(Map<String, dynamic> json)
+  Trip.fromJson(Map<dynamic, dynamic> json)
       : deviceDisplayName = json['device']['displayName'] ?? json['deviceDisplayName'],
         deviceFourLetterCode = json['device']['fourLetterCode'] ?? json['deviceFourLetterCode'],
         deviceChipId = (json['device']['chipId'] != null)
-            ? ChipId.fromJson((json['device']['chipId'] as Map).cast<String, dynamic>())
+            ? ChipId.fromJson((json['device']['chipId'] as Map).cast<dynamic, dynamic>())
             : const ChipId.unknown(),
         deviceModel = LDDeviceModel.fromId(json['device']['modelCode'] ?? json['deviceModel']),
         sensorDetails = (json['device']['sensors'] as List?)

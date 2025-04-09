@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:luftdaten.at/controller/battery_info_aggregator.dart';
 import 'package:luftdaten.at/controller/device_manager.dart';
 import 'package:luftdaten.at/controller/trip_controller.dart';
+import 'package:luftdaten.at/enums.dart';
 import 'package:luftdaten.at/main.dart';
 import 'package:luftdaten.at/model/measured_data.dart';
 import 'package:luftdaten.at/models.dart';
@@ -14,6 +15,7 @@ import '../controller/app_settings.dart';
 import '../model/battery_details.dart';
 import '../widget/change_notifier_builder.dart';
 import '../widget/start_button.dart';
+import 'package:uuid/enums.dart';
 
 class ChartPage extends StatefulWidget {
   const ChartPage({super.key, this.isFullscreen = false});
@@ -68,9 +70,11 @@ class _ChartPageState extends State<ChartPage> {
                     }
                   });
             }
+            List<RawMeasurement> points = provider.primaryTripToDisplay!.data;
+
+            /*
             // Reshape data
             Map<LDSensor, List<_SensorDataPointWithTimestamp>> reshapedDataMap = {};
-            List<RawMeasurement> points = provider.primaryTripToDisplay!.data;
             for (LDSensor sensor in points.first.sensorData.map((e) => e.sensor)) {
               reshapedDataMap[sensor] = [];
             }
@@ -84,6 +88,8 @@ class _ChartPageState extends State<ChartPage> {
             }
             List<List<_SensorDataPointWithTimestamp>> reshapedData =
                 reshapedDataMap.values.toList();
+            */
+            /*
             return SingleChildScrollView(
               child: Column(
                 children: [
@@ -239,6 +245,53 @@ class _ChartPageState extends State<ChartPage> {
                 ],
               ),
             );
+            */
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                if (data.isNotEmpty && data.first.values.isNotEmpty)
+                  SfCartesianChart(
+                    primaryXAxis: DateTimeAxis(dateFormat: DateFormat('MMM d\nHH:mm')),
+                    title: ChartTitle(text: 'Feinstaubbelastung'.i18n),
+                    primaryYAxis: NumericAxis(title: AxisTitle(text: Dimension.get_unit(Dimension.PM2_5) ?? 'Konzentration'.i18n)),
+                    zoomPanBehavior: ZoomPanBehavior(
+                      enablePanning: true,
+                      enablePinching: true,
+                      enableDoubleTapZooming: true,
+                      zoomMode: ZoomMode.x,
+                      enableSelectionZooming: true,
+                    ),
+                    legend: const Legend(isVisible: true, position: LegendPosition.bottom),
+                    tooltipBehavior: TooltipBehavior(enable: true),
+                    series: [
+                      for (var dim in [Dimension.PM1_0, Dimension.PM2_5, Dimension.PM4_0, Dimension.PM10_0])
+                        if (data.first.get_valueByDimension(dim) != null)
+                          LineSeries<Measurement, DateTime>(
+                            dataSource: data,
+                            xValueMapper: (Measurement item, _) => item.time!,
+                            yValueMapper: (Measurement item, _) => item.get_valueByDimension(dim),
+                            name: Dimension.get_name(dim),
+                            dataLabelSettings: const DataLabelSettings(isVisible: false),
+                          ),
+                    ],
+                  ),
+                for (int dim = 1; dim <= Dimension.MAX_DIM; dim++)
+                  _buildChart(
+                    title: Dimension.get_name(dim),
+                    yAxisTitle: Dimension.get_unit(dim) ?? 'Index',
+                    measurements: points.map((raw) => raw.toMeasurement()).toList(),
+                    dimension: dim,
+                  ) ?? const SizedBox(),
+                  /*
+                if (AppSettings.I.showBatteryGraph) ...[
+                  _buildBatteryChart(false) ?? const SizedBox(),
+                  _buildBatteryChart(true) ?? const SizedBox(),
+                ],
+                */
+                const SizedBox(height: 90),
+              ],
+            ),
+          );
           }),
           if (!widget.isFullscreen)
             const Align(
@@ -280,6 +333,55 @@ class _ChartPageState extends State<ChartPage> {
     );
   }
 
+  Widget? _buildChart({
+    required String title,
+    required String yAxisTitle,
+    required List<Measurement> measurements,
+    required int dimension,
+  }) {
+    // Filter measurements that contain the required dimension
+    var qualifyingMeasurements = measurements.where((m) => m.get_valueByDimension(dimension) != null).toList();
+
+    if (qualifyingMeasurements.isEmpty) return null;
+
+    List<LineSeries<Measurement, DateTime>> series = qualifyingMeasurements
+        .map((measurement) => LineSeries<Measurement, DateTime>(
+              dataSource: [measurement],
+              xValueMapper: (Measurement item, _) => item.time!,
+              yValueMapper: (Measurement item, _) => item.get_valueByDimension(dimension)!,
+              name: measurement.deviceId,
+              dataLabelSettings: const DataLabelSettings(isVisible: false),
+            ))
+        .toList();
+
+    // Add mean line if multiple measurements are available
+    if (qualifyingMeasurements.length > 1) {
+      var meanData = qualifyingMeasurements
+          .map((measurement) => measurement.get_valueByDimension(dimension)!)
+          .reduce((a, b) => a + b) / qualifyingMeasurements.length;
+
+      series.add(LineSeries<Measurement, DateTime>(
+        dataSource: [qualifyingMeasurements.first],
+        xValueMapper: (Measurement item, _) => item.time!,
+        yValueMapper: (Measurement item, _) => meanData,
+        name: 'Mittelwert',
+        width: 4,
+        dataLabelSettings: const DataLabelSettings(isVisible: false),
+      ));
+    }
+
+    return SfCartesianChart(
+      primaryXAxis: DateTimeAxis(dateFormat: DateFormat('MMM d\nHH:mm')),
+      title: ChartTitle(text: title.i18n),
+      primaryYAxis: NumericAxis(title: AxisTitle(text: yAxisTitle.i18n)),
+      zoomPanBehavior: ZoomPanBehavior(enablePanning: true, enablePinching: true, enableDoubleTapZooming: true, zoomMode: ZoomMode.x),
+      legend: const Legend(isVisible: true, position: LegendPosition.bottom),
+      tooltipBehavior: TooltipBehavior(enable: true),
+      series: series,
+    );
+  }
+
+  /*
   Widget? _buildChart({
     required String title,
     required String yAxisTitle,
@@ -345,6 +447,7 @@ class _ChartPageState extends State<ChartPage> {
       series: series,
     );
   }
+  */
 
   Widget? _buildBatteryChart(bool voltage) {
     return SfCartesianChart(

@@ -139,7 +139,7 @@ class AirStationConfig {
     return bytes;
   }
 
-  Map<String, dynamic> toJson() {
+  Map<dynamic, dynamic> toJson() {
     return {
       'id': id,
       'autoUpdateMode': autoUpdateMode.encoded,
@@ -152,7 +152,7 @@ class AirStationConfig {
     };
   }
 
-  factory AirStationConfig.fromJson(Map<String, dynamic> json) {
+  factory AirStationConfig.fromJson(Map<dynamic, dynamic> json) {
     return AirStationConfig(
       id: json['id'],
       autoUpdateMode: AutoUpdateMode.parseBinary(json['autoUpdateMode']),
@@ -176,7 +176,7 @@ class AirStationConfigManager {
     for (var key in keys) {
       final jsonString = prefs.getString(key);
       if (jsonString != null) {
-        final Map<String, dynamic> json = jsonDecode(jsonString);
+        final Map<dynamic, dynamic> json = jsonDecode(jsonString);
         final config = AirStationConfig.fromJson(json);
         _cache[config.id] = config;
       }
@@ -222,14 +222,14 @@ class AirStationWifiConfig {
 
   String get password => passwordController.text;
 
-  Map<String, dynamic> toJson() {
+  Map<dynamic, dynamic> toJson() {
     return {
       'ssid': ssid,
       'password': password,
     };
   }
 
-  factory AirStationWifiConfig.fromJson(Map<String, dynamic> json) {
+  factory AirStationWifiConfig.fromJson(Map<dynamic, dynamic> json) {
     return AirStationWifiConfig(
       ssid: json['ssid'],
       password: json['password'],

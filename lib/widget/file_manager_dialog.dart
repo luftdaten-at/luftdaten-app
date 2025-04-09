@@ -283,6 +283,6 @@ class _FileManagerDialogState extends State<FileManagerDialog> {
 extension _TripEquality on Trip {
   bool equals(Trip other) {
     return other.deviceFourLetterCode == deviceFourLetterCode &&
-        other.data.first.timestamp == data.first.timestamp;
+        other.data.first.toMeasurement().time == data.first.toMeasurement().time;
   }
 }

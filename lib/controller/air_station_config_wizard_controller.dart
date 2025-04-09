@@ -72,7 +72,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
   }
 
   static void saveAll() {
-    List<Map<String, dynamic>> list = [];
+    List<Map<dynamic, dynamic>> list = [];
     for (AirStationConfigWizardController e in _activeControllers.values) {
       list.add(e.toJson());
     }
@@ -84,13 +84,13 @@ class AirStationConfigWizardController extends ChangeNotifier {
   AirStationConfigWizardController._(this.id);
 
   // Serialization
-  factory AirStationConfigWizardController.fromJson(Map<String, dynamic> json) {
+  factory AirStationConfigWizardController.fromJson(Map<dynamic, dynamic> json) {
     AirStationConfigWizardController c = AirStationConfigWizardController._(json['id']);
     if(json['config'] != null) {
-      c.config = AirStationConfig.fromJson((json['config'] as Map).cast<String, dynamic>());
+      c.config = AirStationConfig.fromJson((json['config'] as Map).cast<dynamic, dynamic>());
     }
     if(json['wifi'] != null) {
-      c.wifi = AirStationWifiConfig.fromJson((json['wifi'] as Map).cast<String, dynamic>());
+      c.wifi = AirStationWifiConfig.fromJson((json['wifi'] as Map).cast<dynamic, dynamic>());
     }
     if(json['configLoadedAt'] != null) {
       c._configLoadedAt = DateTime.parse(json['configLoadedAt']);
@@ -104,7 +104,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
     return c;
   }
 
-  Map<String, dynamic> toJson() {
+  Map<dynamic, dynamic> toJson() {
     return {
       'id': id,
       if (config != null) 'config': config!.toJson(),

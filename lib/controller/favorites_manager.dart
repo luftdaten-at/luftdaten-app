@@ -12,7 +12,7 @@ class FavoritesManager extends ChangeNotifier {
     await GetStorage.init('favorites');
     List<dynamic> favRaw = box.read('fav') ?? [];
     for (dynamic e in favRaw) {
-      Map<String, dynamic> json = (e as Map).cast<String, dynamic>();
+      Map<dynamic, dynamic> json = (e as Map).cast<String, dynamic>();
       Favorite favorite = Favorite.fromJson(json);
       _favorites.add(favorite);
     }
@@ -90,14 +90,14 @@ class Favorite {
       : _locationString = locationString,
         _name = name;
 
-  Map<String, dynamic> toJson() => {
+  Map<dynamic, dynamic> toJson() => {
         'id': id,
         'latLng': latLng.toJson(),
         if (locationString != null) 'locationString': locationString,
         if (name != null) 'name': name,
       };
 
-  factory Favorite.fromJson(Map<String, dynamic> json) => Favorite(
+  factory Favorite.fromJson(Map<dynamic, dynamic> json) => Favorite(
         id: json['id'],
         latLng: LatLng.fromJson(json['latLng']),
         locationString: json['locationString'],

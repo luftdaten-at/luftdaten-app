@@ -9,8 +9,8 @@ class Location {
   dynamic latitude;
   dynamic altitude;
 
-  factory Location.fromJson(Map<String, dynamic> json) => _$LocationFromJson(json);
-  Map<String, dynamic> toJson() => _$LocationToJson(this);
+  factory Location.fromJson(Map<dynamic, dynamic> json) => _$LocationFromJson(json);
+  Map<dynamic, dynamic> toJson() => _$LocationToJson(this);
 }
 
 @JsonSerializable()
@@ -19,8 +19,8 @@ class SensorDataValue {
   String value_type;
   dynamic value;
   SensorDataValue(this.id, this.value_type, this.value);
-  factory SensorDataValue.fromJson(Map<String, dynamic> json) => _$SensorDataValueFromJson(json);
-  Map<String, dynamic> toJson() => _$SensorDataValueToJson(this);
+  factory SensorDataValue.fromJson(Map<dynamic, dynamic> json) => _$SensorDataValueFromJson(json);
+  Map<dynamic, dynamic> toJson() => _$SensorDataValueToJson(this);
 
 }
 
@@ -31,8 +31,8 @@ class SensorType {
   String manufacturer;
   String name;
   SensorType(this.id, this.manufacturer, this.name);
-  factory SensorType.fromJson(Map<String, dynamic> json) => _$SensorTypeFromJson(json);
-  Map<String, dynamic> toJson() => _$SensorTypeToJson(this);
+  factory SensorType.fromJson(Map<dynamic, dynamic> json) => _$SensorTypeFromJson(json);
+  Map<dynamic, dynamic> toJson() => _$SensorTypeToJson(this);
 }
 
 @JsonSerializable(explicitToJson: true)
@@ -40,8 +40,8 @@ class Sensor {
   dynamic id;
   SensorType sensor_type;
   Sensor(this.id, this.sensor_type);
-  factory Sensor.fromJson(Map<String, dynamic> json) => _$SensorFromJson(json);
-  Map<String, dynamic> toJson() => _$SensorToJson(this);
+  factory Sensor.fromJson(Map<dynamic, dynamic> json) => _$SensorFromJson(json);
+  Map<dynamic, dynamic> toJson() => _$SensorToJson(this);
 }
 
 @JsonSerializable(explicitToJson: true)
@@ -51,6 +51,6 @@ class SCData {
   Sensor sensor;
   DateTime timestamp;
   SCData(this.timestamp, this.location, this.sensordatavalues, this.sensor);
-  factory SCData.fromJson(Map<String, dynamic> json) => _$SCDataFromJson(json);
-  Map<String, dynamic> toJson() => _$SCDataToJson(this);
+  factory SCData.fromJson(Map<dynamic, dynamic> json) => _$SCDataFromJson(json);
+  Map<dynamic, dynamic> toJson() => _$SCDataToJson(this);
 }
