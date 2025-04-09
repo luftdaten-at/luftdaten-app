@@ -86,8 +86,8 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: "0d8a9b0d26bb67533bf930c1b05c840d97fd41d4"
-      url: "https://github.com/henryliang3027/bluetooth_enable.git"
+      resolved-ref: "4f9908b4115a92c746a92aff2249a7307b7275c5"
+      url: "https://github.com/n11ik/bluetooth_enable.git"
     source: git
     version: "0.0.1"
   boolean_selector:

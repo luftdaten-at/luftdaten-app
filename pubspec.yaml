@@ -33,9 +33,9 @@ dependencies:
 
   #bluetooth_enable_fork: ^0.1.6
   bluetooth_enable:
+    #path: '../bluetooth_enable'
     git:
-      #path: bluetooth_enable  # or wherever your plugin folder is
-      url: https://github.com/henryliang3027/bluetooth_enable.git
+      url: https://github.com/n11ik/bluetooth_enable.git
 
   app_settings: ^6.1.1
   intl: ^0.19.0
