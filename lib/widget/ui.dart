@@ -19,7 +19,7 @@
 import 'dart:io';
 
 import 'package:app_settings/app_settings.dart';
-import 'package:bluetooth_enable_fork/bluetooth_enable_fork.dart';
+import 'package:bluetooth_enable/bluetooth_enable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:luftdaten.at/controller/device_manager.dart';
