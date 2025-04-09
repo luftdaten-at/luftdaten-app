@@ -5,6 +5,7 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:luftdaten.at/controller/ble_controller.dart';
 import 'package:luftdaten.at/model/device_error.dart';
 import 'package:luftdaten.at/model/sensor_details.dart';
+import 'package:luftdaten.at/models.dart';
 
 import '../main.dart';
 import '../model/battery_details.dart';
@@ -93,32 +94,25 @@ class BleControllerV2 implements BleControllerForProtocol {
 
   @override
   /// Note: this can throw an error if the device is no longer connected
-  Future<List<SensorDataPoint>> readSensorValues(BleDevice device) async {
+  Future<RawMeasurement> readSensorValues(BleDevice device) async {
     // In protocol version 2, we first need to instruct the device to take a new measurement
-    // Measure battery status every 10th iteration
-    DateTime? batteryLastMeasured = device.batteryDetails?.timestamp;
-    bool measureBattery = false;
-    device.batteryReadoutCounter++;
-    if(device.needsBatteryReadout) {
-      measureBattery = true;
-      device.batteryReadoutCounter = 0;
-    }
+
+    // request data
     await _ble.writeCharacteristicWithoutResponse(
       _characteristic(_commandId, device),
-      value: [measureBattery ? 0x02 : 0x01],
+      value: [0x02],
     );
+
     logger.d('Wrote to command characteristic');
-    await Future.delayed(
-        const Duration(seconds: 2)); // Is 1s a reasonable wait time? Needs to be tested
-    // Read out battery percentage, even if we haven't requested a new one
-    // This ensures we get new values quickly
-    List<int> rawBatteryData =
-        await _ble.readCharacteristic(_characteristic(_deviceStatusId, device));
-    device.batteryDetails = BatteryDetails.fromBytes(rawBatteryData.sublist(0, 3));
-    logger.d('Battery status: ${device.batteryDetails}');
-    if(measureBattery) logger.d('(Newly requested)');
+
+    await Future.delayed(Duration(seconds: 2));
+
     List<int> rawSensorData = await _ble.readCharacteristic(_characteristic(_sensorDataId, device));
-    return _SensorDataParser(rawSensorData).parse();
+    String jsonString = utf8.decode(rawSensorData);
+
+    logger.d("3.14159: $jsonString");
+
+    return RawMeasurement(jsonDecode(jsonString));
   }
 
   @override
