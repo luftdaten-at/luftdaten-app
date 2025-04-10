@@ -1,4 +1,4 @@
-import 'package:bluetooth_enable_fork/bluetooth_enable_fork.dart';
+import 'package:bluetooth_enable/bluetooth_enable.dart';
 import 'package:collection_providers/collection_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';

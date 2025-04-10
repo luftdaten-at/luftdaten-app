@@ -18,7 +18,7 @@ class Location {
 
 class Values {
   int dimension;
-  double value;
+  double? value;
 
   Values(this.dimension, this.value);
 
