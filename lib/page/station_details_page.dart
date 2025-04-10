@@ -36,7 +36,10 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
     String device_id = "";
 
     if(widget.device != null){
-      device_id = AirStationConfigManager.getConfig(widget.device!.bleName)!.deviceId!;
+      //device_id = AirStationConfigManager.getConfig(widget.device!.bleName)!.deviceId!;
+      // TODO find better Method of getting the Device ID if AirStationConfig is null
+      String backupDeviceId = '${widget.device!.bleName.split("-")[1]}AAA';
+      device_id = AirStationConfigManager.getConfig(widget.device!.bleName)?.deviceId ?? backupDeviceId;
     }else{
       device_id = widget.id!;
     }

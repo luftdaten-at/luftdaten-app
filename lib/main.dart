@@ -67,6 +67,11 @@ import 'page/home_page.dart';
 import 'page/logging_page.dart';
 
 void main() async {
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.dumpErrorToConsole(details);
+  };
+
   WidgetsFlutterBinding.ensureInitialized();
 
   PackageInfo packageInfo = await PackageInfo.fromPlatform();
