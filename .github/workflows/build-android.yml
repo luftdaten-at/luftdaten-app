@@ -27,8 +27,8 @@ jobs:
         with:
           keystore-base64: ${{ secrets.ANDROID_RELEASE_KEY }}  # The base64 encoded keystore
           keystore-password: "${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}"  # Keystore password
-          key-alias: "${{ secrets.ANDROID_KEY_ALIAS }}"  # Key alias
-          key-password: "${{ secrets.ANDROID_KEY_PASSWORD }}"  # Key password
+          #key-alias: "${{ secrets.ANDROID_KEY_ALIAS }}"  # Key alias
+          #key-password: "${{ secrets.ANDROID_KEY_PASSWORD }}"  # Key password
           build-cmd: flutter build appbundle  # Command to build the app bundle
           working-directory: ./  # Working directory (root folder of your project)
           
