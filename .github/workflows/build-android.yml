@@ -11,16 +11,10 @@ on:
 
 jobs:
   build:
-    name: Build
+    name: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      # Manually setup Flutter if not using cedvdb action
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.10.5'  # Specify the Flutter version you'd like to use
       
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -28,25 +22,18 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # Decode base64 keystore from secrets and save it
-      - name: Decode and save keystore file
-        run: |
-          echo "${{ secrets.ANDROID_RELEASE_KEY }}" | base64 -d > upload-key.jks
-
-      # Create key.properties file from secrets
-      - name: Create key.properties
-        run: |
-          echo "storePassword=${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}" >> key.properties
-          echo "keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> key.properties
-          echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" >> key.properties
-          echo "storeFile=upload-key.jks" >> key.properties
-
-      # Run Flutter build command
-      - name: Build Android AppBundle
-        run: flutter build appbundle
-
-      # Archive the output bundle
-      - name: Archive AAB
+      # Use cedvdb action to build the app with release keystore
+      - uses: cedvdb/action-flutter-build-android@v1
+        with:
+          keystore-base64: ${{ secrets.ANDROID_RELEASE_KEY }}  # The base64 encoded keystore
+          keystore-password: "${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}"  # Keystore password
+          key-alias: "${{ secrets.ANDROID_KEY_ALIAS }}"  # Key alias
+          key-password: "${{ secrets.ANDROID_KEY_PASSWORD }}"  # Key password
+          build-cmd: flutter build appbundle  # Command to build the app bundle
+          working-directory: ./  # Working directory (root folder of your project)
+          
+      # Archive the generated app bundle (AAB)
+      - name: Archive APK
         uses: actions/upload-artifact@v4
         with:
           name: android-appbundle
