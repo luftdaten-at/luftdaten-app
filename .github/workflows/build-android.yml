@@ -7,8 +7,7 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:  # Ermöglicht die manuelle Auslösung
-
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   build:
@@ -23,17 +22,19 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      # Use cedvdb action to build the app with release keystore
       - uses: cedvdb/action-flutter-build-android@v1
         with:
-          keystore-base64: ${{ secrets.ANDROID_RELEASE_KEY }}
-          keystore-password: "${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}"
-          # optionals
-          build-cmd: flutter build appbundle
-          working-directory: ./
+          keystore-base64: ${{ secrets.ANDROID_RELEASE_KEY }}  # The base64 encoded keystore
+          keystore-password: "${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}"  # Keystore password
+          #key-alias: "${{ secrets.ANDROID_KEY_ALIAS }}"  # Key alias
+          #key-password: "${{ secrets.ANDROID_KEY_PASSWORD }}"  # Key password
+          build-cmd: flutter build appbundle  # Command to build the app bundle
+          working-directory: ./  # Working directory (root folder of your project)
           
+      # Archive the generated app bundle (AAB)
       - name: Archive APK
         uses: actions/upload-artifact@v4
         with:
           name: android-appbundle
-          # Try running the build locally with the build command to be sure of this path
           path: build/app/outputs/bundle/release/app-release.aab
