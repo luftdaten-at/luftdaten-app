@@ -178,6 +178,7 @@ class MeasuredDataPoint {
   LatLngWithPrecision? location;
   final List<SensorDataPoint> sensorData;
   MobilityModes? mode;
+  Map<String, dynamic>? j;
 
   MeasuredDataPoint({
     required this.timestamp,
@@ -185,6 +186,7 @@ class MeasuredDataPoint {
     this.location,
     this.annotation,
     this.mode,
+    this.j,
   });
 
   FlattenedDataPoint get flatten {

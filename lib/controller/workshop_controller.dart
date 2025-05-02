@@ -61,48 +61,62 @@ class WorkshopController extends ChangeNotifier {
       if (tripController.ongoingTrips.isEmpty) return;
       Trip trip = tripController.ongoingTrips.values.first;
       Iterable<FlattenedDataPoint> data;
+      List<Map<String, dynamic>?> jsonList;
       if (lastSent == null) {
         data = trip.data.map((e) => e.flatten);
+        jsonList = trip.data.map((e) => e.j).toList();
       } else {
         data = trip.data.where((e) => e.timestamp.isAfter(lastSent!)).map((e) => e.flatten);
+        jsonList = trip.data.where((e) => e.timestamp.isAfter(lastSent!)).map((e) => e.j).toList();
         // Make sure we don't send too much data if any issues occur
-        if(data.length > 50) data = data.toList().sublist(data.length - 50);
+        //if(data.length > 50) data = data.toList().sublist(data.length - 50);
       }
       data = data.where((e) => e.location != null);
       if (data.isEmpty) return;
+
+
       // Send data
-      Response res = await post(
-        Uri.parse('https://$serverUrl/api/workshop/data/add'),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode(data
-            .map((e) => {
-                  "time": e.timestamp.toUtc().toIso8601String(),
-                  if (e.pm1 != null) "pm1": e.pm1,
-                  if (e.pm25 != null) "pm25": e.pm25,
-                  if (e.pm10 != null) "pm10": e.pm10,
-                  if (e.temperature != null) "temperature": e.temperature,
-                  if (e.humidity != null) "humidity": e.humidity,
-                  if (e.voc != null) "voc": e.voc,
-                  if (e.nox != null) "nox": e.nox,
-                  "device": trip.deviceChipId.chipId,
-                  "workshop": currentWorkshop!.id.toLowerCase(),
-                  if (e.location != null) "lat": e.location!.latitude,
-                  if (e.location != null) "lon": e.location!.longitude,
-                  if (e.location?.precision != null) "location_precision": e.location!.precision,
-                  if (e.mode != null) "mode": e.mode!.name,
-                  "participant": currentWorkshop!.participantUid,
-                })
-            .toList()),
-      );
-      if (res.statusCode == 201) {
-        // Data added successfully
-        lastSent = DateTime.now();
-        logger.d('Successfully sent ${data.length} workshop entries (HTTP 201)');
-        logger.d('Will now only send items dated after ${lastSent!.toIso8601String()}');
-        // If data was not added, retry on next attempt
-      } else {
-        logger.e('Failed to send workshop entries (HTTP ${res.statusCode}):');
-        logger.e(res.body);
+      for(var j in jsonList){
+          if(j == null) continue;
+          j!["workshop"] = currentWorkshop?.id;
+          logger.d('3.14159: $j');
+          Response res = await post(
+          Uri.parse('https://$serverUrl/api/v1/devices/data/'),
+          headers: {"Content-Type": "application/json"},
+          body: json.encode(j)
+          /* 
+          json.encode(data
+              .map((e) => {
+                    "time": e.timestamp.toUtc().toIso8601String(),
+                    if (e.pm1 != null) "pm1": e.pm1,
+                    if (e.pm25 != null) "pm25": e.pm25,
+                    if (e.pm10 != null) "pm10": e.pm10,
+                    if (e.temperature != null) "temperature": e.temperature,
+                    if (e.humidity != null) "humidity": e.humidity,
+                    if (e.voc != null) "voc": e.voc,
+                    if (e.nox != null) "nox": e.nox,
+                    "device": trip.deviceChipId.chipId,
+                    "workshop": currentWorkshop!.id.toLowerCase(),
+                    if (e.location != null) "lat": e.location!.latitude,
+                    if (e.location != null) "lon": e.location!.longitude,
+                    if (e.location?.precision != null) "location_precision": e.location!.precision,
+                    if (e.mode != null) "mode": e.mode!.name,
+                    "participant": currentWorkshop!.participantUid,
+                  })
+              .toList()),
+          */
+        );
+        logger.d('3.14159: statuscode: ${res.statusCode}');
+        if (res.statusCode == 200) {
+          // Data added successfully
+          lastSent = DateTime.now();
+          logger.d('Successfully sent ${data.length} workshop entries (HTTP 201)');
+          logger.d('Will now only send items dated after ${lastSent!.toIso8601String()}');
+          // If data was not added, retry on next attempt
+        } else {
+          logger.e('Failed to send workshop entries (HTTP ${res.statusCode}):');
+          logger.e(res.body);
+        }
       }
     }
   }

@@ -73,8 +73,13 @@ abstract class BackgroundService {
   Future<void> _measureAndHandleForDevice(BleDevice device, TripController tripController, Position? position) async {
     Trip trip = tripController.ongoingTrips[device]!;
     logger.d('About to read data points');
-    List<SensorDataPoint> dataPoints =
+    List<dynamic> tup =
         await getIt<BleController>().readSensorValues(device);
+
+    // unpack data
+    List<SensorDataPoint> dataPoints = tup[0];
+    Map<String, dynamic> j = tup[1];
+
     logger.d('Read data points');
     DateTime timestamp = DateTime.now();
     LatLngWithPrecision? location = position != null
@@ -87,6 +92,7 @@ abstract class BackgroundService {
       sensorData: dataPoints,
       location: location,
       mode: tripController.mobilityMode,
+      j: j
     ));
     logger.d('Added data point');
     if (trip.data.length % 5 == 2) {

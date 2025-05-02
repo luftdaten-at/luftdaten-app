@@ -93,7 +93,10 @@ class BleControllerV2 implements BleControllerForProtocol {
 
   @override
   /// Note: this can throw an error if the device is no longer connected
-  Future<List<SensorDataPoint>> readSensorValues(BleDevice device) async {
+  Future<List<dynamic>> readSensorValues(BleDevice device) async {
+    /*
+    retuns a tuple of (List<SensorDataPoint>: this is the old data format, Map<String, dynamic> json: the new data format)
+    */
     // In protocol version 2, we first need to instruct the device to take a new measurement
     // Measure battery status every 10th iteration
     DateTime? batteryLastMeasured = device.batteryDetails?.timestamp;
@@ -124,8 +127,8 @@ class BleControllerV2 implements BleControllerForProtocol {
 
     Map<String, dynamic> data = j[0];
     rawSensorData = List<int>.from(j[1]);
-
-    return _SensorDataParser(rawSensorData).parse();
+  
+    return [_SensorDataParser(rawSensorData).parse(), data];
   }
 
   @override
