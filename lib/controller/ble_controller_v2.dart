@@ -118,6 +118,13 @@ class BleControllerV2 implements BleControllerForProtocol {
     logger.d('Battery status: ${device.batteryDetails}');
     if(measureBattery) logger.d('(Newly requested)');
     List<int> rawSensorData = await _ble.readCharacteristic(_characteristic(_sensorDataId, device));
+
+    final jsonString = utf8.decode(rawSensorData);
+    List<dynamic> j = json.decode(jsonString);
+
+    Map<String, dynamic> data = j[0];
+    rawSensorData = List<int>.from(j[1]);
+
     return _SensorDataParser(rawSensorData).parse();
   }
 
