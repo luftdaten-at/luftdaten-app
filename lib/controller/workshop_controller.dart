@@ -78,7 +78,7 @@ class WorkshopController extends ChangeNotifier {
       // Send data
       for(var j in jsonList){
           if(j == null) continue;
-          j!["workshop"] = currentWorkshop?.id;
+          j!["station"]["workshop"] = currentWorkshop?.id;
           logger.d('3.14159: $j');
           Response res = await post(
           Uri.parse('https://$serverUrl/api/v1/devices/data/'),
@@ -106,7 +106,6 @@ class WorkshopController extends ChangeNotifier {
               .toList()),
           */
         );
-        logger.d('3.14159: statuscode: ${res.statusCode}');
         if (res.statusCode == 200) {
           // Data added successfully
           lastSent = DateTime.now();
