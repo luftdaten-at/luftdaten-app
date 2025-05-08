@@ -1,2 +1,0 @@
-/home/nik/Documents/luftdaten-app/android/app/.cxx/Debug/85r2s381/x86/CMakeFiles/edit_cache.dir
-/home/nik/Documents/luftdaten-app/android/app/.cxx/Debug/85r2s381/x86/CMakeFiles/rebuild_cache.dir

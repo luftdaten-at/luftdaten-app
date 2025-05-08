@@ -126,6 +126,8 @@ app.*.symbols
 ios/Runner/GoogleService-Info.plist
 android/app/google-services.json
 
+android/app/.cxx
+
 # Google Maps API
 google_maps_api.xml
 

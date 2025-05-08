@@ -43,7 +43,7 @@ class BleController {
     return BleControllerForProtocol(device.protocolVersion!).getDeviceDetails(device);
   }
 
-  Future<List<SensorDataPoint>> readSensorValues(BleDevice device) async {
+  Future<List<dynamic>> readSensorValues(BleDevice device) async {
     await getProtocolVersion(device);
     return BleControllerForProtocol(device.protocolVersion!).readSensorValues(device);
   }
@@ -89,7 +89,7 @@ abstract class BleControllerForProtocol {
 
   Future<void> getDeviceDetails(BleDevice device);
 
-  Future<List<SensorDataPoint>> readSensorValues(BleDevice device);
+  Future<List<dynamic>> readSensorValues(BleDevice device);
 
   Future<bool> sendAirStationConfig(BleDevice device, List<int> bytes);
 
