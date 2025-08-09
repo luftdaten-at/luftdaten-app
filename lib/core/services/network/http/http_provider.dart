@@ -26,7 +26,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import '../../../../presentation/controllers/device/device_info.dart';
-import '../../../../presentation/controllers/news/news_controller.dart';
+// Removed unused import: news_controller.dart
 
 import '../../../../main.dart';
 import '../../../constants/models/models.dart';
@@ -61,17 +61,17 @@ class DataItem {
 
 /*
 class DataLocationItem extends DataItem {
-  String device_id;
+  String deviceId;
   double latitude;
   double longitude;
 
-  DataLocationItem(this.device_id, this.latitude, this.longitude, super.pm1, super.pm25, super.pm10);
+  DataLocationItem(this.deviceId, this.latitude, this.longitude, super.pm1, super.pm25, super.pm10);
 }
 */
 
 class MapHttpProvider extends HttpProvider {
   /// for every station fetches the current values with thier location
-  final String API_URL = "https://api.luftdaten.at/v1/station/historical?end=current&precision=all&output_format=json&include_location=true";
+  final String apiUrl = "https://api.luftdaten.at/v1/station/historical?end=current&precision=all&output_format=json&include_location=true";
   List<Measurement> allItems = [];
   DateTime? _lastfetch;
 
@@ -88,7 +88,7 @@ class MapHttpProvider extends HttpProvider {
   Future<void> _fetch() async {
     // fetch in json format
     allItems = [];
-    Response resp = await http.get(Uri.parse(API_URL), headers: httpHeaders);
+    Response resp = await http.get(Uri.parse(apiUrl), headers: httpHeaders);
     if(resp.statusCode == 200){
       var json = jsonDecode(resp.body);
       for(var j in json){
@@ -106,8 +106,8 @@ class SingleStationHttpProvider extends HttpProvider {
   /// for the given station data is fetch from API_URL
   /// items contains 3 resolutions of the fetched data. See definition of items
 
-  final String API_URL = "https://api.luftdaten.at/v1/station/historical";
-  final String device_id;
+  final String apiUrl = "https://api.luftdaten.at/v1/station/historical";
+  final String deviceId;
 
   /// ([Data last day], [last week], [last month]):
   List<List<DataItem>> items = [[], [], []];
@@ -115,15 +115,15 @@ class SingleStationHttpProvider extends HttpProvider {
   bool error = false;
 
   //SingleStationHttpProvider._(this.sid, [this.isAirStation = false]);
-  SingleStationHttpProvider._(this.device_id);
+  SingleStationHttpProvider._(this.deviceId);
 
-  factory SingleStationHttpProvider(String device_id) {
-    if (_providers[device_id] != null) {
-      return _providers[device_id]!;
+  factory SingleStationHttpProvider(String deviceId) {
+    if (_providers[deviceId] != null) {
+      return _providers[deviceId]!;
     } else {
-      SingleStationHttpProvider provider = SingleStationHttpProvider._(device_id);
+      SingleStationHttpProvider provider = SingleStationHttpProvider._(deviceId);
       provider._fetch();
-      _providers[device_id] = provider;
+      _providers[deviceId] = provider;
       return provider;
     }
   }
@@ -141,13 +141,13 @@ class SingleStationHttpProvider extends HttpProvider {
     finished = false;
     error = false;
     notifyListeners();
-    logger.d('SingleStationHttpProvider: Fetching data for $device_id');
+    logger.d('SingleStationHttpProvider: Fetching data for $deviceId');
     await _fetchForPrecision(0, "all");
     await _fetchForPrecision(1, "hour");
     await _fetchForPrecision(2, "hour");
 
     finished = true;
-    logger.d('Fetch done for $device_id.');
+    logger.d('Fetch done for $deviceId.');
     notifyListeners();
   }
 
@@ -165,7 +165,7 @@ class SingleStationHttpProvider extends HttpProvider {
       start = start.subtract(Duration(days: 30));
     }
     
-    String requestUrl = "$API_URL/?station_ids=$device_id&precision=$precision&output_format=csv&start=${start.toIso8601String()}";
+    String requestUrl = "$apiUrl/?station_ids=$deviceId&precision=$precision&output_format=csv&start=${start.toIso8601String()}";
     Response response = await http.get(Uri.parse(requestUrl), headers: httpHeaders);
 
     if(response.statusCode == 200){
@@ -174,28 +174,28 @@ class SingleStationHttpProvider extends HttpProvider {
       SplayTreeMap<DateTime, Map<int, double>> data = SplayTreeMap();
       for(var line in response.body.split("\n").sublist(1)){ // sublist(1) kipp header
         if(line.isEmpty) continue;
-        var [device, time_measured_string, dimension_string, value_string] = line.split(",");
+        var [device, timeMeasuredString, dimensionString, valueString] = line.split(",");
 
-        DateTime time_measured = DateTime.parse(time_measured_string);
-        int dimension = int.parse(dimension_string);
-        double value = double.parse(value_string);
+        DateTime timeMeasured = DateTime.parse(timeMeasuredString);
+        int dimension = int.parse(dimensionString);
+        double value = double.parse(valueString);
 
-        data.putIfAbsent(time_measured, () => {})[dimension] = value;
+        data.putIfAbsent(timeMeasured, () => {})[dimension] = value;
       }
 
       for(var entry in data.entries){
         DataItem item = DataItem(
-          entry.value[Dimension.PM1_0] ?? 0, // when not present insert 0
-          entry.value[Dimension.PM2_5] ?? 0,
-          entry.value[Dimension.PM10_0] ?? 0,
+          entry.value[Dimension.pm1_0] ?? 0, // when not present insert 0
+          entry.value[Dimension.pm2_5] ?? 0,
+          entry.value[Dimension.pm10_0] ?? 0,
           entry.key, 
         );
         items[index].add(item);
       }
-      logger.d('Added ${items[index].length} entries for $device_id ($index)');
+      logger.d('Added ${items[index].length} entries for $deviceId ($index)');
     }else{
       // bad
-      logger.d("Unexpected, not adding entries for $device_id ($index)");
+      logger.d("Unexpected, not adding entries for $deviceId ($index)");
       error = true;
     }
   }

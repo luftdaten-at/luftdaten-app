@@ -4,7 +4,7 @@ import '../controllers/air_station_config_wizard_controller.dart';
 import '../pages/air_station_config_wizard_page.dart';
 
 import '../../../presentation/widgets/common/change_notifier/change_notifier_builder.dart';
-import 'package:i18n_extension/i18n_extension.dart';
+// Removed unused import: i18n_extension (using local i18n file instead)
 import 'air_station_wizard_dashboard_tile.i18n.dart';
 
 class AirStationWizardDashboardTile extends StatefulWidget {

@@ -16,9 +16,9 @@ class Location {
 @JsonSerializable()
 class SensorDataValue {
   dynamic id;
-  String value_type;
+  String valueType;
   dynamic value;
-  SensorDataValue(this.id, this.value_type, this.value);
+  SensorDataValue(this.id, this.valueType, this.value);
   factory SensorDataValue.fromJson(Map<String, dynamic> json) => _$SensorDataValueFromJson(json);
   Map<String, dynamic> toJson() => _$SensorDataValueToJson(this);
 
@@ -38,8 +38,8 @@ class SensorType {
 @JsonSerializable(explicitToJson: true)
 class Sensor {
   dynamic id;
-  SensorType sensor_type;
-  Sensor(this.id, this.sensor_type);
+  SensorType sensorType;
+  Sensor(this.id, this.sensorType);
   factory Sensor.fromJson(Map<String, dynamic> json) => _$SensorFromJson(json);
   Map<String, dynamic> toJson() => _$SensorToJson(this);
 }

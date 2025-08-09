@@ -1,126 +1,126 @@
-import 'dart:collection';
+// Removed unused import: dart:collection
 import 'package:flutter/material.dart' as material;
 
 
 class Dimension {
-  static const int PM0_1 = 1;
-  static const int PM1_0 = 2;
-  static const int PM2_5 = 3;
-  static const int PM4_0 = 4;
-  static const int PM10_0 = 5;
-  static const int HUMIDITY = 6;
-  static const int TEMPERATURE = 7;
-  static const int VOC_INDEX = 8;
-  static const int NOX_INDEX = 9;
-  static const int PRESSURE = 10;
-  static const int CO2 = 11;
-  static const int O3 = 12;
-  static const int AQI = 13;
-  static const int GAS_RESISTANCE = 14;
-  static const int TVOC = 15;
-  static const int NO2 = 16;
-  static const int SGP40_RAW_GAS = 17;
-  static const int SGP40_ADJUSTED_GAS = 18;
-  static const int ADJUSTED_TEMP_CUBE = 19;
-  static const int UVS = 20;
-  static const int LIGHT = 21;
-  static const int ALTITUDE = 22;
-  static const int UVI = 23;
-  static const int LUX = 24;
-  static const int ACCELERATION_X = 25;
-  static const int ACCELERATION_Y = 26;
-  static const int ACCELERATION_Z = 27;
-  static const int GYRO_X = 28;
-  static const int GYRO_Y = 29;
-  static const int GYRO_Z = 30;
+  static const int pm0_1 = 1;
+  static const int pm1_0 = 2;
+  static const int pm2_5 = 3;
+  static const int pm4_0 = 4;
+  static const int pm10_0 = 5;
+  static const int humidity = 6;
+  static const int temperature = 7;
+  static const int vocIndex = 8;
+  static const int noxIndex = 9;
+  static const int pressure = 10;
+  static const int co2 = 11;
+  static const int o3 = 12;
+  static const int aqi = 13;
+  static const int gasResistance = 14;
+  static const int tvoc = 15;
+  static const int no2 = 16;
+  static const int sgp40RawGas = 17;
+  static const int sgp40AdjustedGas = 18;
+  static const int adjustedTempCube = 19;
+  static const int uvs = 20;
+  static const int light = 21;
+  static const int altitude = 22;
+  static const int uvi = 23;
+  static const int lux = 24;
+  static const int accelerationX = 25;
+  static const int accelerationY = 26;
+  static const int accelerationZ = 27;
+  static const int gyroX = 28;
+  static const int gyroY = 29;
+  static const int gyroZ = 30;
 
   static final Map<int, List<dynamic>> thresholds = {
-    TEMPERATURE: [[18, 24], [Color.BLUE, Color.GREEN, Color.RED]],
-    TVOC: [[220, 1430], [Color.GREEN, Color.YELLOW, Color.RED]],
-    CO2: [[800, 1000, 1400], [Color.GREEN, Color.YELLOW, Color.ORANGE, Color.RED]],
-    ADJUSTED_TEMP_CUBE: [[18, 24], [Color.BLUE, Color.GREEN, Color.RED]],
-    UVI: [[3, 6, 8, 11], [Color.GREEN, Color.YELLOW, Color.ORANGE, Color.RED, Color.PURPLE]],
+    temperature: [[18, 24], [Color.blue, Color.green, Color.red]],
+    tvoc: [[220, 1430], [Color.green, Color.yellow, Color.red]],
+    co2: [[800, 1000, 1400], [Color.green, Color.yellow, Color.orange, Color.red]],
+    adjustedTempCube: [[18, 24], [Color.blue, Color.green, Color.red]],
+    uvi: [[3, 6, 8, 11], [Color.green, Color.yellow, Color.orange, Color.red, Color.purple]],
     // PM1.0 thresholds with exact HSL colors
-    PM1_0: [
+    pm1_0: [
       [9, 35, 55, 125, 250.5], 
-      [Color.GREEN_LIGHT, Color.YELLOW, Color.ORANGE, Color.RED, Color.PURPLE, Color.BROWN_DARK]
+      [Color.greenLight, Color.yellow, Color.orange, Color.red, Color.purple, Color.brownDark]
     ],
     // PM2.5 thresholds with exact HSL colors
-    PM2_5: [
+    pm2_5: [
       [9, 35, 55, 125, 250.5], 
-      [Color.GREEN_LIGHT, Color.YELLOW, Color.ORANGE, Color.RED, Color.PURPLE, Color.BROWN_DARK]
+      [Color.greenLight, Color.yellow, Color.orange, Color.red, Color.purple, Color.brownDark]
     ],
 
     // PM10 thresholds with exact HSL colors
-    PM10_0: [
+    pm10_0: [
       [54, 154, 254, 354, 424], 
-      [Color.GREEN_LIGHT, Color.YELLOW, Color.ORANGE, Color.RED, Color.PURPLE, Color.BROWN_DARK]
+      [Color.greenLight, Color.yellow, Color.orange, Color.red, Color.purple, Color.brownDark]
     ]
   };
 
   static final Map<int, String> _units = {
-    PM0_1: "µg/m³",
-    PM1_0: "µg/m³",
-    PM2_5: "µg/m³",
-    PM4_0: "µg/m³",
-    PM10_0: "µg/m³",
-    HUMIDITY: "%",
-    TEMPERATURE: "°C",
-    VOC_INDEX: "Index",
-    NOX_INDEX: "Index",
-    PRESSURE: "hPa",
-    CO2: "ppm",
-    O3: "ppb",
-    AQI: "Index",
-    GAS_RESISTANCE: "Ω",
-    TVOC: "ppb",
-    NO2: "ppb",
-    SGP40_RAW_GAS: "Ω",
-    SGP40_ADJUSTED_GAS: "Ω",
-    ADJUSTED_TEMP_CUBE: "°C",
-    ACCELERATION_X: "m/s²",
-    ACCELERATION_Y: "m/s²",
-    ACCELERATION_Z: "m/s²",
-    GYRO_X: "radians/s",
-    GYRO_Y: "radians/s",
-    GYRO_Z: "radians/s",
-    UVI: "UV Index",
-    LUX: "lx"
+    pm0_1: "µg/m³",
+    pm1_0: "µg/m³",
+    pm2_5: "µg/m³",
+    pm4_0: "µg/m³",
+    pm10_0: "µg/m³",
+    humidity: "%",
+    temperature: "°C",
+    vocIndex: "Index",
+    noxIndex: "Index",
+    pressure: "hPa",
+    co2: "ppm",
+    o3: "ppb",
+    aqi: "Index",
+    gasResistance: "Ω",
+    tvoc: "ppb",
+    no2: "ppb",
+    sgp40RawGas: "Ω",
+    sgp40AdjustedGas: "Ω",
+    adjustedTempCube: "°C",
+    accelerationX: "m/s²",
+    accelerationY: "m/s²",
+    accelerationZ: "m/s²",
+    gyroX: "radians/s",
+    gyroY: "radians/s",
+    gyroZ: "radians/s",
+    uvi: "UV Index",
+    lux: "lx"
   };
 
   static final Map<int, String> _names = {
-    PM0_1: "PM0.1",
-    PM1_0: "PM1.0",
-    PM2_5: "PM2.5",
-    PM4_0: "PM4.0",
-    PM10_0: "PM10.0",
-    HUMIDITY: "Humidity",
-    TEMPERATURE: "Temperature",
-    VOC_INDEX: "VOC Index",
-    NOX_INDEX: "NOx Index",
-    PRESSURE: "Pressure",
-    CO2: "CO2",
-    O3: "Ozone (O3)",
-    AQI: "Air Quality Index (AQI)",
-    GAS_RESISTANCE: "Gas Resistance",
-    TVOC: "Total VOC",
-    NO2: "Nitrogen Dioxide (NO2)",
-    SGP40_RAW_GAS: "SGP40 Raw Gas",
-    SGP40_ADJUSTED_GAS: "SGP40 Adjusted Gas",
-    ADJUSTED_TEMP_CUBE: "Adjusted Temperature Air Cube",
-    UVS: "UVS",
-    LIGHT: "Light",
-    ACCELERATION_X: "Acceleration X",
-    ACCELERATION_Y: "Acceleration Y",
-    ACCELERATION_Z: "Acceleration Z",
-    GYRO_X: "Gyro X",
-    GYRO_Y: "Gyro Y",
-    GYRO_Z: "Gyro Z",
-    UVI: "UV Index",
-    LUX: "Lux"
+    pm0_1: "PM0.1",
+    pm1_0: "PM1.0",
+    pm2_5: "PM2.5",
+    pm4_0: "PM4.0",
+    pm10_0: "PM10.0",
+    humidity: "Humidity",
+    temperature: "Temperature",
+    vocIndex: "VOC Index",
+    noxIndex: "NOx Index",
+    pressure: "Pressure",
+    co2: "CO2",
+    o3: "Ozone (O3)",
+    aqi: "Air Quality Index (AQI)",
+    gasResistance: "Gas Resistance",
+    tvoc: "Total VOC",
+    no2: "Nitrogen Dioxide (NO2)",
+    sgp40RawGas: "SGP40 Raw Gas",
+    sgp40AdjustedGas: "SGP40 Adjusted Gas",
+    adjustedTempCube: "Adjusted Temperature Air Cube",
+    uvs: "UVS",
+    light: "Light",
+    accelerationX: "Acceleration X",
+    accelerationY: "Acceleration Y",
+    accelerationZ: "Acceleration Z",
+    gyroX: "Gyro X",
+    gyroY: "Gyro Y",
+    gyroZ: "Gyro Z",
+    uvi: "UV Index",
+    lux: "Lux"
   };
 
-  static String get_name(int dim){
+  static String getName(int dim){
     return _names[dim] ?? "Name not found";
   }
 
@@ -139,17 +139,17 @@ class Dimension {
 }
 
 class Color {
-  static const GREEN = [0, 255, 0];
-  static const GREEN_LOW = [0, 50, 0];
-  static const BLUE = [0, 0, 255];
-  static const CYAN = [0, 255, 50];
-  static const MAGENTA = [255, 0, 20];
-  static const WHITE = [255, 150, 40];
-  static const OFF = [0, 0, 0];
-  static const GREEN_LIGHT = [128, 255, 128];  // HSL(120, 1, 0.75)
-  static const YELLOW = [255, 255, 0];         // HSL(60, 1, 1)
-  static const ORANGE = [255, 170, 0];         // HSL(30, 1, 1)
-  static const RED = [255, 0, 0];              // HSL(0, 1, 1)
-  static const PURPLE = [179, 0, 179];         // HSL(300, 1, 0.7)
-  static const BROWN_DARK = [128, 0, 32];      // HSL(330, 1, 0.5)
+  static const green = [0, 255, 0];
+  static const greenLow = [0, 50, 0];
+  static const blue = [0, 0, 255];
+  static const cyan = [0, 255, 50];
+  static const magenta = [255, 0, 20];
+  static const white = [255, 150, 40];
+  static const off = [0, 0, 0];
+  static const greenLight = [128, 255, 128];  // HSL(120, 1, 0.75)
+  static const yellow = [255, 255, 0];         // HSL(60, 1, 1)
+  static const orange = [255, 170, 0];         // HSL(30, 1, 1)
+  static const red = [255, 0, 0];              // HSL(0, 1, 1)
+  static const purple = [179, 0, 179];         // HSL(300, 1, 0.7)
+  static const brownDark = [128, 0, 32];      // HSL(330, 1, 0.5)
 }

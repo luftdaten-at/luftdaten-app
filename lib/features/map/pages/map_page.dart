@@ -48,7 +48,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-import '../utils/map_select_marker.dart';
+// Removed unused import: map_select_marker.dart
 import '../../../data/models/trip/trip.dart';
 import '../../../data/models/location/value_marker.dart';
 import '../../../presentation/widgets/common/progress/progress.dart';
@@ -84,7 +84,7 @@ class _MapPageState extends State<MapPage>
 
   bool autoCenter = true;
 
-  int mapDisplayType = enums.Dimension.PM2_5;
+  int mapDisplayType = enums.Dimension.pm2_5;
 
   final CompassController _compassController = CompassController();
 
@@ -92,16 +92,16 @@ class _MapPageState extends State<MapPage>
     //if (item.flatten.pm10 != null) {
     //  return FormattedValue.from(MeasurableQuantity.pm10, item.flatten.pm10!).color;
     //}
-    if (mapDisplayType == enums.Dimension.PM1_0) {
+    if (mapDisplayType == enums.Dimension.pm1_0) {
       if (item.flatten.pm1 == null) return Colors.grey;
       return GradientColor.pm1().getColor(item.flatten.pm1!);
-    } else if (mapDisplayType == enums.Dimension.PM2_5) {
+    } else if (mapDisplayType == enums.Dimension.pm2_5) {
       if (item.flatten.pm25 == null) return Colors.grey;
       return GradientColor.pm25().getColor(item.flatten.pm25!);
-    } else if (mapDisplayType == enums.Dimension.PM10_0) {
+    } else if (mapDisplayType == enums.Dimension.pm10_0) {
       if (item.flatten.pm10 == null) return Colors.grey;
       return GradientColor.pm10().getColor(item.flatten.pm10!);
-    } else if (mapDisplayType == enums.Dimension.TEMPERATURE) {
+    } else if (mapDisplayType == enums.Dimension.temperature) {
       if (item.flatten.temperature == null) return Colors.grey;
       return GradientColor.temperature().getColor(item.flatten.temperature!);
     }
@@ -639,19 +639,19 @@ class _MapPageState extends State<MapPage>
                   child: PopupMenuButton(
                     itemBuilder: (_) => [
                       const PopupMenuItem(
-                        value: enums.Dimension.PM1_0,
+                        value: enums.Dimension.pm1_0,
                         child: Text('PM1.0'),
                       ),
                       const PopupMenuItem(
-                        value: enums.Dimension.PM2_5,
+                        value: enums.Dimension.pm2_5,
                         child: Text('PM2.5'),
                       ),
                       const PopupMenuItem(
-                        value: enums.Dimension.PM10_0,
+                        value: enums.Dimension.pm10_0,
                         child: Text('PM10.0'),
                       ),
                       PopupMenuItem(
-                        value: enums.Dimension.TEMPERATURE,
+                        value: enums.Dimension.temperature,
                         child: Text('Temperatur'.i18n),
                       ),
                     ],
@@ -677,7 +677,7 @@ class _MapPageState extends State<MapPage>
                         width: 44,
                         child: Center(
                           child: Text(
-                            enums.Dimension.get_name(mapDisplayType),
+                            enums.Dimension.getName(mapDisplayType),
                             textAlign: TextAlign.center,
                             style: GoogleFonts.nunitoSans(
                               fontSize: 11,

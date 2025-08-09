@@ -29,8 +29,8 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     widget.controller.getCurrentLocation();
-    longitude = widget.controller.current_position.longitude;
-    latitude = widget.controller.current_position.latitude;
+    longitude = widget.controller.currentPosition.longitude;
+    latitude = widget.controller.currentPosition.latitude;
 
     // Initialisiere die Controller mit den Anfangswerten
     longitudeController.text = longitude.toString();

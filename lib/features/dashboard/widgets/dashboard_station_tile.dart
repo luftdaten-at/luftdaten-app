@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import '../../../presentation/controllers/favorites/favorites_manager.dart';
 import '../../../core/services/network/http/http_provider.dart';
-import '../../../main.dart';
+// Removed unused import: main.dart
 import '../../../presentation/widgets/common/ui/ui.dart';
 
 import '../../../data/models/ble/ble_device.dart';
@@ -41,17 +41,17 @@ class _DashboardStationTileState extends State<DashboardStationTile> {
      * Otherwise favorite != null and device id can be retrieved from there
      */
     
-    String device_id = "";
+    String deviceId = "";
     if(widget.device != null){
       // TODO find better Method of getting the Device ID if AirStationConfig is null
       String backupDeviceId = '${widget.device!.bleName.split("-")[1]}AAA';
-      device_id = AirStationConfigManager.getConfig(widget.device!.bleName)?.deviceId ?? backupDeviceId;
-    }else{
-      device_id = widget.favorite!.id;
-    }
+      deviceId = AirStationConfigManager.getConfig(widget.device!.bleName)?.deviceId ?? backupDeviceId;
+          }else{
+        deviceId = widget.favorite!.id;
+      }
 
     provider = SingleStationHttpProvider(
-      device_id,
+      deviceId,
     );
     super.initState();
   }

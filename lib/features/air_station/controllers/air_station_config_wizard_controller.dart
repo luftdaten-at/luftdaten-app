@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:get_storage/get_storage.dart';
 import '../../../presentation/controllers/device/device_manager.dart';
-import '../../../core/services/network/http/http_provider.dart';
+// Removed unused import: http_provider.dart
 import '../../../main.dart';
 import '../../../data/models/air_station/air_station_config.dart';
 import '../../../data/models/ble/ble_device.dart';
@@ -19,7 +19,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
 
   static MapChangeNotifier<String, AirStationConfigWizardController> get activeControllers => _activeControllers;
 
-  Position current_position = Position(
+  Position currentPosition = Position(
     latitude: 0.0,
     longitude: 0.0,
     timestamp: DateTime.now(),
@@ -311,11 +311,8 @@ class AirStationConfigWizardController extends ChangeNotifier {
   Future<void> waitForFirstData() async {
     stage = AirStationConfigWizardStage.waitingForFirstData;
     // TODO periodically check for data
-    _shouldStillCheckForData = true;
     _checkForDataOnline();
   }
-
-  bool _shouldStillCheckForData = false;
 
   Future<void> _checkForDataOnline() async {
 
@@ -328,7 +325,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
   // Method to fetch current location
   Future<void> getCurrentLocation() async {
     if(await Permission.location.request() == PermissionStatus.granted){
-      current_position = await Geolocator.getCurrentPosition();
+      currentPosition = await Geolocator.getCurrentPosition();
     }
   }
 }

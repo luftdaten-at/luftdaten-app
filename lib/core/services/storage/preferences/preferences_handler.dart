@@ -8,7 +8,7 @@ class PreferencesHandler {
 
   final GetStorage _box = GetStorage('preferences');
 
-  int _selectedPM = enums.Dimension.PM2_5;
+  int _selectedPM = enums.Dimension.pm2_5;
   int get selectedPM => _selectedPM;
   set selectedPM(value) {
     _selectedPM = value;
@@ -17,6 +17,6 @@ class PreferencesHandler {
 
   void init() async {
     await GetStorage.init('preferences');
-    _selectedPM = int.tryParse(_box.read('mapShowPM')) ?? enums.Dimension.PM2_5;
+    _selectedPM = int.tryParse(_box.read('mapShowPM')) ?? enums.Dimension.pm2_5;
   }
 }

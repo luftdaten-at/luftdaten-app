@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:ffi';
+// Removed unused import: dart:ffi
 import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
@@ -72,25 +72,25 @@ class AirStationConfig {
       final flag = AirStationConfigFlags.fromValue(byteData.getUint8(idx++));
       final int length = byteData.getUint8(idx++);
       switch (flag) {
-        case AirStationConfigFlags.AUTO_UPDATE_MODE:
+        case AirStationConfigFlags.autoUpdateMode:
           autoUpdateMode = AutoUpdateMode.parseBinary(byteData.getInt32(idx));
           break;
-        case AirStationConfigFlags.BATTERY_SAVE_MODE:
+        case AirStationConfigFlags.batterySaveMode:
           batterySaverMode = BatterySaverMode.parseBinary(byteData.getInt32(idx));
           break;
-        case AirStationConfigFlags.MEASUREMENT_INTERVAL:
+        case AirStationConfigFlags.measurementInterval:
           measurementInterval = AirStationMeasurementInterval.parseSeconds(byteData.getInt32(idx));
           break;
-        case AirStationConfigFlags.LONGITUDE:
+        case AirStationConfigFlags.longitude:
           longitude = parseStringToDouble(String.fromCharCodes(bytes.sublist(idx, idx + length)));
           break;
-        case AirStationConfigFlags.LATITUDE:
+        case AirStationConfigFlags.latitude:
           latitude = parseStringToDouble(String.fromCharCodes(bytes.sublist(idx, idx + length)));
           break;
-        case AirStationConfigFlags.HEIGHT:
+        case AirStationConfigFlags.height:
           height = parseStringToDouble(String.fromCharCodes(bytes.sublist(idx, idx + length)));
           break;
-        case AirStationConfigFlags.DEVICE_ID:
+        case AirStationConfigFlags.deviceId:
           deviceId = String.fromCharCodes(bytes.sublist(idx, idx + length));
           break;
       }
@@ -196,13 +196,13 @@ class AirStationConfigManager {
 
 
 enum AirStationConfigFlags {
-  AUTO_UPDATE_MODE(0),
-  BATTERY_SAVE_MODE(1),
-  MEASUREMENT_INTERVAL(2),
-  LONGITUDE(3),
-  LATITUDE(4),
-  HEIGHT(5),
-  DEVICE_ID(8);
+  autoUpdateMode(0),
+  batterySaveMode(1),
+  measurementInterval(2),
+  longitude(3),
+  latitude(4),
+  height(5),
+  deviceId(8);
 
   final int value;
   

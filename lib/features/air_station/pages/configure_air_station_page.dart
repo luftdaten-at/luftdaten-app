@@ -3,14 +3,15 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:luftdaten.at/controller/ble_controller.dart';
-import 'package:luftdaten.at/controller/device_manager.dart';
-import 'package:luftdaten.at/model/ble_device.dart';
-import 'package:luftdaten.at/widget/ui.dart';
+import '../../../features/ble/controllers/ble_controller.dart';
+import '../../../presentation/controllers/device/device_manager.dart';
+import '../../../data/models/ble/ble_device.dart';
+import '../../../presentation/widgets/common/ui/ui.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 
-import '../main.dart';
+import '../../../main.dart';
 import 'configure_air_station_page.i18n.dart';
+// Removed unused imports: get_it and logger
 
 class ConfigureAirStationPage extends StatefulWidget {
   const ConfigureAirStationPage(this.device, {super.key});
@@ -346,47 +347,7 @@ class _ConfigureAirStationPageState extends State<ConfigureAirStationPage> {
     );
   }
 
-  Widget _settingsTextFieldRow({
-    required String title,
-    String? desc,
-    required TextEditingController controller,
-    required double width,
-    required TextInputType type,
-    List<TextInputFormatter>? inputFormatters,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              if (desc != null)
-                Text(
-                  desc,
-                  style: const TextStyle(fontSize: 12),
-                )
-            ],
-          ),
-        ),
-        SizedBox(
-          width: width,
-          child: TextField(
-            controller: controller,
-            keyboardType: type,
-            inputFormatters: inputFormatters,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-      ],
-    );
-  }
+  // Removed unused method: _settingsTextFieldRow
 
   Widget _settingsDropdownRow({
     required String title,

@@ -1,4 +1,4 @@
-import 'dart:convert';
+// Removed unused import: dart:convert
 
 class Location {
   double lat;

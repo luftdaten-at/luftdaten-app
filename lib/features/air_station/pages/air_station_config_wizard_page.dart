@@ -10,7 +10,7 @@ import '../../../presentation/widgets/common/ui/ui.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
-import 'package:latlong2/latlong.dart'; // For LatLng
+// Removed unused import: latlong2 // For LatLng
 import '../../map/utils/map_select_marker.dart';
 
 import '../../../main.dart';

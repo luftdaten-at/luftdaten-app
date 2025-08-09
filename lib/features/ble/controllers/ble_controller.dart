@@ -3,7 +3,7 @@ import 'ble_controller_v1.dart';
 import '../../../data/models/ble/ble_device.dart';
 
 import '../../../main.dart';
-import '../../../data/models/measurement/measured_data.dart';
+// Removed unused import: measured_data.dart
 import 'ble_controller_v2.dart';
 
 class BleController {

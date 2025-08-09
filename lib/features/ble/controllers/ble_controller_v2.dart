@@ -99,7 +99,6 @@ class BleControllerV2 implements BleControllerForProtocol {
     */
     // In protocol version 2, we first need to instruct the device to take a new measurement
     // Measure battery status every 10th iteration
-    DateTime? batteryLastMeasured = device.batteryDetails?.timestamp;
     bool measureBattery = false;
     device.batteryReadoutCounter++;
     if(device.needsBatteryReadout) {
