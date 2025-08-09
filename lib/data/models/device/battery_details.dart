@@ -1,5 +1,5 @@
-import 'package:luftdaten.at/controller/battery_info_aggregator.dart';
-import 'package:luftdaten.at/main.dart';
+import '../../../presentation/controllers/battery/battery_info_aggregator.dart';
+import '../../../main.dart';
 
 class BatteryDetails {
   final BatteryStatus status;

@@ -4,12 +4,12 @@ import 'dart:ui';
 
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:luftdaten.at/controller/background_service.dart';
-import 'package:luftdaten.at/controller/background_service.i18n.dart';
+import 'background_service.dart';
+import 'background_service.i18n.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
-import '../main.dart';
-import 'app_settings.dart';
+import '../../../main.dart';
+import '../../../features/settings/controllers/app_settings.dart';
 
 class BackgroundServiceAndroid extends BackgroundService {
   @override

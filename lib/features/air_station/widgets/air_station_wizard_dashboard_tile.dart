@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:luftdaten.at/controller/air_station_config_wizard_controller.dart';
-import 'package:luftdaten.at/page/air_station_config_wizard_page.dart';
+import '../controllers/air_station_config_wizard_controller.dart';
+import '../pages/air_station_config_wizard_page.dart';
 
-import 'change_notifier_builder.dart';
-import 'dashboard_station_tile.i18n.dart';
+import '../../../presentation/widgets/common/change_notifier/change_notifier_builder.dart';
+import 'package:i18n_extension/i18n_extension.dart';
+import 'air_station_wizard_dashboard_tile.i18n.dart';
 
 class AirStationWizardDashboardTile extends StatefulWidget {
   const AirStationWizardDashboardTile(this.controller, {super.key});

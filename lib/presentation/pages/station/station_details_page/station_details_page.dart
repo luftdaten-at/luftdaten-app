@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:intl/intl.dart';
-import 'package:luftdaten.at/model/ble_device.dart';
-import 'package:luftdaten.at/util/list_extensions.dart';
-import 'package:luftdaten.at/widget/ui.dart';
+import '../../../../data/models/ble/ble_device.dart';
+import '../../../../core/utils/extensions/list/list_extensions.dart';
+import '../../../widgets/common/ui/ui.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-import '../controller/air_station_config_wizard_controller.dart';
-import '../controller/http_provider.dart';
-import '../widget/change_notifier_builder.dart';
-import 'air_station_config_wizard_page.dart';
+import '../../../../features/air_station/controllers/air_station_config_wizard_controller.dart';
+import '../../../../core/services/network/http/http_provider.dart';
+import '../../../widgets/common/change_notifier/change_notifier_builder.dart';
+import '../../../../features/air_station/pages/air_station_config_wizard_page.dart';
 import 'station_details_page.i18n.dart';
-import '../model/air_station_config.dart';
+import '../../../../data/models/air_station/air_station_config.dart';
 
 class StationDetailsPage extends StatefulWidget {
   const StationDetailsPage({super.key, this.id, this.device, this.httpProvider});

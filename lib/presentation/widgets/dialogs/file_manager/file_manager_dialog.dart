@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
-import 'package:luftdaten.at/controller/file_handler.dart';
-import 'package:luftdaten.at/controller/trip_controller.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/util/list_extensions.dart';
-import 'package:luftdaten.at/widget/current_trip_export_dialog.dart';
+import '../../../../core/services/storage/files/file_handler.dart';
+import '../../../controllers/trip/trip_controller.dart';
+import '../../../../main.dart';
+import '../../../../core/utils/extensions/list/list_extensions.dart';
+import '../current_trip_export/current_trip_export_dialog.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 
-import '../model/trip.dart';
+import '../../../../data/models/trip/trip.dart';
 import 'file_manager_dialog.i18n.dart';
 
 class FileManagerDialog extends StatefulWidget {

@@ -3,15 +3,15 @@ import 'package:collection_providers/collection_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:luftdaten.at/controller/device_manager.dart';
-import 'package:luftdaten.at/controller/http_provider.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/model/air_station_config.dart';
-import 'package:luftdaten.at/model/ble_device.dart';
+import '../../../presentation/controllers/device/device_manager.dart';
+import '../../../core/services/network/http/http_provider.dart';
+import '../../../main.dart';
+import '../../../data/models/air_station/air_station_config.dart';
+import '../../../data/models/ble/ble_device.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart'; // Import geolocator package for GPS
 
-import 'ble_controller.dart';
+import '../../ble/controllers/ble_controller.dart';
 
 class AirStationConfigWizardController extends ChangeNotifier {
   static final MapChangeNotifier<String, AirStationConfigWizardController> _activeControllers = MapChangeNotifier();

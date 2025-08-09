@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:luftdaten.at/controller/air_station_config_wizard_controller.dart';
-import 'package:luftdaten.at/model/ble_device.i18n.dart';
+import '../../air_station/controllers/air_station_config_wizard_controller.dart';
+import '../../../data/models/ble/ble_device.i18n.dart';
 
 class MapScreen extends StatefulWidget {
   final AirStationConfigWizardController controller;

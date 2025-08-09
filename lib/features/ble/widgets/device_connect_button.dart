@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:i18n_extension/default.i18n.dart';
-import 'package:luftdaten.at/model/ble_device.dart';
+import '../../../data/models/ble/ble_device.dart';
 
 class DeviceConnectButton extends StatefulWidget {
   const DeviceConnectButton({super.key, required this.device, this.onSelected});

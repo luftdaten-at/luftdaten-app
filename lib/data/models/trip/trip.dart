@@ -2,14 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
-import 'package:luftdaten.at/controller/device_info.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/model/ble_device.dart';
-import 'package:luftdaten.at/model/chip_id.dart';
-import 'package:luftdaten.at/model/sensor_details.dart';
+import '../../../presentation/controllers/device/device_info.dart';
+import '../../../main.dart';
+import '../ble/ble_device.dart';
+import '../device/chip_id.dart';
+import '../measurement/sensor_details.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'measured_data.dart';
+import '../measurement/measured_data.dart';
 
 /// Multiple trips can be recorded at the same time. Each trip corresponds to one device and
 /// can only be continued from that device. Trips loaded from storage can't be continued

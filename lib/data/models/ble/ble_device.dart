@@ -2,17 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'package:luftdaten.at/controller/battery_info_aggregator.dart';
-import 'package:luftdaten.at/controller/ble_controller.dart';
-import 'package:luftdaten.at/controller/device_manager.dart';
-import 'package:luftdaten.at/controller/trip_controller.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/model/battery_details.dart';
-import 'package:luftdaten.at/model/ble_device.i18n.dart';
-import 'package:luftdaten.at/model/device_error.dart';
-import 'package:luftdaten.at/model/sensor_details.dart';
+import '../../../presentation/controllers/battery/battery_info_aggregator.dart';
+import '../../../features/ble/controllers/ble_controller.dart';
+import '../../../presentation/controllers/device/device_manager.dart';
+import '../../../presentation/controllers/trip/trip_controller.dart';
+import '../../../main.dart';
+import '../device/battery_details.dart';
+import 'ble_device.i18n.dart';
+import '../device/device_error.dart';
+import '../measurement/sensor_details.dart';
 
-import '../widget/ui.dart';
+import '../../../presentation/widgets/common/ui/ui.dart';
 
 class BleDevice extends ChangeNotifier {
   // Device state

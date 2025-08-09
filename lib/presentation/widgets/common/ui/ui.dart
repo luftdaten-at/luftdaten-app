@@ -22,15 +22,15 @@ import 'package:app_settings/app_settings.dart';
 import 'package:bluetooth_enable/bluetooth_enable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'package:luftdaten.at/controller/device_manager.dart';
-import 'package:luftdaten.at/widget/device_connect_button.dart';
+import '../../../controllers/device/device_manager.dart';
+import '../../../../features/ble/widgets/device_connect_button.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
-import '../main.dart';
-import '../model/ble_device.dart';
-import '../page/device_manager_page.dart';
-import 'change_notifier_builder.dart';
+import '../../../../main.dart';
+import '../../../../data/models/ble/ble_device.dart';
+import '../../../pages/device/device_manager_page/device_manager_page.dart';
+import '../change_notifier/change_notifier_builder.dart';
 import 'ui.i18n.dart';
 
 void snackMessage(BuildContext context, String message) {

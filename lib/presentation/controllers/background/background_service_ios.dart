@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:just_audio/just_audio.dart';
-import 'package:luftdaten.at/controller/background_service.dart';
+import 'background_service.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
-import 'app_settings.dart';
+import '../../../features/settings/controllers/app_settings.dart';
 
 class BackgroundServiceIOS extends BackgroundService {
   bool statedTrip = false;

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:luftdaten.at/controller/battery_info_aggregator.dart';
-import 'package:luftdaten.at/controller/device_manager.dart';
-import 'package:luftdaten.at/controller/trip_controller.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/model/measured_data.dart';
-import 'package:luftdaten.at/page/chart_page.i18n.dart';
+import '../../../controllers/battery/battery_info_aggregator.dart';
+import '../../../controllers/device/device_manager.dart';
+import '../../../controllers/trip/trip_controller.dart';
+import '../../../../main.dart';
+import '../../../../data/models/measurement/measured_data.dart';
+import 'chart_page.i18n.dart';
 import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-import '../controller/app_settings.dart';
-import '../model/battery_details.dart';
-import '../widget/change_notifier_builder.dart';
-import '../widget/start_button.dart';
+import '../../../../features/settings/controllers/app_settings.dart';
+import '../../../../data/models/device/battery_details.dart';
+import '../../../widgets/common/change_notifier/change_notifier_builder.dart';
+import '../../../widgets/forms/start_button/start_button.dart';
 
 class ChartPage extends StatefulWidget {
   const ChartPage({super.key, this.isFullscreen = false});

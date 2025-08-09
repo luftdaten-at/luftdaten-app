@@ -3,15 +3,15 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:luftdaten.at/controller/trip_controller.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/model/ble_device.dart';
-import 'package:luftdaten.at/model/chip_id.dart';
-import 'package:luftdaten.at/util/list_extensions.dart';
+import '../../../controllers/trip/trip_controller.dart';
+import '../../../../main.dart';
+import '../../../../data/models/ble/ble_device.dart';
+import '../../../../data/models/device/chip_id.dart';
+import '../../../../core/utils/extensions/list/list_extensions.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../model/trip.dart';
+import '../../../../data/models/trip/trip.dart';
 import 'current_trip_export_dialog.i18n.dart';
 
 class CurrentTripExportDialog extends StatefulWidget {

@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-import '../main.dart';
+import '../../../../main.dart';
 
 class RotatingWidget extends StatefulWidget {
   const RotatingWidget(

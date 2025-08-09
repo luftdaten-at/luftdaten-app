@@ -1,9 +1,9 @@
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'package:luftdaten.at/controller/ble_controller_v1.dart';
-import 'package:luftdaten.at/model/ble_device.dart';
+import 'ble_controller_v1.dart';
+import '../../../data/models/ble/ble_device.dart';
 
-import '../main.dart';
-import '../model/measured_data.dart';
+import '../../../main.dart';
+import '../../../data/models/measurement/measured_data.dart';
 import 'ble_controller_v2.dart';
 
 class BleController {

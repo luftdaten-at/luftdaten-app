@@ -8,16 +8,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:luftdaten.at/controller/trip_controller.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/page/annotated_picture_page.i18n.dart';
+import '../../controllers/trip/trip_controller.dart';
+import '../../../main.dart';
+import 'annotated_picture_page.i18n.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../model/measured_data.dart';
-import '../model/trip.dart';
+import '../../../data/models/measurement/measured_data.dart';
+import '../../../data/models/trip/trip.dart';
 
 class AnnotatedPicturePage extends StatefulWidget {
   const AnnotatedPicturePage({super.key});

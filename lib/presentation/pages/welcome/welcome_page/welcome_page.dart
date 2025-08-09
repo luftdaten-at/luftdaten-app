@@ -3,10 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:luftdaten.at/page/welcome_page.i18n.dart';
+import 'welcome_page.i18n.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import '../widget/ui.dart';
+import '../../../widgets/common/ui/ui.dart';
 
 class WelcomePage extends StatefulWidget {
   const WelcomePage({super.key});

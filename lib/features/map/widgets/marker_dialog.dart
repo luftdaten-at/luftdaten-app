@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:luftdaten.at/model/measured_data.dart';
-import 'package:luftdaten.at/widget/marker_dialog.i18n.dart';
+import '../../../data/models/measurement/measured_data.dart';
+import 'marker_dialog.i18n.dart';
 
-import '../util/gradient_color.dart';
+import '../../../core/utils/helpers/color/gradient_color.dart';
 
 class MarkerDialog extends StatefulWidget {
   const MarkerDialog(

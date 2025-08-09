@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:luftdaten.at/controller/favorites_manager.dart';
-import 'package:luftdaten.at/controller/http_provider.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/widget/ui.dart';
+import '../../../presentation/controllers/favorites/favorites_manager.dart';
+import '../../../core/services/network/http/http_provider.dart';
+import '../../../main.dart';
+import '../../../presentation/widgets/common/ui/ui.dart';
 
-import '../model/ble_device.dart';
-import '../page/station_details_page.dart';
-import 'change_notifier_builder.dart';
+import '../../../data/models/ble/ble_device.dart';
+import '../../../presentation/pages/station/station_details_page/station_details_page.dart';
+import '../../../presentation/widgets/common/change_notifier/change_notifier_builder.dart';
 import 'dashboard_station_tile.i18n.dart';
-import '../model/air_station_config.dart';
+import '../../../data/models/air_station/air_station_config.dart';
 
 class DashboardStationTile extends StatefulWidget {
   const DashboardStationTile({super.key, this.device, this.favorite, this.dragController})

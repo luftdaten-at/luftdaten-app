@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import 'package:luftdaten.at/controller/device_manager.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/model/battery_details.dart';
-import 'package:luftdaten.at/model/ble_device.dart';
+import '../device/device_manager.dart';
+import '../../../main.dart';
+import '../../../data/models/device/battery_details.dart';
+import '../../../data/models/ble/ble_device.dart';
 
 /// A helper to efficiently collect battery information for UI and debugging
 class BatteryInfoAggregator extends ChangeNotifier {

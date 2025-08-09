@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart';
-import 'package:luftdaten.at/util/string_extensions.dart';
+import '../../../core/utils/extensions/string/string_extensions.dart';
 
-import '../model/news_item.dart';
+import '../../../data/models/news/news_item.dart';
 
 class NewsController extends ChangeNotifier {
   final GetStorage _box = GetStorage('news');

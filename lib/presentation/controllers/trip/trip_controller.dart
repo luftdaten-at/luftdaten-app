@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
-import 'package:luftdaten.at/controller/background_service.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/model/ble_device.dart';
-import 'package:luftdaten.at/model/chip_id.dart';
-import 'package:luftdaten.at/model/measured_data.dart';
+import '../background/background_service.dart';
+import '../../../main.dart';
+import '../../../data/models/ble/ble_device.dart';
+import '../../../data/models/device/chip_id.dart';
+import '../../../data/models/measurement/measured_data.dart';
 
-import '../model/trip.dart';
+import '../../../data/models/trip/trip.dart';
 
 class TripController extends ChangeNotifier {
   TripController();

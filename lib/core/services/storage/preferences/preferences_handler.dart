@@ -1,5 +1,5 @@
 import 'package:get_storage/get_storage.dart';
-import 'package:luftdaten.at/enums.dart' as enums;
+import '../../../constants/enums/enums.dart' as enums;
 
 class PreferencesHandler {
   // This class stores user preferences for consistency between sessions

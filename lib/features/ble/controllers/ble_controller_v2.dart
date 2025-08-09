@@ -2,15 +2,15 @@ import 'dart:convert';
 
 import 'package:convert/convert.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'package:luftdaten.at/controller/ble_controller.dart';
-import 'package:luftdaten.at/model/device_error.dart';
-import 'package:luftdaten.at/model/sensor_details.dart';
+import 'ble_controller.dart';
+import '../../../data/models/device/device_error.dart';
+import '../../../data/models/measurement/sensor_details.dart';
 
-import '../main.dart';
-import '../model/battery_details.dart';
-import '../model/ble_device.dart';
-import '../model/measured_data.dart';
-import 'app_settings.dart';
+import '../../../main.dart';
+import '../../../data/models/device/battery_details.dart';
+import '../../../data/models/ble/ble_device.dart';
+import '../../../data/models/measurement/measured_data.dart';
+import '../../../features/settings/controllers/app_settings.dart';
 
 class BleControllerV2 implements BleControllerForProtocol {
   // Singleton

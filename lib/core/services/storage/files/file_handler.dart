@@ -5,11 +5,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:luftdaten.at/util/day.dart';
+import '../../../utils/helpers/date/day.dart';
 import 'package:path_provider/path_provider.dart';
 
-import '../main.dart';
-import '../model/trip.dart';
+import '../../../../main.dart';
+import '../../../../data/models/trip/trip.dart';
 
 class FileHandler extends ChangeNotifier {
   static final FileHandler _instance = FileHandler._();

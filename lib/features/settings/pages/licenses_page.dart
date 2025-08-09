@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:luftdaten.at/controller/app_licenses.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/util/list_extensions.dart';
+import '../controllers/app_licenses.dart';
+import '../../../main.dart';
+import '../../../core/utils/extensions/list/list_extensions.dart';
 
 import 'licenses_page.i18n.dart';
 

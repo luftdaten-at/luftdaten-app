@@ -3,11 +3,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'package:luftdaten.at/controller/ble_controller.dart';
-import 'package:luftdaten.at/controller/device_manager.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/model/ble_device.dart';
-import 'package:luftdaten.at/page/ble_serial_page.i18n.dart';
+import '../controllers/ble_controller.dart';
+import '../../../presentation/controllers/device/device_manager.dart';
+import '../../../main.dart';
+import '../../../data/models/ble/ble_device.dart';
+import 'ble_serial_page.i18n.dart';
 import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
 
 class BLESerialPage extends StatefulWidget {

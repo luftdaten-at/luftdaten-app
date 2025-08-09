@@ -25,12 +25,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
-import 'package:luftdaten.at/controller/device_info.dart';
-import 'package:luftdaten.at/controller/news_controller.dart';
+import '../../../../presentation/controllers/device/device_info.dart';
+import '../../../../presentation/controllers/news/news_controller.dart';
 
-import '../main.dart';
-import 'package:luftdaten.at/models.dart';
-import '../enums.dart';
+import '../../../../main.dart';
+import '../../../constants/models/models.dart';
+import '../../../constants/enums/enums.dart';
 
 
 class HttpProvider with ChangeNotifier {

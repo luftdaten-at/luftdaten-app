@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
-import 'package:luftdaten.at/controller/ld_logger.dart';
-import 'package:luftdaten.at/page/logging_page.i18n.dart';
-import 'package:luftdaten.at/widget/change_notifier_builder.dart';
+import '../../../core/services/logging/ld_logger.dart';
+import 'logging_page.i18n.dart';
+import '../../widgets/common/change_notifier/change_notifier_builder.dart';
 import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
 
 class LoggingPage extends StatefulWidget {

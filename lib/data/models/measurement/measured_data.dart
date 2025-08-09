@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:luftdaten.at/model/latlng_with_precision.dart';
+import '../location/latlng_with_precision.dart';
 
 import 'measured_data.i18n.dart';
 

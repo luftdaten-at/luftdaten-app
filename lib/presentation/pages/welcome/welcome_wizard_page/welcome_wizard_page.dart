@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:i18n_extension/default.i18n.dart';
-import 'package:luftdaten.at/controller/workshop_controller.dart';
-import 'package:luftdaten.at/model/app_permissions.dart';
-import 'package:luftdaten.at/page/device_manager_page.dart';
-import 'package:luftdaten.at/page/enter_workshop_page.dart';
+import '../../../controllers/workshop/workshop_controller.dart';
+import '../../../../data/models/device/app_permissions.dart';
+import '../../device/device_manager_page/device_manager_page.dart';
+import '../../workshop/enter_workshop_page/enter_workshop_page.dart';
 
-import '../main.dart';
+import '../../../../main.dart';
 
 class WelcomeWizardPage extends StatefulWidget {
   const WelcomeWizardPage({super.key});

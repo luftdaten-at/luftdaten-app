@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:luftdaten.at/controller/air_station_config_wizard_controller.dart';
-import 'package:luftdaten.at/controller/app_settings.dart';
-import 'package:luftdaten.at/controller/device_manager.dart';
-import 'package:luftdaten.at/controller/favorites_manager.dart';
-import 'package:luftdaten.at/controller/news_controller.dart';
-import 'package:luftdaten.at/controller/workshop_controller.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/model/ble_device.dart';
-import 'package:luftdaten.at/page/enter_workshop_page.dart';
-import 'package:luftdaten.at/page/favorites_page.dart';
-import 'package:luftdaten.at/widget/air_station_wizard_dashboard_tile.dart';
-import 'package:luftdaten.at/widget/change_notifier_builder.dart';
-import 'package:luftdaten.at/widget/dashboard_station_tile.dart';
-import 'package:luftdaten.at/widget/ui.dart';
+import '../../air_station/controllers/air_station_config_wizard_controller.dart';
+import '../../settings/controllers/app_settings.dart';
+import '../../../presentation/controllers/device/device_manager.dart';
+import '../../../presentation/controllers/favorites/favorites_manager.dart';
+import '../../../presentation/controllers/news/news_controller.dart';
+import '../../../presentation/controllers/workshop/workshop_controller.dart';
+import '../../../main.dart';
+import '../../../data/models/ble/ble_device.dart';
+import '../../../presentation/pages/workshop/enter_workshop_page/enter_workshop_page.dart';
+import '../../../presentation/pages/favorites/favorites_page.dart';
+import '../../air_station/widgets/air_station_wizard_dashboard_tile.dart';
+import '../../../presentation/widgets/common/change_notifier/change_notifier_builder.dart';
+import '../widgets/dashboard_station_tile.dart';
+import '../../../presentation/widgets/common/ui/ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../model/news_item.dart';
+import '../../../data/models/news/news_item.dart';
 import 'dashboard_page.i18n.dart';
 
 class DashboardPage extends StatefulWidget {

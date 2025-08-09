@@ -1,14 +1,14 @@
 import 'dart:convert';
 
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'package:luftdaten.at/model/battery_details.dart';
-import 'package:luftdaten.at/util/list_extensions.dart';
+import '../../../data/models/device/battery_details.dart';
+import '../../../core/utils/extensions/list/list_extensions.dart';
 
-import '../main.dart';
-import '../model/ble_device.dart';
-import '../model/measured_data.dart';
-import '../model/sensor_details.dart';
-import 'app_settings.dart';
+import '../../../main.dart';
+import '../../../data/models/ble/ble_device.dart';
+import '../../../data/models/measurement/measured_data.dart';
+import '../../../data/models/measurement/sensor_details.dart';
+import '../../../features/settings/controllers/app_settings.dart';
 import 'ble_controller.dart';
 
 class BleControllerV1 implements BleControllerForProtocol {

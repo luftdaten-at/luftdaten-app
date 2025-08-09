@@ -1,8 +1,8 @@
-import 'package:luftdaten.at/controller/trip_controller.dart';
-import 'package:luftdaten.at/model/ble_device.dart';
-import 'package:luftdaten.at/model/chip_id.dart';
-import 'package:luftdaten.at/model/measured_data.dart';
-import 'package:luftdaten.at/model/trip.dart';
+import 'lib/presentation/controllers/trip/trip_controller.dart';
+import 'lib/data/models/ble/ble_device.dart';
+import 'lib/data/models/device/chip_id.dart';
+import 'lib/data/models/measurement/measured_data.dart';
+import 'lib/data/models/trip/trip.dart';
 
 class MockTripController extends TripController {
   @override

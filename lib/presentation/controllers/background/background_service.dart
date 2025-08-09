@@ -5,18 +5,18 @@ import 'dart:math';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:luftdaten.at/controller/app_settings.dart';
-import 'package:luftdaten.at/controller/background_service.i18n.dart';
-import 'package:luftdaten.at/controller/ble_controller.dart';
-import 'package:luftdaten.at/controller/trip_controller.dart';
-import 'package:luftdaten.at/controller/workshop_controller.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/model/ble_device.dart';
-import 'package:luftdaten.at/model/latlng_with_precision.dart';
+import '../../../features/settings/controllers/app_settings.dart';
+import 'background_service.i18n.dart';
+import '../../../features/ble/controllers/ble_controller.dart';
+import '../trip/trip_controller.dart';
+import '../workshop/workshop_controller.dart';
+import '../../../main.dart';
+import '../../../data/models/ble/ble_device.dart';
+import '../../../data/models/location/latlng_with_precision.dart';
 import 'package:vibration/vibration.dart';
 
-import '../model/measured_data.dart';
-import '../model/trip.dart';
+import '../../../data/models/measurement/measured_data.dart';
+import '../../../data/models/trip/trip.dart';
 import 'background_service_android.dart';
 import 'background_service_ios.dart';
 

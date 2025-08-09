@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:lottie/lottie.dart';
-import 'package:luftdaten.at/controller/air_station_config_wizard_controller.dart';
-import 'package:luftdaten.at/model/air_station_config.dart';
-import 'package:luftdaten.at/model/ble_device.i18n.dart';
-import 'package:luftdaten.at/util/list_extensions.dart';
-import 'package:luftdaten.at/widget/change_notifier_builder.dart';
-import 'package:luftdaten.at/widget/ui.dart';
+import '../controllers/air_station_config_wizard_controller.dart';
+import '../../../data/models/air_station/air_station_config.dart';
+import '../../../data/models/ble/ble_device.i18n.dart';
+import '../../../core/utils/extensions/list/list_extensions.dart';
+import '../../../presentation/widgets/common/change_notifier/change_notifier_builder.dart';
+import '../../../presentation/widgets/common/ui/ui.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
 import 'package:latlong2/latlong.dart'; // For LatLng
-import 'package:luftdaten.at/util/map_select_marker.dart';
+import '../../map/utils/map_select_marker.dart';
 
-import 'package:luftdaten.at/main.dart';
+import '../../../main.dart';
 
-import '../widget/ellipsis.dart';
+import '../../../presentation/widgets/common/ellipsis/ellipsis.dart';
 
 class AirStationConfigWizardPage extends StatefulWidget {
   const AirStationConfigWizardPage({super.key, required this.controller});

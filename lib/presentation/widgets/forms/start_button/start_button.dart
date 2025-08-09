@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:luftdaten.at/controller/app_settings.dart';
-import 'package:luftdaten.at/controller/device_manager.dart';
-import 'package:luftdaten.at/controller/trip_controller.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/widget/duration_widget.dart';
-import 'package:luftdaten.at/widget/start_button.i18n.dart';
-import 'package:luftdaten.at/widget/ui.dart';
+import '../../../../features/settings/controllers/app_settings.dart';
+import '../../../controllers/device/device_manager.dart';
+import '../../../controllers/trip/trip_controller.dart';
+import '../../../../main.dart';
+import '../../common/duration/duration_widget.dart';
+import 'start_button.i18n.dart';
+import '../../common/ui/ui.dart';
 import 'package:provider/provider.dart';
 
-import '../model/ble_device.dart';
-import '../model/measured_data.dart';
+import '../../../../data/models/ble/ble_device.dart';
+import '../../../../data/models/measurement/measured_data.dart';
 
 class StartButton extends StatefulWidget {
   const StartButton({super.key, required this.page, this.updateGPSCallback});

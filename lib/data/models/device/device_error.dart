@@ -1,4 +1,4 @@
-import 'package:luftdaten.at/model/measured_data.dart';
+import '../measurement/measured_data.dart';
 
 class DeviceError {}
 

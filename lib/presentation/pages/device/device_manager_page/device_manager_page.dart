@@ -8,21 +8,21 @@ import 'package:convert/convert.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:luftdaten.at/controller/air_station_config_wizard_controller.dart';
-import 'package:luftdaten.at/controller/device_manager.dart';
-import 'package:luftdaten.at/model/battery_details.dart';
-import 'package:luftdaten.at/page/air_station_config_wizard_page.dart';
-import 'package:luftdaten.at/util/list_extensions.dart';
-import 'package:luftdaten.at/widget/device_connect_button.dart';
-import 'package:luftdaten.at/widget/rotating_widget.dart';
+import '../../../../features/air_station/controllers/air_station_config_wizard_controller.dart';
+import '../../../controllers/device/device_manager.dart';
+import '../../../../data/models/device/battery_details.dart';
+import '../../../../features/air_station/pages/air_station_config_wizard_page.dart';
+import '../../../../core/utils/extensions/list/list_extensions.dart';
+import '../../../../features/ble/widgets/device_connect_button.dart';
+import '../../../widgets/common/animations/rotating_widget.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
-import '../controller/app_settings.dart';
-import '../main.dart';
-import '../model/ble_device.dart';
-import '../widget/change_notifier_builder.dart';
-import '../widget/ui.dart';
+import '../../../../features/settings/controllers/app_settings.dart';
+import '../../../../main.dart';
+import '../../../../data/models/ble/ble_device.dart';
+import '../../../widgets/common/change_notifier/change_notifier_builder.dart';
+import '../../../widgets/common/ui/ui.dart';
 import 'device_manager_page.i18n.dart';
 
 

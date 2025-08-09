@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
-import '../main.dart';
+import '../../../main.dart';
 
 class Toaster {
   /// padded: Whether to add bottom padding to the toast to avoid overlapping with the bottom navigation bar

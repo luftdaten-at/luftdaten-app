@@ -2,20 +2,20 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:i18n_extension/i18n_extension.dart';
-import 'package:luftdaten.at/controller/app_settings.dart';
-import 'package:luftdaten.at/controller/device_info.dart';
-import 'package:luftdaten.at/controller/device_manager.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/page/get_app_page.dart';
-import 'package:luftdaten.at/page/nearby_devices_debug_page.dart';
-import 'package:luftdaten.at/page/settings_page.i18n.dart';
-import 'package:luftdaten.at/page/welcome_page.dart';
-import 'package:luftdaten.at/widget/ui.dart';
+import '../controllers/app_settings.dart';
+import '../../../presentation/controllers/device/device_info.dart';
+import '../../../presentation/controllers/device/device_manager.dart';
+import '../../../main.dart';
+import '../../../presentation/pages/misc/get_app_page.dart';
+import '../../../presentation/pages/debug/nearby_devices_debug_page.dart';
+import 'settings_page.i18n.dart';
+import '../../../presentation/pages/welcome/welcome_page/welcome_page.dart';
+import '../../../presentation/widgets/common/ui/ui.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../model/ble_device.dart';
+import '../../../data/models/ble/ble_device.dart';
 import 'licenses_page.dart';
 
 class SettingsPage extends StatefulWidget {
