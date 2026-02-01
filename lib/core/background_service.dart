@@ -91,7 +91,14 @@ abstract class BackgroundService {
       BleDevice device, TripController tripController, Position? position) async {
     Trip trip = tripController.ongoingTrips[device]!;
     logger.d('About to read data points');
-    List<dynamic> tup = await getIt<BleController>().readSensorValues(device);
+    List<dynamic> tup;
+    try {
+      tup = await getIt<BleController>().readSensorValues(device);
+    } catch (e, stackTrace) {
+      logger.e('Failed to read sensor values from device ${device.bleId}: $e');
+      logger.d(stackTrace.toString());
+      return;
+    }
 
     List<SensorDataPoint> dataPoints = tup[0];
     Map<String, dynamic> j = tup[1];

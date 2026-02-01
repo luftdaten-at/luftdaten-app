@@ -54,6 +54,18 @@ extension Localization on String {
       {
         "de": "Vollbildmodus",
         "en": "Enter full-screen mode",
+      } +
+      {
+        "de": "Batteriestatus",
+        "en": "Battery status",
+      } +
+      {
+        "de": "Ladestatus (%)",
+        "en": "Charge status (%)",
+      } +
+      {
+        "de": "Batteriespannung (V)",
+        "en": "Battery voltage (V)",
       };
 
   String get i18n => localize(this, _t);

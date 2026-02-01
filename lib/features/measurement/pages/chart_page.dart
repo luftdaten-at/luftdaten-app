@@ -369,7 +369,7 @@ class _ChartPageState extends State<ChartPage> {
           dataSource: getIt<BatteryInfoAggregator>().collectedBatteryDetails,
           xValueMapper: (BatteryDetails item, _) => item.timestamp,
           yValueMapper: (BatteryDetails item, _) => voltage ? item.percentage : item.voltage,
-          name: 'Batteriestatus',
+          name: 'Batteriestatus'.i18n,
           dataLabelSettings: const DataLabelSettings(isVisible: false),
         ),
       ],

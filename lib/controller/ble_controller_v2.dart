@@ -121,13 +121,38 @@ class BleControllerV2 implements BleControllerForProtocol {
     if(measureBattery) logger.d('(Newly requested)');
     List<int> rawSensorData = await _ble.readCharacteristic(_characteristic(_sensorDataId, device));
 
-    final jsonString = utf8.decode(rawSensorData);
-    List<dynamic> j = json.decode(jsonString);
+    // V2 protocol: JSON array [map, rawBytes]. V1/binary fallback: raw bytes only.
+    if (rawSensorData.isNotEmpty && rawSensorData[0] == 0x5B) {
+      // Starts with '[' - treat as JSON
+      String jsonString;
+      try {
+        jsonString = utf8.decode(rawSensorData);
+      } on FormatException catch (e) {
+        logger.d('Invalid UTF-8 from sensor data (device ${device.bleId}): $e');
+        rethrow;
+      }
 
-    Map<String, dynamic> data = j[0];
-    rawSensorData = List<int>.from(j[1]);
-  
-    return [_SensorDataParser(rawSensorData).parse(), data];
+      List<dynamic> j;
+      try {
+        j = json.decode(jsonString);
+      } on FormatException catch (e) {
+        logger.d('Invalid JSON from sensor data (device ${device.bleId}): $e');
+        rethrow;
+      }
+
+      Map<String, dynamic> data = j[0];
+      rawSensorData = List<int>.from(j[1]);
+      return [_SensorDataParser(rawSensorData).parse(), data];
+    }
+
+    // Binary format (V1 or device not ready) - parse raw bytes, no JSON metadata
+    try {
+      final dataPoints = _SensorDataParser(rawSensorData).parse();
+      return [dataPoints, <String, dynamic>{}];
+    } catch (e) {
+      logger.d('Failed to parse binary sensor data (device ${device.bleId}): $e');
+      rethrow;
+    }
   }
 
   @override

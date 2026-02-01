@@ -119,6 +119,10 @@ extension Localization on String {
       {
         "de": "HH:mm",
         "en": "hh:mm a",
+      } +
+      {
+        "de": "Batteriestatus",
+        "en": "Battery status",
       };
 
   String get i18n => localize(this, _t);

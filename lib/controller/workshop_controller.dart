@@ -76,9 +76,11 @@ class WorkshopController extends ChangeNotifier {
 
 
       // Send data
-      for(var j in jsonList){
-          if(j == null) continue;
-          j["station"]["workshop"] = currentWorkshop?.id;
+      for (var j in jsonList) {
+        if (j == null) continue;
+        final station = j["station"];
+        if (station == null) continue; // Skip entries without station (e.g. from binary-only BLE format)
+        station["workshop"] = currentWorkshop?.id;
           logger.d('3.14159: $j');
           Response res = await post(
           Uri.parse('https://$serverUrl/api/v1/devices/data/'),
