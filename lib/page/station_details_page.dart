@@ -3,13 +3,13 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:luftdaten.at/model/ble_device.dart';
-import 'package:luftdaten.at/util/list_extensions.dart';
-import 'package:luftdaten.at/widget/ui.dart';
+import 'package:luftdaten.at/shared/utils/list_extensions.dart';
+import 'package:luftdaten.at/shared/widgets/ui.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 import '../controller/air_station_config_wizard_controller.dart';
 import '../controller/http_provider.dart';
-import '../widget/change_notifier_builder.dart';
+import 'package:luftdaten.at/shared/widgets/change_notifier_builder.dart';
 import 'air_station_config_wizard_page.dart';
 import 'station_details_page.i18n.dart';
 import '../model/air_station_config.dart';

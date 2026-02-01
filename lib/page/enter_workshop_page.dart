@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
-import 'package:luftdaten.at/controller/toaster.dart';
+import 'package:luftdaten.at/core/toaster.dart';
 import 'package:luftdaten.at/controller/workshop_controller.dart';
 import 'package:luftdaten.at/model/workshop_configuration.dart';
-import 'package:luftdaten.at/util/day.dart';
+import 'package:luftdaten.at/shared/utils/day.dart';
 
-import '../main.dart';
-import '../widget/code_field.dart';
+import 'package:luftdaten.at/core/core.dart';
+import 'package:luftdaten.at/shared/widgets/code_field.dart';
 import 'enter_workshop_page.i18n.dart';
 
 class EnterWorkshopPage extends StatefulWidget {

@@ -5,7 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:luftdaten.at/controller/ble_controller.dart';
-import 'package:luftdaten.at/main.dart';
+import 'package:luftdaten.at/core/core.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../model/ble_device.dart';

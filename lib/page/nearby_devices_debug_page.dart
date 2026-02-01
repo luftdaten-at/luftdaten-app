@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:luftdaten.at/controller/device_manager.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/util/list_extensions.dart';
-import 'package:luftdaten.at/widget/change_notifier_builder.dart';
+import 'package:luftdaten.at/core/core.dart';
+import 'package:luftdaten.at/shared/utils/list_extensions.dart';
+import 'package:luftdaten.at/shared/widgets/change_notifier_builder.dart';
 
 import 'nearby_devices_debug_page.i18n.dart';
 

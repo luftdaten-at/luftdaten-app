@@ -1,4 +1,4 @@
-import 'measured_data.dart';
+import 'package:luftdaten.at/features/measurement/models/measured_data.dart';
 
 class SensorDetails {
   LDSensor model;

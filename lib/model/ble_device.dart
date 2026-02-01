@@ -5,14 +5,14 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:luftdaten.at/controller/battery_info_aggregator.dart';
 import 'package:luftdaten.at/controller/ble_controller.dart';
 import 'package:luftdaten.at/controller/device_manager.dart';
-import 'package:luftdaten.at/controller/trip_controller.dart';
-import 'package:luftdaten.at/main.dart';
+import 'package:luftdaten.at/features/measurement/controllers/trip_controller.dart';
+import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/model/battery_details.dart';
 import 'package:luftdaten.at/model/ble_device.i18n.dart';
 import 'package:luftdaten.at/model/device_error.dart';
 import 'package:luftdaten.at/model/sensor_details.dart';
 
-import '../widget/ui.dart';
+import 'package:luftdaten.at/shared/widgets/ui.dart';
 
 class BleDevice extends ChangeNotifier {
   // Device state

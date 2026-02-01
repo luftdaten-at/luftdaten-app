@@ -6,11 +6,11 @@ import 'package:luftdaten.at/controller/ble_controller.dart';
 import 'package:luftdaten.at/model/device_error.dart';
 import 'package:luftdaten.at/model/sensor_details.dart';
 
-import '../main.dart';
+import 'package:luftdaten.at/core/core.dart';
 import '../model/battery_details.dart';
 import '../model/ble_device.dart';
-import '../model/measured_data.dart';
-import 'app_settings.dart';
+import 'package:luftdaten.at/features/measurement/models/measured_data.dart';
+import 'package:luftdaten.at/core/app_settings.dart';
 
 class BleControllerV2 implements BleControllerForProtocol {
   // Singleton
@@ -99,7 +99,6 @@ class BleControllerV2 implements BleControllerForProtocol {
     */
     // In protocol version 2, we first need to instruct the device to take a new measurement
     // Measure battery status every 10th iteration
-    DateTime? batteryLastMeasured = device.batteryDetails?.timestamp;
     bool measureBattery = false;
     device.batteryReadoutCounter++;
     if(device.needsBatteryReadout) {

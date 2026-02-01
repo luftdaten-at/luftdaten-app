@@ -3,7 +3,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:luftdaten.at/controller/air_station_config_wizard_controller.dart';
 import 'package:luftdaten.at/page/air_station_config_wizard_page.dart';
 
-import 'change_notifier_builder.dart';
+import 'package:luftdaten.at/shared/widgets/change_notifier_builder.dart';
 import 'dashboard_station_tile.i18n.dart';
 
 class AirStationWizardDashboardTile extends StatefulWidget {

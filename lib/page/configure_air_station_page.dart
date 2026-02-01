@@ -6,10 +6,10 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:luftdaten.at/controller/ble_controller.dart';
 import 'package:luftdaten.at/controller/device_manager.dart';
 import 'package:luftdaten.at/model/ble_device.dart';
-import 'package:luftdaten.at/widget/ui.dart';
+import 'package:luftdaten.at/shared/widgets/ui.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 
-import '../main.dart';
+import 'package:luftdaten.at/core/core.dart';
 import 'configure_air_station_page.i18n.dart';
 
 class ConfigureAirStationPage extends StatefulWidget {
@@ -342,48 +342,6 @@ class _ConfigureAirStationPageState extends State<ConfigureAirStationPage> {
           },
           child: Text('Konfiguration senden'.i18n),
         ),
-      ],
-    );
-  }
-
-  Widget _settingsTextFieldRow({
-    required String title,
-    String? desc,
-    required TextEditingController controller,
-    required double width,
-    required TextInputType type,
-    List<TextInputFormatter>? inputFormatters,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              if (desc != null)
-                Text(
-                  desc,
-                  style: const TextStyle(fontSize: 12),
-                )
-            ],
-          ),
-        ),
-        SizedBox(
-          width: width,
-          child: TextField(
-            controller: controller,
-            keyboardType: type,
-            inputFormatters: inputFormatters,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
       ],
     );
   }

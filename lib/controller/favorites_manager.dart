@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:luftdaten.at/main.dart';
+import 'package:luftdaten.at/core/core.dart';
 
 class FavoritesManager extends ChangeNotifier {
   GetStorage box = GetStorage('favorites');

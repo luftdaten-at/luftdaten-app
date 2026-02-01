@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:luftdaten.at/controller/device_manager.dart';
-import 'package:luftdaten.at/controller/http_provider.dart';
-import 'package:luftdaten.at/main.dart';
+import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/model/air_station_config.dart';
 import 'package:luftdaten.at/model/ble_device.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -311,11 +310,8 @@ class AirStationConfigWizardController extends ChangeNotifier {
   Future<void> waitForFirstData() async {
     stage = AirStationConfigWizardStage.waitingForFirstData;
     // TODO periodically check for data
-    _shouldStillCheckForData = true;
     _checkForDataOnline();
   }
-
-  bool _shouldStillCheckForData = false;
 
   Future<void> _checkForDataOnline() async {
 

@@ -159,7 +159,7 @@ SPEC CHECKSUMS:
   camera_avfoundation: 04b44aeb14070126c6529e5ab82cc7c9fca107cf
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
   file_picker: fb04e739ae6239a76ce1f571863a196a922c87d4
-  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_background_service_ios: 00d31bdff7b4bfe06d32375df358abe0329cf87e
   flutter_compass: b236ab69b61545cce89fd58527f401a7587d5cc1
   flutter_file_dialog: ca8d7fbd1772d4f0c2777b4ab20a7787ef4e7dd8
@@ -183,6 +183,6 @@ SPEC CHECKSUMS:
   vibration: 69774ad57825b11c951ee4c46155f455d7a592ce
   wakelock_plus: 04623e3f525556020ebd4034310f20fe7fda8b49
 
-PODFILE CHECKSUM: 2908ada5d549050733e87e9749354dc1d780be92
+PODFILE CHECKSUM: 2978bf4173e3206be71021290e2ce645eb37cd10
 
 COCOAPODS: 1.16.2

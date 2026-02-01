@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:luftdaten.at/controller/favorites_manager.dart';
-import 'package:luftdaten.at/main.dart';
+import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/page/station_details_page.dart';
-import 'package:luftdaten.at/widget/change_notifier_builder.dart';
-import 'package:luftdaten.at/widget/ui.dart';
+import 'package:luftdaten.at/shared/widgets/change_notifier_builder.dart';
+import 'package:luftdaten.at/shared/widgets/ui.dart';
 
 import 'favorites_page.i18n.dart';
 

@@ -25,12 +25,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
-import 'package:luftdaten.at/controller/device_info.dart';
-import 'package:luftdaten.at/controller/news_controller.dart';
-
-import '../main.dart';
-import 'package:luftdaten.at/models.dart';
-import '../enums.dart';
+import 'package:luftdaten.at/core/core.dart';
+import 'package:luftdaten.at/core/device_info.dart';
+import 'package:luftdaten.at/shared/domain/dimensions.dart';
+import 'package:luftdaten.at/shared/models/measurement.dart';
 
 
 class HttpProvider with ChangeNotifier {
@@ -180,15 +178,15 @@ class SingleStationHttpProvider extends HttpProvider {
         int dimension = int.parse(dimension_string);
         double value = double.parse(value_string);
 
-        data.putIfAbsent(time_measured, () => {})[dimension] = value;
+        data.putIfAbsent(time_measured, () => <int, double>{})[dimension] = value;
       }
 
-      for(var entry in data.entries){
+      for (var entry in data.entries) {
         DataItem item = DataItem(
-          entry.value[Dimension.PM1_0] ?? 0, // when not present insert 0
+          entry.value[Dimension.PM1_0] ?? 0,
           entry.value[Dimension.PM2_5] ?? 0,
           entry.value[Dimension.PM10_0] ?? 0,
-          entry.key, 
+          entry.key,
         );
         items[index].add(item);
       }

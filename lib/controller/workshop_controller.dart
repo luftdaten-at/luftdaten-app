@@ -3,13 +3,13 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart';
-import 'package:luftdaten.at/controller/trip_controller.dart';
+import 'package:luftdaten.at/features/measurement/controllers/trip_controller.dart';
 import 'package:luftdaten.at/model/workshop_configuration.dart';
 
-import '../main.dart';
-import '../model/measured_data.dart';
-import '../model/trip.dart';
-import 'app_settings.dart';
+import 'package:luftdaten.at/core/app_settings.dart';
+import 'package:luftdaten.at/core/core.dart';
+import 'package:luftdaten.at/features/measurement/models/measured_data.dart';
+import 'package:luftdaten.at/features/measurement/models/trip.dart';
 
 class WorkshopController extends ChangeNotifier {
   WorkshopConfiguration? _currentWorkshop;
@@ -78,7 +78,7 @@ class WorkshopController extends ChangeNotifier {
       // Send data
       for(var j in jsonList){
           if(j == null) continue;
-          j!["station"]["workshop"] = currentWorkshop?.id;
+          j["station"]["workshop"] = currentWorkshop?.id;
           logger.d('3.14159: $j');
           Response res = await post(
           Uri.parse('https://$serverUrl/api/v1/devices/data/'),

@@ -94,7 +94,7 @@ Create a release build of the app:
 - **iOS**:
 
   ```bash
-  flutter build ios
+  flutter build ipa
   ```
 
   Note that building for iOS only works on macOS.
