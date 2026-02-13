@@ -53,7 +53,7 @@ class TripController extends ChangeNotifier {
           deviceDisplayName: device.displayName,
           deviceFourLetterCode: device.fourLetterCode,
           deviceModel: device.model,
-          deviceChipId: ChipId.fromMac(device.bleMacAddress),
+          deviceChipId: ChipId.fromChipId(device.chipIdForApi),
           sensorDetails: device.availableSensors,
         )..addListener(() => notifyListeners());
       }

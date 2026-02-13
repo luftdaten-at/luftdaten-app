@@ -15,10 +15,12 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'package:i18n_extension/i18n_extension.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:luftdaten.at/core/app.dart';
@@ -44,12 +46,27 @@ import 'package:luftdaten.at/page/welcome_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Returns true if this is a map tile loading error (connection reset, etc.).
+/// These are common under load/rate limiting and should not spam the console.
+bool _isTileLoadingError(Object exception) {
+  final msg = exception.toString();
+  return msg.contains('tile.openstreetmap.org') &&
+      (msg.contains('SocketException') ||
+          msg.contains('Connection reset') ||
+          msg.contains('ClientException'));
+}
+
 void main() async {
   FlutterError.onError = (FlutterErrorDetails details) {
+    if (_isTileLoadingError(details.exception)) return;
     FlutterError.dumpErrorToConsole(details);
   };
 
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Suppress i18n missing translation warnings (e.g. de-AT fallback to de)
+  Translations.missingKeyCallback = (_, __) {};
+  Translations.missingTranslationCallback = ({required key, required locale, required translations, required supportedLocales}) => false;
 
   PackageInfo packageInfo = await PackageInfo.fromPlatform();
   appVersion = packageInfo.version;
@@ -85,5 +102,11 @@ void main() async {
   await AirStationConfigWizardController.init();
   await AirStationConfigManager.loadAllConfigs();
 
-  runApp(LDApp(initialRoute: AppSettings.I.isFirstUse ? WelcomePage.route : '/'));
+  runZonedGuarded(
+    () => runApp(LDApp(initialRoute: AppSettings.I.isFirstUse ? WelcomePage.route : '/')),
+    (Object error, StackTrace stack) {
+      if (_isTileLoadingError(error)) return;
+      FlutterError.reportError(FlutterErrorDetails(exception: error, stack: stack));
+    },
+  );
 }

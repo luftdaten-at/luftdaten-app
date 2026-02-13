@@ -71,6 +71,17 @@ class NewsController extends ChangeNotifier {
     await _checkForNewItems();
   }
 
+  /// Expected JSON format from API (WordPress REST API posts):
+  /// [
+  ///   {
+  ///     "date_gmt": "2024-01-15T10:00:00",
+  ///     "id": 12345,
+  ///     "title": { "rendered": "<p>Title text</p>" },
+  ///     "excerpt": { "rendered": "<p>Excerpt text</p>" },
+  ///     "link": "https://luftdaten.at/news/..."
+  ///   },
+  ///   ...
+  /// ]
   Future<void> _checkForNewItems() async {
     Response response =
         await get(Uri.parse('https://luftdaten.at/wp-json/wp/v2/posts?categories=12'));

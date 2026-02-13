@@ -45,10 +45,10 @@ packages:
     dependency: "direct main"
     description:
       name: app_settings
-      sha256: "3e46c561441e5820d3a25339bf8b51b9e45a5f686873851a20c257a530917795"
+      sha256: "64d50e666fd96ae90301bf71205f05019286f940ad6f5fed3d1be19c6af7546a"
       url: "https://pub.dev"
     source: hosted
-    version: "6.1.1"
+    version: "7.0.0"
   archive:
     dependency: transitive
     description:
@@ -355,7 +355,7 @@ packages:
     source: hosted
     version: "7.0.2"
   fake_async:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: fake_async
       sha256: "5368f224a74523e8d2e7399ea1638b37aecfca824a3cc4dfdf77bf1fa905ac44"
@@ -382,10 +382,10 @@ packages:
     dependency: "direct main"
     description:
       name: file_picker
-      sha256: "36a1652d99cb6bf8ccc8b9f43aded1fd60b234d23ce78af422c07f950a436ef7"
+      sha256: "57d9a1dd5063f85fa3107fb42d1faffda52fdc948cefd5fe5ea85267a5fc7343"
       url: "https://pub.dev"
     source: hosted
-    version: "10.0.0"
+    version: "10.3.10"
   fixnum:
     dependency: transitive
     description:
@@ -990,6 +990,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
+  mocktail:
+    dependency: "direct dev"
+    description:
+      name: mocktail
+      sha256: "890df3f9688106f25755f26b1c60589a92b3ab91a22b8b224947ad041bf172d8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.4"
   native_qr:
     dependency: "direct main"
     description:

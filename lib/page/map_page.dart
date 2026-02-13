@@ -87,6 +87,13 @@ class _MapPageState extends State<MapPage>
 
   final CompassController _compassController = CompassController();
 
+  /// Stable TileLayer to avoid rebuild-driven connection churn (reduces tile load errors).
+  /// Use tile.openstreetmap.org without subdomains (OSM recommends this; see operations#737).
+  static final TileLayer _osmTileLayer = TileLayer(
+    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    userAgentPackageName: 'at.luftdaten.pmble',
+  );
+
   Color getLDColor(MeasuredDataPoint item) {
     //if (item.flatten.pm10 != null) {
     //  return FormattedValue.from(MeasurableQuantity.pm10, item.flatten.pm10!).color;
@@ -330,10 +337,7 @@ class _MapPageState extends State<MapPage>
           },
         ),
         children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'at.luftdaten.pmble',
-          ),
+          _osmTileLayer,
           ChangeNotifierBuilder(
               notifier: AppSettings.I,
               builder: (context, settings) {

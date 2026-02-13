@@ -67,7 +67,6 @@ class _LDAppState extends State<LDApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion(
-      key: globalKey,
       value: SystemUiOverlayStyle.dark,
       child: MultiProvider(
         providers: [
@@ -89,10 +88,13 @@ class _LDAppState extends State<LDApp> with WidgetsBindingObserver {
           builder: (context, content) {
             return I18n(
               initialLocale: locale != null ? Locale(locale!) : null,
-              child: FToastBuilder()(context, Builder(builder: (context) {
-                if (fToast.context == null) fToast.init(context);
-                return content ?? const SizedBox();
-              })),
+              child: FToastBuilder()(context, Builder(
+                key: globalKey,
+                builder: (context) {
+                  if (fToast.context == null) fToast.init(context);
+                  return content ?? const SizedBox();
+                },
+              )),
             );
           },
           initialRoute: widget.initialRoute,

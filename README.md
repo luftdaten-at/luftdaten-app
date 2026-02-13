@@ -63,6 +63,8 @@ If you are developing for iOS, ensure that Xcode and its related tools are corre
 flutter doctor
 ```
 
+If you see LLDB warnings when debugging on a physical device, see [docs/DEBUGGING_IOS.md](docs/DEBUGGING_IOS.md).
+
 ## Using the App
 
 ### Running the App on an Emulator or Device

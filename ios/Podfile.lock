@@ -1,5 +1,5 @@
 PODS:
-  - app_settings (5.1.1):
+  - app_settings (6.1.2):
     - Flutter
   - audio_session (0.0.1):
     - Flutter
@@ -153,7 +153,7 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/wakelock_plus/ios"
 
 SPEC CHECKSUMS:
-  app_settings: 5127ae0678de1dcc19f2293271c51d37c89428b2
+  app_settings: 0341ec6daa4f0c50f5a421bf0ad7c36084db6e90
   audio_session: 9bb7f6c970f21241b19f5a3658097ae459681ba0
   bluetooth_enable: d4cd4acc617cba91506b18b2d63c08585a6b2c65
   camera_avfoundation: 04b44aeb14070126c6529e5ab82cc7c9fca107cf

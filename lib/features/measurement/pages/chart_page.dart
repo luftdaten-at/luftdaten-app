@@ -69,8 +69,11 @@ class _ChartPageState extends State<ChartPage> {
             // Reshape data
             Map<LDSensor, List<_SensorDataPointWithTimestamp>> reshapedDataMap = {};
             List<MeasuredDataPoint> points = provider.primaryTripToDisplay!.data;
-            for (LDSensor sensor in points.first.sensorData.map((e) => e.sensor)) {
-              reshapedDataMap[sensor] = [];
+            // Initialize for all sensors across all points (first point may not have every sensor)
+            for (MeasuredDataPoint point in points) {
+              for (SensorDataPoint sensorData in point.sensorData) {
+                reshapedDataMap.putIfAbsent(sensorData.sensor, () => []);
+              }
             }
             for (MeasuredDataPoint point in points) {
               for (SensorDataPoint sensorData in point.sensorData) {

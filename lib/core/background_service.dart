@@ -102,8 +102,8 @@ abstract class BackgroundService {
 
     List<SensorDataPoint> dataPoints = tup[0];
     Map<String, dynamic> j = tup[1];
+    logger.d('Read data points, BLE metadata j=$j (keys=${j.keys.toList()})');
 
-    logger.d('Read data points');
     DateTime timestamp = DateTime.now();
     LatLngWithPrecision? location = position != null
         ? LatLngWithPrecision(position.latitude, position.longitude,

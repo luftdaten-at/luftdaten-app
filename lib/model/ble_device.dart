@@ -8,6 +8,7 @@ import 'package:luftdaten.at/controller/device_manager.dart';
 import 'package:luftdaten.at/features/measurement/controllers/trip_controller.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/model/battery_details.dart';
+import 'package:luftdaten.at/model/chip_id.dart';
 import 'package:luftdaten.at/model/ble_device.i18n.dart';
 import 'package:luftdaten.at/model/device_error.dart';
 import 'package:luftdaten.at/model/sensor_details.dart';
@@ -72,9 +73,26 @@ class BleDevice extends ChangeNotifier {
   String get fourLetterCode =>
       deviceOriginalDisplayName.substring(deviceOriginalDisplayName.length - 4);
 
+  static final _chipIdPattern = RegExp(r'^[0-9A-Fa-f]{12,16}$');
+
+  /// Device ID for workshop API and elsewhere. bleMacAddress (no colons) + "AAA".
+  String get id => '${bleMacAddress}AAA';
+
+  /// Chip ID for API submissions. Prefers deviceOriginalDisplayName when it looks like
+  /// a chip ID (12-16 hex chars), otherwise derives from bleMacAddress.
+  String get chipIdForApi {
+    if (_chipIdPattern.hasMatch(deviceOriginalDisplayName)) {
+      return deviceOriginalDisplayName.toUpperCase();
+    }
+    return bleMacAddress.chipId;
+  }
+
   bool get portable => model.portable;
 
   // Device properties that are read once connected
+  /// API key from device (station.api.key in device info), set when device details are parsed.
+  String? apiKey;
+
   FirmwareVersion? firmwareVersion;
   List<SensorDetails>? availableSensors;
   int? protocolVersion;
@@ -148,6 +166,11 @@ class BleDevice extends ChangeNotifier {
   }
 
   Future<bool> connect() async {
+    // Prevent concurrent connection attempts (causes iOS ConnectTaskController assertion)
+    if (state == BleDeviceState.connecting) {
+      return false;
+    }
+
     BleController ble = getIt<BleController>();
     Completer<bool> completer = Completer();
     state = BleDeviceState.connecting;
@@ -162,8 +185,12 @@ class BleDevice extends ChangeNotifier {
         return completer.future;
       }
     }
+
+    // Cancel previous connection and wait for native iOS to reset (avoids PluginController assertion)
     _connection?.cancel();
     _connection = null;
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+
     _connection = ble.connectTo(this).listen((event) async {
       switch (event.connectionState) {
         case DeviceConnectionState.connecting:
@@ -173,52 +200,62 @@ class BleDevice extends ChangeNotifier {
           // We want to get more info about the device before showing it as connected
           state = BleDeviceState.connecting;
           try {
+            // Allow full GATT discovery to complete on iOS before BLE operations
+            await Future<void>.delayed(const Duration(milliseconds: 800));
             await ble.getDeviceDetailsAndCheckProtocol(this);
             state = BleDeviceState.connected;
-            completer.complete(true);
+            if (!completer.isCompleted) completer.complete(true);
           } on IncompatibleFirmwareException catch (e) {
             state = BleDeviceState.error;
             _connection?.cancel();
             _connection = null;
-            if (globalKey.currentContext != null) {
-              showLDDialog(
-                globalKey.currentContext!,
-                content: Text(
-                  'Gerät %s kommuniziert über eine nicht erkanntes Protokoll (Version %i). Bitte update deine App.'
-                      .i18n
-                      .fill([displayName, e.protocolVersion]),
-                  textAlign: TextAlign.center,
-                ),
-                title: 'Inkompatible Firmware'.i18n,
-                icon: Icons.nearby_error,
-                color: Colors.red,
-              );
+            if (globalKey.currentContext != null && !completer.isCompleted) {
+              try {
+                showLDDialog(
+                  globalKey.currentContext!,
+                  content: Text(
+                    'Gerät %s kommuniziert über eine nicht erkanntes Protokoll (Version %i). Bitte update deine App.'
+                        .i18n
+                        .fill([displayName, e.protocolVersion]),
+                    textAlign: TextAlign.center,
+                  ),
+                  title: 'Inkompatible Firmware'.i18n,
+                  icon: Icons.nearby_error,
+                  color: Colors.red,
+                );
+              } catch (_) {}
             }
-            completer.complete(false);
+            if (!completer.isCompleted) completer.complete(false);
           }
           break;
         default:
+          _connection?.cancel();
+          _connection = null;
           state = BleDeviceState.disconnected;
           if (globalKey.currentContext != null &&
               getIt<TripController>().isOngoing &&
-              getIt<TripController>().ongoingTrips.containsKey(this)) {
+              getIt<TripController>().ongoingTrips.containsKey(this) &&
+              !completer.isCompleted) {
             getIt<TripController>().stopTrip();
-            showLDDialog(
-              globalKey.currentContext!,
-              text: 'Verbindung zu Bluetooth-Gerät wurde getrennt.'.i18n,
-              title: 'Verbindung getrennt'.i18n,
-              icon: Icons.nearby_error,
-              color: Colors.red,
-            );
+            try {
+              showLDDialog(
+                globalKey.currentContext!,
+                text: 'Verbindung zu Bluetooth-Gerät wurde getrennt.'.i18n,
+                title: 'Verbindung getrennt'.i18n,
+                icon: Icons.nearby_error,
+                color: Colors.red,
+              );
+            } catch (_) {}
           }
-          completer.complete(false);
+          if (!completer.isCompleted) completer.complete(false);
           break;
       }
     })
       ..onError((_) {
-        // Connection attempt timed out
+        _connection?.cancel();
+        _connection = null;
         state = BleDeviceState.error;
-        completer.complete(false);
+        if (!completer.isCompleted) completer.complete(false);
       });
     return completer.future;
   }

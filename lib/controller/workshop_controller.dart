@@ -9,7 +9,9 @@ import 'package:luftdaten.at/model/workshop_configuration.dart';
 import 'package:luftdaten.at/core/app_settings.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/features/measurement/models/measured_data.dart';
+import 'package:luftdaten.at/util/ble_json_parser.dart';
 import 'package:luftdaten.at/features/measurement/models/trip.dart';
+import 'package:luftdaten.at/model/ble_device.dart';
 
 class WorkshopController extends ChangeNotifier {
   WorkshopConfiguration? _currentWorkshop;
@@ -54,72 +56,200 @@ class WorkshopController extends ChangeNotifier {
   }
 
   void attemptSendData() async {
-    if (currentWorkshop == null) return;
-    TripController tripController = getIt<TripController>();
-    checkIfWorkshopHasEnded();
-    if (currentWorkshop != null) {
-      if (tripController.ongoingTrips.isEmpty) return;
-      Trip trip = tripController.ongoingTrips.values.first;
-      Iterable<FlattenedDataPoint> data;
-      List<Map<String, dynamic>?> jsonList;
-      if (lastSent == null) {
-        data = trip.data.map((e) => e.flatten);
-        jsonList = trip.data.map((e) => e.j).toList();
-      } else {
-        data = trip.data.where((e) => e.timestamp.isAfter(lastSent!)).map((e) => e.flatten);
-        jsonList = trip.data.where((e) => e.timestamp.isAfter(lastSent!)).map((e) => e.j).toList();
-        // Make sure we don't send too much data if any issues occur
-        //if(data.length > 50) data = data.toList().sublist(data.length - 50);
+    try {
+      logger.d('attemptSendData: currentWorkshop=${currentWorkshop?.id}, lastSent=$lastSent');
+      if (currentWorkshop == null) {
+        logger.d('attemptSendData: no workshop, skipping');
+        return;
       }
-      data = data.where((e) => e.location != null);
-      if (data.isEmpty) return;
+      TripController tripController = getIt<TripController>();
+      checkIfWorkshopHasEnded();
+      if (currentWorkshop != null) {
+        if (tripController.ongoingTrips.isEmpty) {
+          logger.d('attemptSendData: no ongoing trips, skipping');
+          return;
+        }
+        final entry = tripController.ongoingTrips.entries.first;
+        final device = entry.key;
+        final trip = entry.value;
 
+        List<MeasuredDataPoint> dataPoints = lastSent == null
+            ? trip.data
+            : trip.data.where((e) => e.timestamp.isAfter(lastSent!)).toList();
+        final afterLastSent = dataPoints.length;
+        dataPoints = dataPoints.where((e) => e.location != null).toList();
+        logger.d('attemptSendData: trip has ${trip.data.length} points, '
+            '$afterLastSent after lastSent filter, ${dataPoints.length} with location');
 
-      // Send data
-      for (var j in jsonList) {
-        if (j == null) continue;
-        final station = j["station"];
-        if (station == null) continue; // Skip entries without station (e.g. from binary-only BLE format)
-        station["workshop"] = currentWorkshop?.id;
-          logger.d('3.14159: $j');
-          Response res = await post(
-          Uri.parse('https://$serverUrl/api/v1/devices/data/'),
-          headers: {"Content-Type": "application/json"},
-          body: json.encode(j)
-          /* 
-          json.encode(data
-              .map((e) => {
-                    "time": e.timestamp.toUtc().toIso8601String(),
-                    if (e.pm1 != null) "pm1": e.pm1,
-                    if (e.pm25 != null) "pm25": e.pm25,
-                    if (e.pm10 != null) "pm10": e.pm10,
-                    if (e.temperature != null) "temperature": e.temperature,
-                    if (e.humidity != null) "humidity": e.humidity,
-                    if (e.voc != null) "voc": e.voc,
-                    if (e.nox != null) "nox": e.nox,
-                    "device": trip.deviceChipId.chipId,
-                    "workshop": currentWorkshop!.id.toLowerCase(),
-                    if (e.location != null) "lat": e.location!.latitude,
-                    if (e.location != null) "lon": e.location!.longitude,
-                    if (e.location?.precision != null) "location_precision": e.location!.precision,
-                    if (e.mode != null) "mode": e.mode!.name,
-                    "participant": currentWorkshop!.participantUid,
-                  })
-              .toList()),
-          */
-        );
-        if (res.statusCode == 200) {
-          // Data added successfully
-          lastSent = DateTime.now();
-          logger.d('Successfully sent ${data.length} workshop entries (HTTP 201)');
-          logger.d('Will now only send items dated after ${lastSent!.toIso8601String()}');
-          // If data was not added, retry on next attempt
-        } else {
-          logger.e('Failed to send workshop entries (HTTP ${res.statusCode}):');
-          logger.e(res.body);
+        if (dataPoints.isEmpty) {
+          logger.d('attemptSendData: no data points to send, skipping');
+          return;
+        }
+
+        final workshopId = currentWorkshop!.id.toLowerCase();
+        final firmware =
+            device.firmwareVersion != null
+                ? device.firmwareVersion!.toString()
+                : '0.0.0';
+        final deviceId = _deviceIdForWorkshop(device);
+        final url = 'https://$serverUrl/api/v1/devices/data/';
+        logger.d('attemptSendData: workshop=$workshopId, device=$deviceId, firmware=$firmware, url=$url');
+        if (dataPoints.isNotEmpty) {
+          _logDeviceIdDebug(device, trip, dataPoints.first);
+        }
+
+        int sentCount = 0;
+        int skippedNoPayload = 0;
+        int skippedNoApikey = 0;
+        for (final dataPoint in dataPoints) {
+          final apikey = _apikeyFromDataPoint(dataPoint, device: device) ?? '';
+          if (apikey.isEmpty) {
+            skippedNoApikey++;
+            continue;
+          }
+          final payload = _buildWorkshopPayload(
+            dataPoint: dataPoint,
+            deviceChipId: deviceId,
+            deviceModelId: trip.deviceModel.id,
+            firmware: firmware,
+            workshopId: workshopId,
+            apikey: apikey,
+            participant: currentWorkshop!.participantUid,
+          );
+          if (payload == null) {
+            skippedNoPayload++;
+            logger.d('attemptSendData: skipping dataPoint (no payload/sensor data)');
+            continue;
+          }
+
+          final body = json.encode(payload);
+          logger.d('attemptSendData: POST $url');
+          logger.d('attemptSendData: payload=$body');
+
+          try {
+            final res = await post(
+              Uri.parse(url),
+              headers: {'Content-Type': 'application/json'},
+              body: body,
+            );
+            logger.d('attemptSendData: response status=${res.statusCode}, body=${res.body}');
+            if (res.statusCode == 200) {
+              sentCount++;
+              lastSent = DateTime.now();
+              logger.d('attemptSendData: sent ok (${sentCount}), lastSent=$lastSent');
+            } else {
+              logger.e('attemptSendData: HTTP ${res.statusCode} - ${res.body}');
+            }
+          } catch (e, st) {
+            logger.e('attemptSendData: POST failed: $e');
+            logger.d(st.toString());
+          }
+        }
+        logger.d('attemptSendData: done. sent=$sentCount, skippedNoPayload=$skippedNoPayload, skippedNoApikey=$skippedNoApikey');
+        if (skippedNoApikey > 0) {
+          logger.d('attemptSendData: no API key from BLE (device may use binary format). Configure API key on device or update firmware.');
+        }
+        if (sentCount > 0) {
+          logger.d('Successfully sent $sentCount workshop entries, next send after ${lastSent!.toIso8601String()}');
         }
       }
+    } catch (e, stackTrace) {
+      logger.e('attemptSendData failed: $e');
+      logger.d(stackTrace.toString());
     }
+  }
+
+  /// Apikey from BLE device metadata (dataPoint.j) or device.
+  /// CircuitPython sends station.api.key, station.apikey, or top-level apikey.
+  String? _apikeyFromDataPoint(MeasuredDataPoint dataPoint, {BleDevice? device}) {
+    return BleJsonParser.parseApiKey(dataPoint.j) ?? device?.apiKey;
+  }
+
+  void _logDeviceIdDebug(BleDevice device, Trip trip, MeasuredDataPoint dataPoint) {
+    logger.d('deviceId debug: BleDevice.deviceOriginalDisplayName=${device.deviceOriginalDisplayName}');
+    logger.d('deviceId debug: BleDevice.bleMacAddress=${device.bleMacAddress}');
+    logger.d('deviceId debug: BleDevice.id=${device.id}, chipIdForApi=${device.chipIdForApi}');
+    logger.d('deviceId debug: Trip.deviceChipId.chipId=${trip.deviceChipId.chipId}');
+    if (trip.sensorDetails != null) {
+      for (var i = 0; i < trip.sensorDetails!.length; i++) {
+        final s = trip.sensorDetails![i];
+        logger.d('deviceId debug: Trip.sensorDetails[$i] serialNumber=${s.serialNumber}');
+      }
+    } else {
+      logger.d('deviceId debug: Trip.sensorDetails=null');
+    }
+    final j = dataPoint.j;
+    if (j != null && j.isNotEmpty) {
+      logger.d('deviceId debug: BLE metadata j (from device): $j');
+      logger.d('deviceId debug: j.device=${j['device']}, j.id=${j['id']}, j.station=${j['station']}');
+      final dev = j['device'];
+      if (dev is Map) {
+        final dm = dev as Map<String, dynamic>;
+        logger.d('deviceId debug: j.device keys=${dm.keys.toList()}, id=${dm['id']}, settings=${dm['settings']}');
+      }
+    } else {
+      logger.d('deviceId debug: BLE metadata j empty (binary format, device sends no JSON)');
+    }
+    final used = _deviceIdForWorkshop(device);
+    logger.d('deviceId debug: _deviceIdForWorkshop result (used in payload)=$used');
+  }
+
+  /// Device ID for workshop API.
+  String _deviceIdForWorkshop(BleDevice device) {
+    return device.id;
+  }
+
+  /// Builds the API payload from a MeasuredDataPoint.
+  /// Returns null if the data point has no sensor data.
+  Map<String, dynamic>? _buildWorkshopPayload({
+    required MeasuredDataPoint dataPoint,
+    required String deviceChipId,
+    required int deviceModelId,
+    required String firmware,
+    required String workshopId,
+    required String apikey,
+    required String participant,
+  }) {
+    if (dataPoint.sensorData.isEmpty) return null;
+
+    final sensors = <String, dynamic>{};
+    for (var i = 0; i < dataPoint.sensorData.length; i++) {
+      final sp = dataPoint.sensorData[i];
+      if (sp.sensor == LDSensor.unknown) continue;
+
+      final data = <String, dynamic>{};
+      for (final entry in sp.values.entries) {
+        if (entry.key != MeasurableQuantity.unknown) {
+          final v = entry.value;
+          // json.encode throws on NaN/Infinity
+          data['${entry.key.id}'] =
+              (v.isNaN || v.isInfinite) ? null : v;
+        }
+      }
+      if (data.isNotEmpty) {
+        sensors['${i + 1}'] = {
+          'type': sp.sensor.id,
+          'data': data,
+        };
+      }
+    }
+    if (sensors.isEmpty) return null;
+
+    return {
+      'device': {
+        'time': dataPoint.timestamp.toUtc().toIso8601String(),
+        'id': deviceChipId,
+        'firmware': firmware,
+        'model': deviceModelId,
+        'apikey': apikey,
+      },
+      'workshop': {
+        'id': workshopId,
+        'participant': participant,
+        'mode': dataPoint.mode?.name ?? 'walking',
+      },
+      'sensors': sensors,
+    };
   }
 
   Future<WorkshopConfiguration> loadWorkshopDetails(String id) async {
