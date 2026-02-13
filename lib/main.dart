@@ -57,56 +57,55 @@ bool _isTileLoadingError(Object exception) {
 }
 
 void main() async {
-  FlutterError.onError = (FlutterErrorDetails details) {
-    if (_isTileLoadingError(details.exception)) return;
-    FlutterError.dumpErrorToConsole(details);
-  };
+  runZonedGuarded(() async {
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (_isTileLoadingError(details.exception)) return;
+      FlutterError.dumpErrorToConsole(details);
+    };
 
-  WidgetsFlutterBinding.ensureInitialized();
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // Suppress i18n missing translation warnings (e.g. de-AT fallback to de)
-  Translations.missingKeyCallback = (_, __) {};
-  Translations.missingTranslationCallback = ({required key, required locale, required translations, required supportedLocales}) => false;
+    // Suppress i18n missing translation warnings (e.g. de-AT fallback to de)
+    Translations.missingKeyCallback = (_, __) {};
+    Translations.missingTranslationCallback = ({required key, required locale, required translations, required supportedLocales}) => false;
 
-  PackageInfo packageInfo = await PackageInfo.fromPlatform();
-  appVersion = packageInfo.version;
-  buildNumber = packageInfo.buildNumber;
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    appVersion = packageInfo.version;
+    buildNumber = packageInfo.buildNumber;
 
-  await GoogleFonts.pendingFonts([GoogleFonts.nunitoSansTextTheme()]);
-  await GetStorage.init('currentTrip');
-  await GetStorage.init('preferences');
-  await AppSettings.I.init();
-  await DeviceInfo.init();
+    await GoogleFonts.pendingFonts([GoogleFonts.nunitoSansTextTheme()]);
+    await GetStorage.init('currentTrip');
+    await GetStorage.init('preferences');
+    await AppSettings.I.init();
+    await DeviceInfo.init();
 
-  SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
-  locale = sharedPreferences.getString('locale');
+    SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
+    locale = sharedPreferences.getString('locale');
 
-  if (Platform.isAndroid) {
-    await FlutterDisplayMode.setHighRefreshRate();
-  }
+    if (Platform.isAndroid) {
+      await FlutterDisplayMode.setHighRefreshRate();
+    }
 
-  getIt.registerSingleton<DeviceManager>(DeviceManager()..init());
-  getIt.registerSingleton<TripController>(TripController()..init());
-  getIt.registerSingleton<BackgroundService>(BackgroundService.forPlatform()..init());
-  getIt.registerSingleton<MapHttpProvider>(MapHttpProvider()..fetch());
-  getIt.registerSingleton<BleController>(BleController());
-  getIt.registerSingleton<FileHandler>(FileHandler()..init());
-  getIt.registerSingleton<FavoritesManager>(FavoritesManager()..init());
-  getIt.registerSingleton<PageController>(PageController());
-  getIt.registerSingleton<AppLicenses>(AppLicenses()..init());
-  getIt.registerSingleton<PreferencesHandler>(PreferencesHandler()..init());
-  getIt.registerSingleton<NewsController>(NewsController()..init());
-  getIt.registerSingleton<WorkshopController>(WorkshopController()..init());
-  getIt.registerSingleton<BatteryInfoAggregator>(BatteryInfoAggregator());
+    getIt.registerSingleton<DeviceManager>(DeviceManager()..init());
+    getIt.registerSingleton<TripController>(TripController()..init());
+    getIt.registerSingleton<BackgroundService>(BackgroundService.forPlatform()..init());
+    getIt.registerSingleton<MapHttpProvider>(MapHttpProvider()..fetch());
+    getIt.registerSingleton<BleController>(BleController());
+    getIt.registerSingleton<FileHandler>(FileHandler()..init());
+    getIt.registerSingleton<FavoritesManager>(FavoritesManager()..init());
+    getIt.registerSingleton<PageController>(PageController());
+    getIt.registerSingleton<AppLicenses>(AppLicenses()..init());
+    getIt.registerSingleton<PreferencesHandler>(PreferencesHandler()..init());
+    getIt.registerSingleton<NewsController>(NewsController()..init());
+    getIt.registerSingleton<WorkshopController>(WorkshopController()..init());
+    getIt.registerSingleton<BatteryInfoAggregator>(BatteryInfoAggregator());
 
-  await AirStationConfigWizardController.init();
-  await AirStationConfigManager.loadAllConfigs();
+    await AirStationConfigWizardController.init();
+    await AirStationConfigManager.loadAllConfigs();
 
-  runZonedGuarded(
-    () => runApp(LDApp(initialRoute: AppSettings.I.isFirstUse ? WelcomePage.route : '/')),
-    (Object error, StackTrace stack) {
-      if (_isTileLoadingError(error)) return;
-      FlutterError.reportError(FlutterErrorDetails(exception: error, stack: stack));
-    },
-  );
+    runApp(LDApp(initialRoute: AppSettings.I.isFirstUse ? WelcomePage.route : '/'));
+  }, (Object error, StackTrace stack) {
+    if (_isTileLoadingError(error)) return;
+    FlutterError.reportError(FlutterErrorDetails(exception: error, stack: stack));
+  });
 }
