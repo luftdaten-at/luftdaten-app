@@ -235,7 +235,7 @@ class WorkshopController extends ChangeNotifier {
     }
     if (sensors.isEmpty) return null;
 
-    return {
+    final payload = <String, dynamic>{
       'device': {
         'time': dataPoint.timestamp.toUtc().toIso8601String(),
         'id': deviceChipId,
@@ -250,6 +250,13 @@ class WorkshopController extends ChangeNotifier {
       },
       'sensors': sensors,
     };
+    if (dataPoint.location != null) {
+      payload['location'] = {
+        'lat': dataPoint.location!.latitude,
+        'lon': dataPoint.location!.longitude,
+      };
+    }
+    return payload;
   }
 
   Future<WorkshopConfiguration> loadWorkshopDetails(String id) async {
