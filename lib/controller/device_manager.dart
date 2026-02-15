@@ -4,8 +4,7 @@ import 'dart:collection';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:luftdaten.at/controller/ble_controller.dart';
-import 'package:luftdaten.at/main.dart';
+import 'package:luftdaten.at/core/core.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../model/ble_device.dart';
@@ -51,8 +50,10 @@ class DeviceManager extends ChangeNotifier {
     notifyListeners();
     _deviceScanner?.cancel();
     deviceNamesFoundAtLastScan = [];
+    // Use empty list to discover all devices - withServices filters can fail to find
+    // devices (e.g. ESP32) that don't advertise the service in scan response (issue #712)
     _deviceScanner = FlutterReactiveBle()
-        .scanForDevices(withServices: serviceIds ?? [getIt<BleController>().serviceId])
+        .scanForDevices(withServices: serviceIds ?? [])
         .listen((dev) {
       logger.d("Found device: $dev -> ${dev.id}");
       if(dev.name.startsWith('Luftdaten.at')) {
@@ -63,8 +64,8 @@ class DeviceManager extends ChangeNotifier {
       if (foundDevices[dev.name] == null) {
         foundDevices[dev.name] = dev;
         if (devices.where((e) => e.bleName == dev.name).isNotEmpty) {
+          final bleDevice = devices.where((e) => e.bleName == dev.name).first;
           logger.d("IncState: ${dev.id}");
-          BleDevice bleDevice = devices.where((e) => e.bleName == dev.name).first;
           bleDevice
             ..state = BleDeviceState.discovered
             ..bleId = dev.id;

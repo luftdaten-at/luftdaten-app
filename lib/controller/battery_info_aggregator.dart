@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:luftdaten.at/controller/device_manager.dart';
-import 'package:luftdaten.at/main.dart';
+import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/model/battery_details.dart';
 import 'package:luftdaten.at/model/ble_device.dart';
 

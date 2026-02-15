@@ -6,7 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:luftdaten.at/page/welcome_page.i18n.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import '../widget/ui.dart';
+import 'package:luftdaten.at/shared/widgets/ui.dart';
 
 class WelcomePage extends StatefulWidget {
   const WelcomePage({super.key});
@@ -64,7 +64,6 @@ class _WelcomePageState extends State<WelcomePage> {
       case _PageState.permissions:
         return _buildPermissionsScreenContent();
       case _PageState.options:
-      default:
         return _buildWelcomeScreenContent();
     }
   }

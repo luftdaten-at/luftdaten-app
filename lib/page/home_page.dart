@@ -6,27 +6,27 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
-import 'package:luftdaten.at/controller/app_settings.dart';
-import 'package:luftdaten.at/controller/file_handler.dart';
-import 'package:luftdaten.at/controller/trip_controller.dart';
+import 'package:luftdaten.at/core/app_settings.dart';
+import 'package:luftdaten.at/features/measurement/controllers/file_handler.dart';
+import 'package:luftdaten.at/features/measurement/controllers/trip_controller.dart';
 import 'package:luftdaten.at/controller/workshop_controller.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/model/trip.dart';
+import 'package:luftdaten.at/core/core.dart';
+import 'package:luftdaten.at/features/measurement/models/trip.dart';
 import 'package:luftdaten.at/page/ble_serial_page.dart';
 import 'package:luftdaten.at/page/favorites_page.dart';
 import 'package:luftdaten.at/page/home_page.i18n.dart';
 import 'package:luftdaten.at/page/settings_page.dart';
-import 'package:luftdaten.at/widget/change_notifier_builder.dart';
-import 'package:luftdaten.at/widget/current_trip_export_dialog.dart';
+import 'package:luftdaten.at/shared/widgets/change_notifier_builder.dart';
+import 'package:luftdaten.at/shared/widgets/ui.dart';
+import 'package:luftdaten.at/features/measurement/widgets/current_trip_export_dialog.dart';
 import 'package:luftdaten.at/widget/file_manager_dialog.dart';
 import 'package:luftdaten.at/widget/home_page_battery_icon.dart';
-import 'package:luftdaten.at/widget/ui.dart';
 
-import 'chart_page.dart';
-import 'dashboard_page.dart';
-import 'device_manager_page.dart';
-import 'logging_page.dart';
-import 'map_page.dart';
+import 'package:luftdaten.at/features/measurement/pages/chart_page.dart';
+import 'package:luftdaten.at/features/measurement/pages/logging_page.dart';
+import 'package:luftdaten.at/page/dashboard_page.dart';
+import 'package:luftdaten.at/page/device_manager_page.dart';
+import 'package:luftdaten.at/page/map_page.dart';
 
 class PageViewerPage extends StatefulWidget {
   const PageViewerPage({super.key});
@@ -58,11 +58,11 @@ class _PageViewerPageState extends State<PageViewerPage> {
     Icons.settings_remote,
   ];
 
-  final List<Widget> _pages = const [
-    DashboardPage(),
-    MapPage(),
-    ChartPage(),
-    DeviceManagerPage(),
+  final List<Widget> _pages = [
+    const DashboardPage(),
+    const MapPage(),
+    const ChartPage(),
+    const DeviceManagerPage(),
   ];
 
   @override

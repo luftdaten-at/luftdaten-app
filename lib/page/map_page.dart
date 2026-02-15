@@ -29,31 +29,31 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:luftdaten.at/controller/app_settings.dart';
+import 'package:luftdaten.at/core/app_settings.dart';
+import 'package:luftdaten.at/core/preferences_handler.dart';
+import 'package:luftdaten.at/core/toaster.dart';
 import 'package:luftdaten.at/controller/favorites_manager.dart';
-import 'package:luftdaten.at/controller/preferences_handler.dart';
-import 'package:luftdaten.at/controller/toaster.dart';
-import 'package:luftdaten.at/controller/trip_controller.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:luftdaten.at/model/measured_data.dart';
-import 'package:luftdaten.at/models.dart';
-import 'package:luftdaten.at/page/annotated_picture_page.dart';
+import 'package:luftdaten.at/features/measurement/controllers/trip_controller.dart';
+import 'package:luftdaten.at/core/core.dart';
+import 'package:luftdaten.at/features/measurement/models/measured_data.dart';
+import 'package:luftdaten.at/shared/models/measurement.dart';
+import 'package:luftdaten.at/features/measurement/pages/annotated_picture_page.dart';
 import 'package:luftdaten.at/page/map_page.i18n.dart';
 import 'package:luftdaten.at/page/station_details_page.dart';
-import 'package:luftdaten.at/util/gradient_color.dart';
-import 'package:luftdaten.at/widget/change_notifier_builder.dart';
+import 'package:luftdaten.at/shared/utils/gradient_color.dart';
+import 'package:luftdaten.at/shared/widgets/change_notifier_builder.dart';
+import 'package:luftdaten.at/shared/widgets/start_button.dart';
 import 'package:luftdaten.at/widget/marker_dialog.dart';
-import 'package:luftdaten.at/widget/start_button.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 import '../controller/http_provider.dart';
-import '../model/trip.dart';
-import '../model/value_marker.dart';
-import '../widget/progress.dart';
-import '../widget/ui.dart';
-import 'package:luftdaten.at/enums.dart' as enums;
+import 'package:luftdaten.at/features/measurement/models/trip.dart';
+import 'package:luftdaten.at/features/measurement/models/value_marker.dart';
+import 'package:luftdaten.at/shared/widgets/progress.dart';
+import 'package:luftdaten.at/shared/widgets/ui.dart';
+import 'package:luftdaten.at/shared/domain/dimensions.dart' as enums;
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -86,6 +86,13 @@ class _MapPageState extends State<MapPage>
   int mapDisplayType = enums.Dimension.PM2_5;
 
   final CompassController _compassController = CompassController();
+
+  /// Stable TileLayer to avoid rebuild-driven connection churn (reduces tile load errors).
+  /// Use tile.openstreetmap.org without subdomains (OSM recommends this; see operations#737).
+  static final TileLayer _osmTileLayer = TileLayer(
+    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    userAgentPackageName: 'at.luftdaten.pmble',
+  );
 
   Color getLDColor(MeasuredDataPoint item) {
     //if (item.flatten.pm10 != null) {
@@ -330,10 +337,7 @@ class _MapPageState extends State<MapPage>
           },
         ),
         children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'at.luftdaten.pmble',
-          ),
+          _osmTileLayer,
           ChangeNotifierBuilder(
               notifier: AppSettings.I,
               builder: (context, settings) {

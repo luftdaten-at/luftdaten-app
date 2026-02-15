@@ -4,18 +4,17 @@ import 'package:lottie/lottie.dart';
 import 'package:luftdaten.at/controller/air_station_config_wizard_controller.dart';
 import 'package:luftdaten.at/model/air_station_config.dart';
 import 'package:luftdaten.at/model/ble_device.i18n.dart';
-import 'package:luftdaten.at/util/list_extensions.dart';
-import 'package:luftdaten.at/widget/change_notifier_builder.dart';
-import 'package:luftdaten.at/widget/ui.dart';
+import 'package:luftdaten.at/shared/utils/list_extensions.dart';
+import 'package:luftdaten.at/shared/widgets/change_notifier_builder.dart';
+import 'package:luftdaten.at/shared/widgets/ui.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
-import 'package:latlong2/latlong.dart'; // For LatLng
 import 'package:luftdaten.at/util/map_select_marker.dart';
 
-import 'package:luftdaten.at/main.dart';
+import 'package:luftdaten.at/core/core.dart';
 
-import '../widget/ellipsis.dart';
+import 'package:luftdaten.at/shared/widgets/ellipsis.dart';
 
 class AirStationConfigWizardPage extends StatefulWidget {
   const AirStationConfigWizardPage({super.key, required this.controller});

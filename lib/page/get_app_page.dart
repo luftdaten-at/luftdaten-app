@@ -1,7 +1,7 @@
 import 'package:clipboard/clipboard.dart';
 import 'package:flutter/material.dart';
 import 'package:luftdaten.at/page/get_app_page.i18n.dart';
-import 'package:luftdaten.at/widget/ui.dart';
+import 'package:luftdaten.at/shared/widgets/ui.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class GetAppPage extends StatelessWidget {

@@ -56,7 +56,6 @@ class _DeviceConnectButtonState extends State<DeviceConnectButton> {
           child: Text('Trennen'.i18n),
         );
       case BleDeviceState.error:
-      default:
         return FilledButton(
           onPressed: null,
           style: ButtonStyle(

@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:luftdaten.at/controller/air_station_config_wizard_controller.dart';
-import 'package:luftdaten.at/controller/app_settings.dart';
+import 'package:luftdaten.at/core/app_settings.dart';
 import 'package:luftdaten.at/controller/device_manager.dart';
 import 'package:luftdaten.at/controller/favorites_manager.dart';
-import 'package:luftdaten.at/controller/news_controller.dart';
+import 'package:luftdaten.at/core/news_controller.dart';
 import 'package:luftdaten.at/controller/workshop_controller.dart';
-import 'package:luftdaten.at/main.dart';
+import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/model/ble_device.dart';
 import 'package:luftdaten.at/page/enter_workshop_page.dart';
 import 'package:luftdaten.at/page/favorites_page.dart';
 import 'package:luftdaten.at/widget/air_station_wizard_dashboard_tile.dart';
-import 'package:luftdaten.at/widget/change_notifier_builder.dart';
+import 'package:luftdaten.at/shared/widgets/change_notifier_builder.dart';
+import 'package:luftdaten.at/shared/widgets/ui.dart';
 import 'package:luftdaten.at/widget/dashboard_station_tile.dart';
-import 'package:luftdaten.at/widget/ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../model/news_item.dart';

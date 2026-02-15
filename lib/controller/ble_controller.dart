@@ -2,8 +2,7 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:luftdaten.at/controller/ble_controller_v1.dart';
 import 'package:luftdaten.at/model/ble_device.dart';
 
-import '../main.dart';
-import '../model/measured_data.dart';
+import 'package:luftdaten.at/core/core.dart';
 import 'ble_controller_v2.dart';
 
 class BleController {
@@ -14,6 +13,8 @@ class BleController {
 
   Stream<ConnectionStateUpdate> connectTo(BleDevice device) {
     logger.d('Connecting to device ${device.bleId}');
+    // Omit servicesWithCharacteristicsToDiscover to trigger full GATT discovery on iOS.
+    // Partial discovery can miss write-only characteristics (e.g. command trigger).
     return _ble.connectToDevice(
       id: device.bleId!,
       connectionTimeout: const Duration(milliseconds: 5000),
@@ -29,6 +30,11 @@ class BleController {
       deviceId: device.bleId!,
     ));
     int protocolVersion = config[0];
+    // Device may send JSON (get_info with station.api.key) - first byte 0x7B = '{'
+    if (protocolVersion == 0x7B) {
+      logger.d('Device sends JSON format (get_info), assuming protocol 2');
+      protocolVersion = 2;
+    }
     logger.d('Protocol version is $protocolVersion');
     if(protocolVersion > 2) {
       logger.e('Incompatible protocol (version $protocolVersion, expected =1 or =2)');

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:i18n_extension/default.i18n.dart';
+import 'package:luftdaten.at/page/home_page.i18n.dart';
 
 import '../controller/battery_info_aggregator.dart';
-import '../main.dart';
+import 'package:luftdaten.at/core/core.dart';
 import '../model/battery_details.dart';
-import 'change_notifier_builder.dart';
+import 'package:luftdaten.at/shared/widgets/change_notifier_builder.dart';
 
 class HomePageBatteryIcon extends StatelessWidget {
   const HomePageBatteryIcon({super.key});

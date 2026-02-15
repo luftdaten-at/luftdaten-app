@@ -6,7 +6,7 @@ import 'package:luftdaten.at/model/app_permissions.dart';
 import 'package:luftdaten.at/page/device_manager_page.dart';
 import 'package:luftdaten.at/page/enter_workshop_page.dart';
 
-import '../main.dart';
+import 'package:luftdaten.at/core/core.dart';
 
 class WelcomeWizardPage extends StatefulWidget {
   const WelcomeWizardPage({super.key});
@@ -492,13 +492,13 @@ class _WelcomeWizardPageState extends State<WelcomeWizardPage> {
 enum _State { landing, ldDeviceSelection, permission, workshopQuestion, addDeviceQuestion }
 
 class _WelcomeWizardTile extends StatelessWidget {
-  const _WelcomeWizardTile(
-      {super.key,
-      required this.text,
-      this.asset,
-      required this.backgroundColor,
-      required this.borderColor,
-      required this.onTap});
+  const _WelcomeWizardTile({
+    required this.text,
+    this.asset,
+    required this.backgroundColor,
+    required this.borderColor,
+    required this.onTap,
+  });
 
   final String text;
   final String? asset;

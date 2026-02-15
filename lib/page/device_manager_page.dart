@@ -12,17 +12,17 @@ import 'package:luftdaten.at/controller/air_station_config_wizard_controller.dar
 import 'package:luftdaten.at/controller/device_manager.dart';
 import 'package:luftdaten.at/model/battery_details.dart';
 import 'package:luftdaten.at/page/air_station_config_wizard_page.dart';
-import 'package:luftdaten.at/util/list_extensions.dart';
+import 'package:luftdaten.at/shared/utils/list_extensions.dart';
 import 'package:luftdaten.at/widget/device_connect_button.dart';
-import 'package:luftdaten.at/widget/rotating_widget.dart';
+import 'package:luftdaten.at/shared/widgets/rotating_widget.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
-import '../controller/app_settings.dart';
-import '../main.dart';
+import 'package:luftdaten.at/core/app_settings.dart';
+import 'package:luftdaten.at/core/core.dart';
 import '../model/ble_device.dart';
-import '../widget/change_notifier_builder.dart';
-import '../widget/ui.dart';
+import 'package:luftdaten.at/shared/widgets/change_notifier_builder.dart';
+import 'package:luftdaten.at/shared/widgets/ui.dart';
 import 'device_manager_page.i18n.dart';
 
 
@@ -146,7 +146,7 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
           return _buildDeviceList();
         },
       ),
-      floatingActionButton: const SizedBox() ?? Consumer<DeviceManager>(
+      floatingActionButton: Consumer<DeviceManager>(
         builder: (ctx, provider, _) {
           logger.d('Rebuilt with status ${provider.scanning}');
           if (provider.scanning) {

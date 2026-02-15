@@ -1,10 +1,9 @@
 import 'dart:convert';
-import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 import 'package:i18n_extension/default.i18n.dart';
-import 'package:luftdaten.at/util/util.dart';
+import 'package:luftdaten.at/shared/utils/util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 

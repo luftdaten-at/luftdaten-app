@@ -1,19 +1,3 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:math';
-
-import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:luftdaten.at/controller/http_provider.dart';
-import 'package:luftdaten.at/main.dart';
-import 'package:url_launcher/url_launcher.dart';
-
-import '../model/ble_device.dart';
-import '../widget/ui.dart';
 
 /*
 class RegistrationData {

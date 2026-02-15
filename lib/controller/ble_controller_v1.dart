@@ -2,13 +2,13 @@ import 'dart:convert';
 
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:luftdaten.at/model/battery_details.dart';
-import 'package:luftdaten.at/util/list_extensions.dart';
+import 'package:luftdaten.at/shared/utils/list_extensions.dart';
 
-import '../main.dart';
+import 'package:luftdaten.at/core/core.dart';
 import '../model/ble_device.dart';
-import '../model/measured_data.dart';
+import 'package:luftdaten.at/features/measurement/models/measured_data.dart';
 import '../model/sensor_details.dart';
-import 'app_settings.dart';
+import 'package:luftdaten.at/core/app_settings.dart';
 import 'ble_controller.dart';
 
 class BleControllerV1 implements BleControllerForProtocol {
@@ -23,7 +23,6 @@ class BleControllerV1 implements BleControllerForProtocol {
   final Uuid _bleConfigId = Uuid.parse("8d473240-13cb-1776-b1f2-823711b3ffff");
   final Uuid _bleDataId = Uuid.parse("4b439140-73cb-4776-b1f2-8f3711b3bb4f");
   final Uuid _ldCfgId = Uuid.parse("51dc5a1c-46e0-4524-ab31-c165483ebab4");
-  final Uuid _ldCmdId = Uuid.parse("77db81d9-9773-49b4-aa17-16a2f93e95f2");
   final Uuid _ldInfoId = Uuid.parse("13fa8751-57af-4597-a0bb-b202f6111ae6");
 
   final _ble = FlutterReactiveBle();
