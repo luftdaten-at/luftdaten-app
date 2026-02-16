@@ -36,6 +36,14 @@ extension Localization on String {
         "en": "Add Device",
       } +
       {
+        "de": "Gerät hinzufügen",
+        "en": "Add Device",
+      } +
+      {
+        "de": "Einstellungen öffnen",
+        "en": "Open Settings",
+      } +
+      {
         "de": "Name: ",
         "en": "Name: ",
       } +
