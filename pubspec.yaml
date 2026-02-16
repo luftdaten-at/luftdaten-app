@@ -2,7 +2,7 @@ name: luftdaten.at
 description: Luftdaten.at - Air Quality Measurement
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.7.0+61
+version: 1.7.0+62
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -73,7 +73,6 @@ dependencies:
   flutter_map_animations: ^0.8.0
   just_audio: ^0.9.37
   native_qr: ^0.0.3
-  #oauth2_client: ^3.2.2
 
 dev_dependencies:
   flutter_test:
