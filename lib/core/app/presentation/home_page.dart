@@ -26,7 +26,7 @@ import 'package:luftdaten.at/features/measurements/presentation/pages/chart_page
 import 'package:luftdaten.at/features/measurements/presentation/pages/logging_page.dart';
 import 'package:luftdaten.at/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/device_manager_page.dart';
-import 'package:luftdaten.at/features/dashboard/presentation/pages/map_page.dart';
+import 'package:luftdaten.at/features/map/presentation/pages/map_page.dart';
 
 class PageViewerPage extends StatefulWidget {
   const PageViewerPage({super.key});

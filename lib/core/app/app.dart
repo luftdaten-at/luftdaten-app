@@ -27,7 +27,7 @@ import 'package:luftdaten.at/core/config/env.dart';
 import 'package:luftdaten.at/core/app/logging.dart';
 import 'package:luftdaten.at/features/devices/logic/ble_controller.dart';
 import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
-import 'package:luftdaten.at/features/dashboard/logic/http_provider.dart';
+import 'package:luftdaten.at/features/map/logic/http_provider.dart';
 import 'package:luftdaten.at/features/measurements/logic/file_handler.dart';
 import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
 import 'package:luftdaten.at/features/measurements/presentation/pages/annotated_picture_page.dart';
@@ -40,7 +40,7 @@ import 'package:luftdaten.at/features/dashboard/presentation/pages/favorites_pag
 import 'package:luftdaten.at/features/dashboard/presentation/pages/get_app_page.dart';
 import 'package:luftdaten.at/core/app/presentation/licenses_page.dart';
 import 'package:luftdaten.at/features/measurements/presentation/pages/logging_page.dart';
-import 'package:luftdaten.at/features/dashboard/presentation/pages/map_page.dart';
+import 'package:luftdaten.at/features/map/presentation/pages/map_page.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/nearby_devices_debug_page.dart';
 import 'package:luftdaten.at/core/app/presentation/settings_page.dart';
 import 'package:luftdaten.at/core/app/presentation/welcome_page.dart';

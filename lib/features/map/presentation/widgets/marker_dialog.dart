@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
-import 'package:luftdaten.at/features/dashboard/presentation/widgets/marker_dialog.i18n.dart';
+import 'package:luftdaten.at/features/map/presentation/widgets/marker_dialog.i18n.dart';
 
 import 'package:luftdaten.at/core/utils/gradient_color.dart';
 

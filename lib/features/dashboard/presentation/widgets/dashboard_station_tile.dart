@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:luftdaten.at/features/dashboard/logic/favorites_manager.dart';
-import 'package:luftdaten.at/features/dashboard/logic/http_provider.dart';
+import 'package:luftdaten.at/features/map/logic/http_provider.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
 
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
-import 'package:luftdaten.at/features/dashboard/presentation/pages/station_details_page.dart';
+import 'package:luftdaten.at/features/map/presentation/pages/station_details_page.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 import 'dashboard_station_tile.i18n.dart';
 import 'package:luftdaten.at/features/devices/data/air_station_config.dart';

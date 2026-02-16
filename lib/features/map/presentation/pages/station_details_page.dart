@@ -8,7 +8,7 @@ import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 import 'package:luftdaten.at/features/devices/logic/air_station_config_wizard_controller.dart';
-import 'package:luftdaten.at/features/dashboard/logic/http_provider.dart';
+import 'package:luftdaten.at/features/map/logic/http_provider.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/air_station_config_wizard_page.dart';
 import 'station_details_page.i18n.dart';

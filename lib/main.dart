@@ -37,7 +37,7 @@ import 'package:luftdaten.at/features/devices/logic/battery_info_aggregator.dart
 import 'package:luftdaten.at/features/devices/logic/ble_controller.dart';
 import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
 import 'package:luftdaten.at/features/dashboard/logic/favorites_manager.dart';
-import 'package:luftdaten.at/features/dashboard/logic/http_provider.dart';
+import 'package:luftdaten.at/features/map/logic/http_provider.dart';
 import 'package:luftdaten.at/features/measurements/logic/file_handler.dart';
 import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
 import 'package:luftdaten.at/features/measurements/logic/workshop_controller.dart';

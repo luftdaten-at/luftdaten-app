@@ -10,7 +10,7 @@ import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
-import 'package:luftdaten.at/features/dashboard/presentation/widgets/map_select_marker.dart';
+import 'package:luftdaten.at/features/map/presentation/widgets/map_select_marker.dart';
 
 import 'package:luftdaten.at/core/core.dart';
 
