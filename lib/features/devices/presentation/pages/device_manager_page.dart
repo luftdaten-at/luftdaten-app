@@ -866,19 +866,35 @@ class _QRCodePageState extends State<QRCodePage> {
   @override
   void initState() {
     super.initState();
-    _checkCameraPermission(); // Check camera permission on init
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initAndLaunchScanner());
   }
 
-  // Method to check camera permissions
-  Future<void> _checkCameraPermission() async {
+  Future<void> _initAndLaunchScanner() async {
     final status = await Permission.camera.status;
     if (!status.isGranted) {
       final result = await Permission.camera.request();
       if (!result.isGranted) {
-        setState(() {
-          missingCameraPermission = true; // Update the state to indicate missing permission
-        });
+        if (mounted) setState(() => missingCameraPermission = true);
+        return;
       }
+    }
+    if (!mounted) return;
+    await _scanQrCode();
+  }
+
+  Future<void> _scanQrCode() async {
+    try {
+      final nativeQr = NativeQr();
+      final result = await nativeQr.get();
+      if (!mounted) return;
+      final dev = getIt<DeviceManager>().addDeviceByCode(result);
+      if (dev != null) {
+        Navigator.of(context).pop(dev);
+      } else {
+        Navigator.of(context).pop();
+      }
+    } catch (err) {
+      if (mounted) Navigator.of(context).pop();
     }
   }
 
@@ -889,97 +905,49 @@ class _QRCodePageState extends State<QRCodePage> {
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Theme.of(context).primaryColor,
-          title: Text("Gerät hinzufügen", style: const TextStyle(color: Colors.white)),
+          title: Text("Gerät hinzufügen".i18n, style: const TextStyle(color: Colors.white)),
           centerTitle: true,
           leading: IconButton(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.chevron_left, color: Colors.white),
           ),
         ),
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20), // Matches DashboardPage padding
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 20), // Adjusted to match the dashboard
-                  _buildTappableTile(
-                    title: "QrCode Scannen",
-                    icon: Icons.qr_code_scanner,
-                    onTap: () async {
-                      // Aktion für QR Code Scannen
-                      try {
-                        NativeQr nativeQr = NativeQr();
-                        String? result = await nativeQr.get();
-                        BleDevice? dev = getIt<DeviceManager>().addDeviceByCode(result);
-                        if (dev != null && context.mounted) {
-                          Navigator.of(context).pop(dev);
-                        }
-                      } catch (err) {
-                        print(err);
-                      }
-                    },
+        body: missingCameraPermission
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.camera_alt_outlined, size: 64, color: Colors.grey.shade400),
+                      const SizedBox(height: 16),
+                      Text(
+                        "Die Luftdaten.at App braucht Zugriff auf ihre Kamera".i18n,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton(
+                        onPressed: () => openAppSettings(),
+                        child: Text('Einstellungen öffnen'.i18n),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 15), // Spacing to match dashboard buttons
-                  _buildTappableTile(
-                    title: "Daten manuell eingeben",
-                    icon: Icons.edit,
-                    onTap: () async {
-                      // Aktion für Daten manuell eingeben
-                      BleDevice? dev =
-                          await Navigator.pushNamed(context, QRCodeManualEntryPage.route) as BleDevice?;
-                      if (dev != null && context.mounted) {
-                        Navigator.of(context).pop(dev);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 20), // Bottom spacing
-                ],
+                ),
+              )
+            : Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 24),
+                    Text('QR-Code Scannen'.i18n, style: Theme.of(context).textTheme.titleMedium),
+                  ],
+                ),
               ),
-            ),
-          ),
-        ),
       ),
     );
   }
 
-  Widget _buildTappableTile({required String title, required IconData icon, required void Function() onTap}) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 10, left: 12, right: 12, bottom: 0),
-      child: Container(
-        height: 70,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-              child: Row(
-                children: [
-                  Icon(icon, size: 24),
-                  const SizedBox(width: 15), // Space between icon and text
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right), // Right chevron icon
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class QRCodeManualEntryPage extends StatefulWidget {
