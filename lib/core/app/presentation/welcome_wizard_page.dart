@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:i18n_extension/default.i18n.dart';
+import 'package:luftdaten.at/core/app/presentation/welcome_wizard_page.i18n.dart';
 import 'package:luftdaten.at/features/measurements/logic/workshop_controller.dart';
 import 'package:luftdaten.at/features/devices/data/app_permissions.dart';
+import 'package:luftdaten.at/features/devices/data/ble_device.dart';
+import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
+import 'package:luftdaten.at/features/devices/presentation/pages/configure_air_station_page.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/device_manager_page.dart';
 import 'package:luftdaten.at/features/dashboard/presentation/pages/enter_workshop_page.dart';
 
@@ -50,7 +53,7 @@ class _WelcomeWizardPageState extends State<WelcomeWizardPage> {
       case _State.landing:
         return _buildLanding();
       case _State.ldDeviceSelection:
-        return _buildLdDeviceSelection();
+        return _buildLanding();
       case _State.permission:
         return _buildPermission();
       case _State.workshopQuestion:
@@ -84,32 +87,20 @@ class _WelcomeWizardPageState extends State<WelcomeWizardPage> {
           ),
           const SizedBox(height: 20),
           _WelcomeWizardTile(
-            text: 'Ich möchte die Luftqualität in meiner Umgebung auf unserer Luftkarte einsehen.'
+            text: 'Die Luftqualität in meiner Umgebung auf der Luftkarte einsehen.'
                 .i18n,
             backgroundColor: Colors.green.shade50,
-            borderColor: Colors.green.shade400,
+            borderColor: Colors.green.shade50,
             onTap: () {
               Navigator.of(context).pushNamed('/');
             },
           ),
           _WelcomeWizardTile(
-            text:
-                'Ich möchte mit einem Luftdaten.at-Messgerät (Air aRound, Air Station) messen, alleine oder als Teil einer Messkampagne.'
-                    .i18n,
+            text: 'Mit einem Tragbares Messgerät (z. B. Air aRound) messen.'.i18n,
+            asset: 'assets/images/air_around_v1.png',
             backgroundColor: Colors.blue.shade50,
-            borderColor: Colors.blue.shade400,
-            onTap: () {
-              ak = false;
-              setState(() => _state = _State.ldDeviceSelection);
-            },
-          ),
-          _WelcomeWizardTile(
-            text: 'Ich möchte am Projekt „Luftqualität am Arbeitsplatz“ (AK Wien) teilnehmen.'.i18n,
-            backgroundColor: Colors.red.shade50,
-            borderColor: Colors.red.shade400,
+            borderColor: Colors.blue.shade50,
             onTap: () async {
-              ak = true;
-              //Navigator.of(context).pushNamed('wizard-air-cube');
               _currentPermission = 0;
               _permissions = [];
               List<AppPermission> permissions = [
@@ -133,6 +124,27 @@ class _WelcomeWizardPageState extends State<WelcomeWizardPage> {
               } else {
                 logger.d('Navigating to workshop question');
                 setState(() => _state = _State.workshopQuestion);
+              }
+            },
+          ),
+          _WelcomeWizardTile(
+            text: 'Ein stationäres Messgerät (z. B. Air Station) konfigurieren.'.i18n,
+            asset: 'assets/images/air_station_v3.png',
+            backgroundColor: Colors.red.shade50,
+            borderColor: Colors.red.shade50,
+            onTap: () {
+              final deviceManager = getIt<DeviceManager>();
+              final airStations = deviceManager.devices
+                  .where((d) => d.model == LDDeviceModel.station)
+                  .toList();
+              if (airStations.isNotEmpty) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ConfigureAirStationPage(airStations.first),
+                  ),
+                );
+              } else {
+                Navigator.of(context).pushNamed(DeviceManagerPage.route);
               }
             },
           ),
@@ -141,78 +153,7 @@ class _WelcomeWizardPageState extends State<WelcomeWizardPage> {
     );
   }
 
-  Widget _buildLdDeviceSelection() {
-    return SingleChildScrollView(
-      key: const Key('welcome-wizard-ld-device'),
-      child: Column(
-        children: [
-          const SizedBox(height: 36),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text(
-              'Welches Gerätemodell möchtest du verwenden?'.i18n,
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: 20),
-          _WelcomeWizardTile(
-            text: 'Tragbares Messgerät (z. B. Air aRound)'.i18n,
-            asset: 'assets/images/air_around_v1.png',
-            backgroundColor: Colors.blue.shade50,
-            borderColor: Colors.blue.shade400,
-            onTap: () async {
-              _currentPermission = 0;
-              _permissions = [];
-              List<AppPermission> permissions = [
-                AppPermissions.nearbyDevices,
-                AppPermissions.locationWhileInUse,
-                if (AppPermissions.locationAlways.appliesToPlatform) AppPermissions.locationAlways,
-                if (AppPermissions.disableBatteryOptimization.appliesToPlatform)
-                  AppPermissions.disableBatteryOptimization,
-                AppPermissions.camera,
-                AppPermissions.notifications,
-              ];
-              logger.d('About to check permissions');
-              for (AppPermission permission in permissions) {
-                if (!(await permission.granted)) {
-                  _permissions.add(permission);
-                }
-              }
-              if (_permissions.isNotEmpty) {
-                logger.d('Navigating to permission requests');
-                setState(() => _state = _State.permission);
-              } else {
-                logger.d('Navigating to workshop question');
-                setState(() => _state = _State.workshopQuestion);
-              }
-            },
-          ),
-          _WelcomeWizardTile(
-            text: 'Stationäres Messgerät (z. B. Air Station)'.i18n,
-            asset: 'assets/images/air_station_v3.png',
-            backgroundColor: Colors.blue.shade50,
-            borderColor: Colors.blue.shade400,
-            onTap: () {},
-          ),
-          Row(
-            children: [
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: () => setState(() => _state = _State.landing),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.chevron_left),
-                    Text('Zurück'.i18n),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+ 
 
   Widget _buildPermission() {
     AppPermission permission = _permissions[_currentPermission];
@@ -332,7 +273,7 @@ class _WelcomeWizardPageState extends State<WelcomeWizardPage> {
                   if (_currentPermission > 0) {
                     setState(() => _currentPermission--);
                   } else {
-                    setState(() => _state = _State.ldDeviceSelection);
+                    setState(() => _state = _State.landing);
                   }
                 },
                 child: Row(
@@ -378,13 +319,13 @@ class _WelcomeWizardPageState extends State<WelcomeWizardPage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
-              ak ? 'Messkampagne beitreten' : 'Möchstest du an einer Luftdaten.at-Messkampagne teilnehmen?'.i18n,
+              (ak ? 'Messkampagne beitreten' : 'Möchstest du an einer Luftdaten.at-Messkampagne teilnehmen?').i18n,
               textAlign: TextAlign.center,
             ),
           ),
           const SizedBox(height: 20),
           _WelcomeWizardTile(
-            text: ak ? 'Beitritts-Code eingeben' : 'Ja, ich habe einen Teilnahmecode'.i18n,
+            text: (ak ? 'Beitritts-Code eingeben' : 'Ja, ich habe einen Teilnahmecode').i18n,
             backgroundColor: Colors.green.shade50,
             borderColor: Colors.green.shade400,
             onTap: () async {
@@ -416,7 +357,7 @@ class _WelcomeWizardPageState extends State<WelcomeWizardPage> {
                   if(_permissions.isNotEmpty) {
                     _state = _State.permission;
                   } else {
-                    _state = _State.ldDeviceSelection;
+                    _state = _State.landing;
                   }
                 }),
                 child: Row(
