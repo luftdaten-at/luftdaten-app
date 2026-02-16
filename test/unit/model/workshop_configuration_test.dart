@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:luftdaten.at/model/workshop_configuration.dart';
+import 'package:luftdaten.at/features/devices/data/workshop_configuration.dart';
 
 void main() {
   group('WorkshopConfiguration', () {

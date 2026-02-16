@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:luftdaten.at/shared/widgets/duration_widget.dart';
+import 'package:luftdaten.at/core/widgets/duration_widget.dart';
 
 void main() {
   testWidgets('DurationWidget displays duration since initial', (WidgetTester tester) async {

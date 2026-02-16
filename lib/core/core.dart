@@ -15,6 +15,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-export 'di.dart';
-export 'env.dart';
-export 'logging.dart';
+export 'config/env.dart';
+export 'di/di.dart';
+export 'app/logging.dart';

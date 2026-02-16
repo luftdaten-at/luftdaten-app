@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:luftdaten.at/shared/utils/string_extensions.dart';
+import 'package:luftdaten.at/core/utils/string_extensions.dart';
 
 void main() {
   group('StripHtml', () {

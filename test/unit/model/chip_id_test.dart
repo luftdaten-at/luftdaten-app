@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:luftdaten.at/model/chip_id.dart';
+import 'package:luftdaten.at/features/devices/data/chip_id.dart';
 
 void main() {
   group('ChipId', () {
