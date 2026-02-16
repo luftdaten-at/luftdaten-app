@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:luftdaten.at/shared/domain/dimensions.dart';
+import 'package:luftdaten.at/core/domain/dimensions.dart';
 
 void main() {
   group('Dimension', () {

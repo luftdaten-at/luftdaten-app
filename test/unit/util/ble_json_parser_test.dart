@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:luftdaten.at/model/ble_device.dart';
-import 'package:luftdaten.at/util/ble_json_parser.dart';
+import 'package:luftdaten.at/features/devices/data/ble_device.dart';
+import 'package:luftdaten.at/features/devices/logic/ble_json_parser.dart';
 
 void main() {
   group('BleJsonParser.parseApiKey', () {

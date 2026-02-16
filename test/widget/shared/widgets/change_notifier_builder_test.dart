@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:luftdaten.at/shared/widgets/change_notifier_builder.dart';
+import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 
 void main() {
   testWidgets('ChangeNotifierBuilder rebuilds when notifier changes',

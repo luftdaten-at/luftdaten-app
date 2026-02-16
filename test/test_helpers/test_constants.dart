@@ -1,4 +1,4 @@
-import 'package:luftdaten.at/model/ble_device.dart';
+import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 
 /// Shared test constants to avoid duplication.
 class TestConstants {

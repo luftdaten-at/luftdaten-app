@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:luftdaten.at/controller/battery_info_aggregator.dart';
-import 'package:luftdaten.at/model/battery_details.dart';
+import 'package:luftdaten.at/features/devices/logic/battery_info_aggregator.dart';
+import 'package:luftdaten.at/features/devices/data/battery_details.dart';
 
 /// Creates mocks for widget and controller tests.
 class MockFactories {

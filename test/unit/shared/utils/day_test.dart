@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:luftdaten.at/shared/utils/day.dart';
+import 'package:luftdaten.at/core/utils/day.dart';
 
 void main() {
   group('Date', () {

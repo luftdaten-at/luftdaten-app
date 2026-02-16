@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:luftdaten.at/controller/battery_info_aggregator.dart';
-import 'package:luftdaten.at/model/battery_details.dart';
+import 'package:luftdaten.at/features/devices/logic/battery_info_aggregator.dart';
+import 'package:luftdaten.at/features/devices/data/battery_details.dart';
 
 import '../../test_helpers/mock_factories.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:luftdaten.at/features/measurement/models/latlng_with_precision.dart';
+import 'package:luftdaten.at/features/measurements/data/latlng_with_precision.dart';
 
 void main() {
   group('LatLngWithPrecision', () {

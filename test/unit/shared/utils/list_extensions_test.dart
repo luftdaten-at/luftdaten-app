@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:luftdaten.at/shared/utils/list_extensions.dart';
+import 'package:luftdaten.at/core/utils/list_extensions.dart';
 
 void main() {
   group('IterableMean', () {
