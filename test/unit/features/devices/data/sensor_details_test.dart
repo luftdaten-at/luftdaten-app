@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/devices/data/sensor_details.dart';
+import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 
 void main() {
   group('SensorDetails', () {

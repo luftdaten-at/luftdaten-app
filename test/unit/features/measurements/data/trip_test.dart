@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luftdaten.at/core/config/env.dart';
-import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
-import 'package:luftdaten.at/features/measurements/data/trip.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/data/chip_id.dart';
+import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
+import 'package:luftdaten.at/features/measurements/data/trip.dart';
 
 void main() {
   setUp(() {
