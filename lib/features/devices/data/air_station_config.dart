@@ -499,28 +499,28 @@ class AirStationConfig {
     return bytes;
   }
 
-  /// TLV payload for **`startup.toml`** one-shots (flags **`21…25`**), command `0x06` only.
-  List<int> toBytesStartupFlagsOnly() {
-    final bytes = <int>[0x06];
-
-    void appendInt32Tlv(int flag, int value) {
-      bytes.add(flag);
-      bytes.add(4);
-      bytes.addAll(Util.toByteArray(value));
+  /// Single TLV blob for **`startup.toml`** boot flags (**`21`**, **`23…25`**) merged by firmware incrementally (`0x06` prefix).
+  ///
+  /// TLV **`22`** is intentionally not surfaced in companion startup BLE UX; use USB / `startup.toml` for that flag.
+  List<int> toBytesStartupSingleFlagTlv(AirStationConfigFlags flag, {bool value = true}) {
+    switch (flag) {
+      case AirStationConfigFlags.SYNC_RTC_FROM_NTP:
+      case AirStationConfigFlags.UPLOAD_SD_LOG_TO_DATAHUB:
+      case AirStationConfigFlags.CLEAR_SD_CARD:
+      case AirStationConfigFlags.REFRESH_SENSORS:
+        break;
+      default:
+        throw ArgumentError.value(
+          flag,
+          'flag',
+          'Only TLV 21 and 23–25 are exposed for companion single-flag startup BLE writes.',
+        );
     }
 
-    appendInt32Tlv(AirStationConfigFlags.SYNC_RTC_FROM_NTP.value, syncRtcFromNtp ? 1 : 0);
-    appendInt32Tlv(
-      AirStationConfigFlags.DETECT_MODEL_FROM_SENSORS.value,
-      detectModelFromSensors ? 1 : 0,
-    );
-    appendInt32Tlv(
-      AirStationConfigFlags.UPLOAD_SD_LOG_TO_DATAHUB.value,
-      uploadSdLogToDatahub ? 1 : 0,
-    );
-    appendInt32Tlv(AirStationConfigFlags.CLEAR_SD_CARD.value, clearSdCard ? 1 : 0);
-    appendInt32Tlv(AirStationConfigFlags.REFRESH_SENSORS.value, refreshSensors ? 1 : 0);
-
+    final bytes = <int>[0x06];
+    bytes.add(flag.value);
+    bytes.add(4);
+    bytes.addAll(Util.toByteArray(value ? 1 : 0));
     return bytes;
   }
 

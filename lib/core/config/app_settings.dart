@@ -289,6 +289,15 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool _showAirStationStartupBleInDeviceOverview = false;
+  bool get showAirStationStartupBleInDeviceOverview =>
+      _showAirStationStartupBleInDeviceOverview;
+  set showAirStationStartupBleInDeviceOverview(bool val) {
+    _showAirStationStartupBleInDeviceOverview = val;
+    _box.write('showAirStationStartupBleInDeviceOverview', val);
+    notifyListeners();
+  }
+
   final GetStorage _box = GetStorage('settings');
 
   Future<void> init() async {
@@ -327,6 +336,8 @@ class AppSettings extends ChangeNotifier {
     dashboardShowPortables = _box.read('dashboardShowPortables') ?? true;
     useStagingServer = _box.read('useStagingServer') ?? false;
     showBatteryGraph = _box.read('showBatteryGraph') ?? false;
+    showAirStationStartupBleInDeviceOverview =
+        _box.read('showAirStationStartupBleInDeviceOverview') ?? false;
     _box.write('opened', true);
   }
 }

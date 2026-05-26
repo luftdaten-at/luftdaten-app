@@ -735,47 +735,6 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
             children: [
               const SizedBox(width: 8),
               Text(
-                'Batteriesparmodus'.i18n,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Flexible(
-                child: DropdownButton(
-                  value: cfg.batterySaverMode,
-                  isDense: true,
-                  items: BatterySaverMode.values
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e.toString())))
-                      .toList(),
-                  padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
-                  underline: const SizedBox(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() {
-                        cfg.batterySaverMode = val;
-                      });
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-          const Row(
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              SizedBox(width: 8),
-              Expanded(child: Divider(height: 1)),
-              SizedBox(width: 8),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const SizedBox(width: 8),
-              Text(
                 'Messintervall'.i18n,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),

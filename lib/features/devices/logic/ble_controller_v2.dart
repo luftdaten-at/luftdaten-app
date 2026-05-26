@@ -11,6 +11,7 @@ import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
 import 'package:luftdaten.at/features/devices/logic/ble_json_parser.dart';
 import '../data/battery_details.dart';
 import '../data/ble_device.dart';
+import 'package:luftdaten.at/features/devices/logic/sd_ble_export.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/core/config/app_settings.dart';
 import 'package:luftdaten.at/features/devices/logic/station_secrets_store.dart';
@@ -44,6 +45,10 @@ class BleControllerV2 implements BleControllerForProtocol {
   final Uuid _sensorDetailsId = Uuid.parse("13fa8751-57af-4597-a0bb-b202f6111ae6");
   final Uuid _deviceStatusId = Uuid.parse("77db81d9-9773-49b4-aa17-16a2f93e95f2");
   final Uuid _airStationConfigId = Uuid.parse("b47b0cdf-0ced-49a9-86a5-d78a03ea7674");
+  final Uuid _sdLogExportId = Uuid.parse("51d2f8a4-91c6-53b2-a6e5-71829304a505");
+
+  static const int _bleCmdSdLogExport = 0x08;
+  static const Duration _sdBleIoDelay = Duration(milliseconds: 220);
 
   @override
   Future<void> getDeviceDetails(BleDevice device) async {
@@ -275,6 +280,130 @@ class BleControllerV2 implements BleControllerForProtocol {
     logger.d('Reading AirStation Configuration Done');
 
     return rawData;
+  }
+
+  /// Idle READ on `sd_log_export_characteristic`: `flags` bit0 means JSONL exists (non-empty).
+  Future<SdBleExportIdleInfo?> peekSdBleExportIdle(BleDevice device) async {
+    if (device.state != BleDeviceState.connected || device.bleId == null) {
+      return null;
+    }
+    try {
+      final raw = await _ble.readCharacteristic(
+        QualifiedCharacteristic(
+          serviceId: _serviceId,
+          characteristicId: _sdLogExportId,
+          deviceId: device.bleId!,
+        ),
+      );
+      final frame = SdBleExportFrame.parse(raw);
+      if (!frame.isIdle) return null;
+      return SdBleExportIdleInfo(sdLogNonEmpty: frame.idleSdLogNonEmpty);
+    } catch (e, st) {
+      logger.d('peekSdBleExportIdle failed: $e $st');
+      return null;
+    }
+  }
+
+  /// Streams SD JSONL via BLE command `0x08` (wifiless Air Station only).
+  Future<SdBleImportResult> importSdJsonlLines(
+    BleDevice device, {
+    void Function(int lineIndex)? onProgress,
+  }) async {
+    if (device.model != LDDeviceModel.station) {
+      return SdBleImportResult.error('Nur für Air Station verfügbar.');
+    }
+    if (device.state != BleDeviceState.connected || device.bleId == null) {
+      return SdBleImportResult.error('Bluetooth nicht verbunden.');
+    }
+
+    final cmd = QualifiedCharacteristic(
+      serviceId: _serviceId,
+      characteristicId: _commandId,
+      deviceId: device.bleId!,
+    );
+    final sdRead = QualifiedCharacteristic(
+      serviceId: _serviceId,
+      characteristicId: _sdLogExportId,
+      deviceId: device.bleId!,
+    );
+
+    Future<void> delayIo() => Future<void>.delayed(_sdBleIoDelay);
+
+    try {
+      await _ble.writeCharacteristicWithoutResponse(
+        cmd,
+        value: <int>[_bleCmdSdLogExport, 0],
+      );
+      await delayIo();
+    } catch (e, st) {
+      logger.d('SD export START write failed: $e $st');
+      return SdBleImportResult.error('SD-Export konnte nicht gestartet werden.');
+    }
+
+    final out = <Map<String, dynamic>>[];
+    final buf = StringBuffer();
+    var lineIndex = 0;
+    const maxFrames = 200000;
+
+    for (var n = 0; n < maxFrames; n++) {
+      try {
+        await _ble.writeCharacteristicWithoutResponse(
+          cmd,
+          value: <int>[_bleCmdSdLogExport, 1],
+        );
+        await delayIo();
+
+        List<int> raw;
+        try {
+          raw = await _readWithRetry(sdRead);
+        } catch (e, st) {
+          logger.d('SD export READ failed: $e $st');
+          return SdBleImportResult.error('SD-Export: Lesen fehlgeschlagen.');
+        }
+
+        final frame = SdBleExportFrame.parse(raw);
+
+        switch (frame.status) {
+          case SdBleExportConstants.statusErr:
+            return SdBleImportResult.error(
+              SdBleImportResult.mapErrorSubcode(frame.flags & 0xff),
+              subcode: frame.flags & 0xff,
+            );
+          case SdBleExportConstants.statusEof:
+            return SdBleImportResult.success(out);
+          case SdBleExportConstants.statusPartial:
+          case SdBleExportConstants.statusEol:
+            if (frame.payload.isNotEmpty) {
+              buf.write(utf8.decode(frame.payload));
+            }
+            if (frame.status == SdBleExportConstants.statusEol) {
+              final line = buf.toString();
+              buf.clear();
+              final decoded = tryDecodeJsonlObject(line);
+              if (decoded != null) {
+                out.add(decoded);
+                lineIndex++;
+                onProgress?.call(lineIndex);
+              }
+            }
+            break;
+          case SdBleExportConstants.statusIdle:
+            // After EOF, firmware may return idle; treat as done if buffer empty.
+            if (buf.isEmpty) {
+              return SdBleImportResult.success(out);
+            }
+            break;
+          default:
+            logger.d('SD export: unexpected status ${frame.status}');
+            break;
+        }
+      } catch (e, st) {
+        logger.d('SD export loop error: $e $st');
+        return SdBleImportResult.error('SD-Export abgebrochen: $e');
+      }
+    }
+
+    return SdBleImportResult.error('SD-Export: zu viele Pakete (Abbruch).');
   }
 
   QualifiedCharacteristic _characteristic(Uuid characteristicId, BleDevice device) {

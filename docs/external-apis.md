@@ -41,6 +41,12 @@ In settings, **“Stationäre Messstationen anzeigen”** uses copy that mention
 Source of truth: [Luftdaten firmware `docs/ble-characteristics.md`](https://github.com/luftdaten-at/firmware/blob/main/docs/ble-characteristics.md).
 
 - **GATT**: service `0931b4b5-2917-4a8d-9e72-23103c09ac29`; Air Station TLV read/write uses command byte **`0x06`** (`SET_AIR_STATION_CONFIGURATION`). Implementation: `BleControllerV2.readAirStationConfiguration` / `sendAirStationConfig` and `AirStationConfig` TLV encode/decode (`lib/features/devices/data/air_station_config.dart`). Large MQTT payloads may be emitted as multiple `{0x06, … TLV…}` BLE writes (**chunking** helper `AirStationBleHomeAssistantDefaults.chunkSetAirStationConfiguration`, applied in `BleControllerV2.sendAirStationConfig`).
+- **Wifiless SD JSONL export over BLE (`SD_LOG_EXPORT`, `0x08`)** ([`ble-characteristics.md`](https://github.com/luftdaten-at/firmware/blob/main/docs/ble-characteristics.md), firmware `sd_ble_export.py`):
+  - **READ characteristic** `sd_log_export` UUID `51d2f8a4-91c6-53b2-a6e5-71829304a505` (max 512 bytes). **Binary frame:** `status` u8, `flags` u8, `payload_len` u16 big-endian, UTF-8 payload (0–508 bytes). `status`: `0` idle, `1` line fragment, `2` end of one JSONL line, `3` EOF, `4` error (`flags` carries a subcode).
+  - When **idle** (`status=0`), **`flags` bit `0x01`** means the SD JSONL file exists and is **non-empty** (typically `/sd/measurements.jsonl`) so the companion can show an **Import** affordance without opening a session.
+  - **WRITE** on command characteristic `030ff8b1-1e45-4ae6-bf36-3bca4c38cdba`: payload **`[0x08, action]`** — `action 0` START, `action 1` NEXT (stream). **Air Station wifiless** only; otherwise firmware returns `status=4` (`flags=1`: not wifiless).
+  - JSONL objects match firmware **`get_json()`** (Datahub measurement JSON; see firmware [`api-json.md`](https://github.com/luftdaten-at/firmware/blob/main/docs/api-json.md)).
+  - **App:** `lib/features/devices/logic/sd_ble_export.dart`, `BleControllerV2`, facade `BleController.peekSdBleExport` / `BleController.importSdJsonlFromBle`. **Device manager:** **SD-Import (BLE)** when connected and the idle nonempty bit is true. Raw lines persist in **`GetStorage('sd_ble_imports')`** (`SdBleImportStorage`, FIFO-capped batches) and are POSTed via **`DatahubMeasurementClient`**.
 - **MQTT / Home Assistant TLV flags** (`9…17`; companion doc [`companion-app-mqtt-ble.md`](https://github.com/luftdaten-at/firmware/blob/main/docs/companion-app-mqtt-ble.md), HA notes [`mqtt-home-assistant.md`](https://github.com/luftdaten-at/firmware/blob/main/docs/mqtt-home-assistant.md)):
   - **`9`** → `MQTT_ENABLED` (int32 `0|1`)
   - **`10`** → `MQTT_BROKER` (UTF‑8 host/IP)
@@ -65,12 +71,13 @@ Source of truth: [Luftdaten firmware `docs/ble-characteristics.md`](https://gith
   | **`24`** | `CLEAR_SD_CARD` | **Destructive** |
   | **`25`** | `REFRESH_SENSORS` | One-shot; **next boot** |
 
-  The app sends TLVs **`21…25`** only via **`AirStationConfig.toBytesStartupFlagsOnly()`** (dedicated BLE dialog), not via the full wizard “send entire config” path, so routine Wi‑Fi / location sends do not flip these unexpectedly. Saving from the UI writes **all five** flags with explicit `0` or `1` so the firmware state matches the toggles.
+  The **Startup (BLE)** companion dialog sends **single-flag** TLV writes only: **`AirStationConfig.toBytesStartupSingleFlagTlv()`** emits `[0x06]` plus one int32 TLV (`1` = set) per action for **`21`**, **`23`**, **`24`**, or **`25`** — not via the full wizard “send entire config” path, so routine Wi‑Fi / location sends do not flip these unexpectedly. TLV **`22`** is firmware-supported but **not** offered in the dialog (use USB / `startup.toml`). Firmware merges TLV subsets; read‑back refreshes prefs.
 
 - **App storage**:
   - `TZ`, `LOG_LEVEL`, non-secret MQTT fields, and the five startup-flag mirrors (`21…25` as booleans) persist with `AirStationConfig` JSON in **`SharedPreferences`** (`air_station_config_<bleName>` keys).
   - **`api_key` (TLV `20`)** and **`MQTT_PASSWORD` (TLV `14`)** are stored only in OS secure storage via **`flutter_secure_storage`** (`StationSecretsStore`, keyed by BLE broadcast name — same string as `AirStationConfig.id` / `AirStationConfigWizardController.id`).
-- **Write / read‑back UX**: TLV `14` is included only when the user edits the MQTT password UI field; TLV `20` behaves the same in the wizard. After a BLE write (`sendAirStationConfig`), firmware merges TLV subsets; the app optionally **read‑backs** (`readAirStationConfiguration`) and merges non‑secret MQTT fields (**never** hydrating password). Startup flags use the same read‑back + merge into prefs after a successful write. UI entry points include the Air Station wizard (`MQTT / Home Assistant (BLE)`, `Startup (BLE) …`) and the device manager MQTT / startup actions when connected.
+  - **`GetStorage('sd_ble_imports')`** holds FIFO-capped batches of raw SD JSONL lines imported over BLE (`SdBleImportStorage`).
+- **Write / read‑back UX**: TLV `14` is included only when the user edits the MQTT password UI field; TLV `20` behaves the same in the wizard. After a BLE write (`sendAirStationConfig`), firmware merges TLV subsets; the app optionally **read‑backs** (`readAirStationConfiguration`) and merges non‑secret MQTT fields (**never** hydrating password). Startup flags use the same read‑back + merge into prefs after a successful write. UI entry points include the Air Station wizard (`MQTT / Home Assistant (BLE)`, `Startup (BLE) …`) and the device manager MQTT / startup actions when connected; **SD-Import (BLE)** appears there when firmware reports SD JSONL data pending over **`sd_log_export`**.
 
 ---
 
@@ -99,6 +106,13 @@ Controlled by `AppSettings.I.useStagingServer`:
 - **URL:** `POST https://<host>/api/v1/devices/data/`
 - **Headers:** `Content-Type: application/json`
 - **Body:** JSON built per measurement point (device id, firmware, model, apikey from BLE when available, workshop id, participant uid, sensor readings, optional GPS). See `_buildWorkshopPayload` and `attemptSendData`.
+
+### SD BLE import (firmware `get_json()` lines)
+
+- **Purpose:** Replay measurements read from Air Station **wifiless** SD JSONL over BLE (command **`0x08`**, characteristic `sd_log_export`).
+- **Class:** `DatahubMeasurementClient` (`lib/features/measurements/logic/datahub_measurement_client.dart`); local cache `SdBleImportStorage` / `GetStorage('sd_ble_imports')`.
+- **URL:** same **`POST https://<host>/api/v1/devices/data/`** as workshop uploads.
+- **Body:** each JSONL object **as stored on the SD card** (firmware [`api-json.md`](https://github.com/luftdaten-at/firmware/blob/main/docs/api-json.md): top-level **`device`** + **`sensors`**), **not** wrapped with a `workshop` object. HTTP **200** counts as success in the importer UI summary.
 
 ### Workshop metadata
 
@@ -156,6 +170,6 @@ These URLs are opened with `url_launcher` or shown as links, not as structured A
 |---------|------------|--------|------------------------|
 | Luftdaten API | `api.luftdaten.at` (map: **`/v1/station/current/all`**; per-station history: **`/v1/station/historical`**) | GET | `lib/features/map/logic/http_provider.dart` |
 | WordPress | `luftdaten.at/wp-json/...` | GET | `lib/features/dashboard/logic/news_controller.dart` |
-| Datahub | `datahub.luftdaten.at` / `staging.datahub.luftdaten.at` | GET, POST | `lib/features/measurements/logic/workshop_controller.dart` |
+| Datahub | `datahub.luftdaten.at` / `staging.datahub.luftdaten.at` (`/api/v1/devices/data/` workshops + SD BLE import) | GET, POST | `workshop_controller.dart`, **`datahub_measurement_client.dart`** (SD BLE JSONL replay) |
 | OSM tiles | `tile.openstreetmap.org` | GET (tile library) | `map_page.dart`, `map_select_marker.dart`, … |
 | Registration (dormant) | `dev.luftdaten.at` | POST (commented) | `registration_page.dart` (commented) |

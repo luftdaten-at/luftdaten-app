@@ -9,10 +9,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:luftdaten.at/features/devices/logic/air_station_config_wizard_controller.dart';
+import 'package:luftdaten.at/features/devices/logic/ble_controller.dart';
 import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
 import 'package:luftdaten.at/features/devices/data/battery_details.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/air_station_config_wizard_page.dart';
-import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_mqtt_config_dialog.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_sd_ble_import.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_startup_flags_dialog.dart';
 import 'package:luftdaten.at/core/utils/list_extensions.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/device_connect_button.dart';
@@ -56,6 +57,35 @@ final HashMap<BleDeviceState, String> devStateStrings = HashMap.from({
 class _DeviceManagerPageState extends State<DeviceManagerPage> {
   static bool initialScan = false;
   RotatingWidgetController syncIconController = RotatingWidgetController();
+
+  /// SD JSONL availability from last BLE peek (idle `flags` bit 0).
+  final Map<String, bool> _sdBleExportNonEmptyByBleName = {};
+
+  /// Throttle BLE reads for sd_log_export (battery updates reconnect frequently).
+  final Map<String, DateTime> _lastSdBleExportPeekAtByBleName = {};
+
+  Future<void> _peekSdBleExportAvailability(BleDevice device) async {
+    if (device.state != BleDeviceState.connected) return;
+    final now = DateTime.now();
+    final last = _lastSdBleExportPeekAtByBleName[device.bleName];
+    if (last != null &&
+        now.difference(last) < const Duration(seconds: 10)) {
+      return;
+    }
+    _lastSdBleExportPeekAtByBleName[device.bleName] = now;
+    try {
+      final info = await getIt<BleController>().peekSdBleExport(device);
+      if (!mounted) return;
+      setState(() {
+        _sdBleExportNonEmptyByBleName[device.bleName] = info?.sdLogNonEmpty ?? false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _sdBleExportNonEmptyByBleName[device.bleName] = false;
+      });
+    }
+  }
 
   void connectTo(BleDevice device) async {
     logger.d("Connecting to ${device.bleName}");
@@ -496,45 +526,14 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
                             showDialog(
                                 context: context,
                                 builder: (_) => DeviceConfigDialog(device: device));
-                          } else {
-                            if (AirStationConfigWizardController.activeControllers
-                                .containsKey(device.bleName)) {
-                              AirStationConfigWizardController controller =
-                                  AirStationConfigWizardController(device.bleName);
-                              Navigator.of(context).push(MaterialPageRoute(
-                                builder: (_) => AirStationConfigWizardPage(
-                                  controller: controller,
-                                ),
-                              ));
-                              return;
-                            }
-                            showLDDialog(
-                              context,
-                              title: 'Station neu einrichten'.i18n,
-                              icon: Icons.settings_outlined,
-                              text:
-                                  'Möchtest du die WLAN- oder Messeinstellungen der Air Station neu '
-                                          'konfigurieren?'
-                                      .i18n,
-                              actions: [
-                                LDDialogAction(label: 'Abbrechen'.i18n, filled: false),
-                                LDDialogAction(
-                                  label: 'Konfigurieren'.i18n,
-                                  filled: true,
-                                  onTap: () {
-                                    AirStationConfigWizardController controller =
-                                        AirStationConfigWizardController(device.bleName);
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              AirStationConfigWizardPage(controller: controller)),
-                                    );
-                                  },
-                                ),
-                              ],
-                            );
                             return;
                           }
+                          final controller =
+                              AirStationConfigWizardController(device.bleName);
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) =>
+                                AirStationConfigWizardPage(controller: controller),
+                          ));
                         },
                         icon: const Icon(Icons.settings),
                         style: ButtonStyle(
@@ -587,6 +586,12 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
         builder: (context, device) {
           String shortenedName = device.displayName;
 
+          if (device.state == BleDeviceState.connected) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              unawaited(_peekSdBleExportAvailability(device));
+            });
+          }
+
           List<int> macBytes = hex.decode(device.bleMacAddress);
           macBytes[macBytes.length - 1] = macBytes[macBytes.length - 1] - 1;
           List<int> chipIdBytes = macBytes.reversed.toList();
@@ -599,6 +604,11 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
             child: Material(
               child: ExpansionTile(
                 initiallyExpanded: initiallyExpanded,
+                onExpansionChanged: (expanded) {
+                  if (expanded && device.state == BleDeviceState.connected) {
+                    unawaited(_peekSdBleExportAvailability(device));
+                  }
+                },
                 title: Row(
                   children: [
                     Text(shortenedName, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -693,45 +703,14 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
                             showDialog(
                                 context: context,
                                 builder: (_) => DeviceConfigDialog(device: device));
-                          } else {
-                            if (AirStationConfigWizardController.activeControllers
-                                .containsKey(device.bleName)) {
-                              AirStationConfigWizardController controller =
-                                  AirStationConfigWizardController(device.bleName);
-                              Navigator.of(context).push(MaterialPageRoute(
-                                builder: (_) => AirStationConfigWizardPage(
-                                  controller: controller,
-                                ),
-                              ));
-                              return;
-                            }
-                            showLDDialog(
-                              context,
-                              title: 'Station neu einrichten'.i18n,
-                              icon: Icons.settings_outlined,
-                              text:
-                                  'Möchtest du die WLAN- oder Messeinstellungen der Air Station neu '
-                                          'konfigurieren?'
-                                      .i18n,
-                              actions: [
-                                LDDialogAction(label: 'Abbrechen'.i18n, filled: false),
-                                LDDialogAction(
-                                  label: 'Konfigurieren'.i18n,
-                                  filled: true,
-                                  onTap: () {
-                                    AirStationConfigWizardController controller =
-                                        AirStationConfigWizardController(device.bleName);
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              AirStationConfigWizardPage(controller: controller)),
-                                    );
-                                  },
-                                ),
-                              ],
-                            );
                             return;
                           }
+                          final controller =
+                              AirStationConfigWizardController(device.bleName);
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) =>
+                                AirStationConfigWizardPage(controller: controller),
+                          ));
                         },
                         icon: const Icon(Icons.settings),
                         style: ButtonStyle(
@@ -740,40 +719,47 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
                         ),
                         tooltip: 'Gerät konfigurieren'.i18n,
                       ),
-                      IconButton.filled(
-                        onPressed: device.state == BleDeviceState.connected
-                            ? () {
-                                showAirStationMqttConfigDialog(
-                                  context: context,
-                                  device: device,
-                                );
-                              }
-                            : null,
-                        icon: const Icon(Icons.integration_instructions_outlined),
-                        style: ButtonStyle(
-                          backgroundColor: device.state == BleDeviceState.connected
-                              ? MaterialStateProperty.all(Theme.of(context).primaryColorDark)
-                              : MaterialStateProperty.all(Colors.grey.shade300),
-                        ),
-                        tooltip: 'MQTT (BLE) …'.i18n,
+                      ListenableBuilder(
+                        listenable: AppSettings.I,
+                        builder: (context, _) {
+                          if (!AppSettings.I.showAirStationStartupBleInDeviceOverview) {
+                            return const SizedBox.shrink();
+                          }
+                          return IconButton.filled(
+                            onPressed: device.state == BleDeviceState.connected
+                                ? () {
+                                    showAirStationStartupFlagsDialog(
+                                      context: context,
+                                      device: device,
+                                    );
+                                  }
+                                : null,
+                            icon: const Icon(Icons.restart_alt),
+                            style: ButtonStyle(
+                              backgroundColor: device.state == BleDeviceState.connected
+                                  ? MaterialStateProperty.all(Theme.of(context).primaryColorDark)
+                                  : MaterialStateProperty.all(Colors.grey.shade300),
+                            ),
+                            tooltip: 'Startup (BLE) …'.i18n,
+                          );
+                        },
                       ),
-                      IconButton.filled(
-                        onPressed: device.state == BleDeviceState.connected
-                            ? () {
-                                showAirStationStartupFlagsDialog(
-                                  context: context,
-                                  device: device,
-                                );
-                              }
-                            : null,
-                        icon: const Icon(Icons.restart_alt),
-                        style: ButtonStyle(
-                          backgroundColor: device.state == BleDeviceState.connected
-                              ? MaterialStateProperty.all(Theme.of(context).primaryColorDark)
-                              : MaterialStateProperty.all(Colors.grey.shade300),
+                      if (device.state == BleDeviceState.connected &&
+                          (_sdBleExportNonEmptyByBleName[device.bleName] == true))
+                        IconButton.filled(
+                          onPressed: () {
+                            showAirStationSdBleImportFlow(
+                              context: context,
+                              device: device,
+                            );
+                          },
+                          icon: const Icon(Icons.download_outlined),
+                          style: ButtonStyle(
+                            backgroundColor:
+                                MaterialStateProperty.all(Theme.of(context).primaryColorDark),
+                          ),
+                          tooltip: 'SD-Import (BLE)'.i18n,
                         ),
-                        tooltip: 'Startup (BLE) …'.i18n,
-                      ),
                       IconButton.filled(
                         onPressed: () {
                           showLDDialog(

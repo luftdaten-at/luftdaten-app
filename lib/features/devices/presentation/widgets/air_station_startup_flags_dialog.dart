@@ -51,6 +51,8 @@ class _AirStationStartupFlagsDialogState extends State<_AirStationStartupFlagsDi
   bool _busy = false;
   late AirStationConfig _cfg;
 
+  static const _setFlagAndRestartLabel = 'Set flag and restart';
+
   @override
   void initState() {
     super.initState();
@@ -152,23 +154,30 @@ class _AirStationStartupFlagsDialogState extends State<_AirStationStartupFlagsDi
     }
   }
 
-  Future<void> _save() async {
-    if (_cfg.uploadSdLogToDatahub) {
-      if (!await _confirmSensitiveUpload()) return;
+  Future<bool> _confirmGateForFlag(AirStationConfigFlags flag) async {
+    switch (flag) {
+      case AirStationConfigFlags.UPLOAD_SD_LOG_TO_DATAHUB:
+        return _confirmSensitiveUpload();
+      case AirStationConfigFlags.CLEAR_SD_CARD:
+        return _confirmClearSdCard();
+      default:
+        return true;
     }
-    if (_cfg.clearSdCard) {
-      if (!await _confirmClearSdCard()) return;
-    }
+  }
+
+  Future<void> _sendStartupFlag(AirStationConfigFlags flag) async {
+    if (_busy) return;
+    if (!await _confirmGateForFlag(flag)) return;
 
     setState(() => _busy = true);
     try {
-      final bytes = _cfg.toBytesStartupFlagsOnly();
+      final bytes = _cfg.toBytesStartupSingleFlagTlv(flag);
       final ok =
           await getIt<BleController>().sendAirStationConfig(widget.device, bytes);
       if (!ok) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Startup-Flags konnten nicht gesendet werden.'.i18n)),
+          SnackBar(content: Text('Startup-Flag konnte nicht gesendet werden.'.i18n)),
         );
         return;
       }
@@ -189,11 +198,11 @@ class _AirStationStartupFlagsDialogState extends State<_AirStationStartupFlagsDi
       await _cfg.persist();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Startup-Flags gespeichert — Station neu starten.'.i18n)),
+        SnackBar(content: Text('Flag gesetzt — Station neu starten.'.i18n)),
       );
-      Navigator.of(context).pop();
+      setState(() {});
     } catch (e, st) {
-      logger.d('Startup flags dialog save: $e $st');
+      logger.d('Startup flags dialog send flag: $e $st');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Fehler: $e')),
@@ -201,6 +210,42 @@ class _AirStationStartupFlagsDialogState extends State<_AirStationStartupFlagsDi
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Widget _actionBlock({
+    required String title,
+    String? subtitle,
+    required AirStationConfigFlags flag,
+    Color? buttonColor,
+  }) {
+    final style = buttonColor != null
+        ? FilledButton.styleFrom(
+            backgroundColor: buttonColor,
+            foregroundColor: Colors.white,
+          )
+        : null;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.secondary),
+            ),
+          ],
+          const SizedBox(height: 8),
+          FilledButton(
+            style: style,
+            onPressed: _busy ? null : () => unawaited(_sendStartupFlag(flag)),
+            child: Text(_setFlagAndRestartLabel.i18n),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -217,57 +262,41 @@ class _AirStationStartupFlagsDialogState extends State<_AirStationStartupFlagsDi
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
-                  'Diese Schalter entsprechen TLV-Flags 21–25 (`startup.toml`). '
-                          'Geschrieben wird per BLE während die Station läuft; die Firmware '
-                          'wertet sie in der Regel erst beim nächsten Neustart aus. '
-                          'Bitte danach neu starten bzw. Strom unterbrechen.'
+                  'Mit jedem Knopf wird nur das zugehörige TLV (21, 23–25) per BLE geschrieben '
+                          '(`startup.toml`); die Firmware nutzt es in der Regel erst nach einem '
+                          'Neustart. TLV 22 wird in dieser Ansicht nicht angeboten — bei Bedarf '
+                          'über USB / `startup.toml`.'
                       .i18n,
                   style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontSize: 13),
                 ),
               ),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: Text('RTC von NTP synchronisieren (21)'.i18n),
-                value: _cfg.syncRtcFromNtp,
-                onChanged:
-                    _busy ? null : (v) => setState(() => _cfg.syncRtcFromNtp = v),
+              _actionBlock(
+                title: 'RTC von NTP synchronisieren (TLV 21)'.i18n,
+                subtitle:
+                    'Nach dem Schreiben Bluetooth trennen und Station neu starten.'.i18n,
+                flag: AirStationConfigFlags.SYNC_RTC_FROM_NTP,
               ),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: Text('Modell aus Sensoren erkennen (22)'.i18n),
-                value: _cfg.detectModelFromSensors,
-                onChanged:
-                    _busy ? null : (v) => setState(() => _cfg.detectModelFromSensors = v),
+              const Divider(height: 24),
+              Text('Sensibel / zerstörerisch'.i18n, style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              _actionBlock(
+                title: 'SD-Log zum Datahub hochladen (TLV 23)'.i18n,
+                subtitle: 'Sensibel — Bestätigung vor dem Senden.'.i18n,
+                flag: AirStationConfigFlags.UPLOAD_SD_LOG_TO_DATAHUB,
+                buttonColor: Colors.deepOrange.shade800,
               ),
-              ExpansionTile(
-                initiallyExpanded: _cfg.uploadSdLogToDatahub || _cfg.clearSdCard,
-                tilePadding: EdgeInsets.zero,
-                title: Text('Sensibel / zerstörerisch (23–24)'.i18n),
-                children: [
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text('SD-Log zum Datahub hochladen (23)'.i18n),
-                    subtitle: Text('Erfordert Bestätigung beim Speichern.'.i18n),
-                    value: _cfg.uploadSdLogToDatahub,
-                    onChanged: _busy
-                        ? null
-                        : (v) => setState(() => _cfg.uploadSdLogToDatahub = v),
-                  ),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text('SD-Karte leeren (24)'.i18n),
-                    subtitle: Text('Zerstörerisch — Bestätigung mit CLEAR.'.i18n),
-                    value: _cfg.clearSdCard,
-                    onChanged:
-                        _busy ? null : (v) => setState(() => _cfg.clearSdCard = v),
-                  ),
-                ],
+              _actionBlock(
+                title: 'SD-Karte leeren (TLV 24)'.i18n,
+                subtitle: 'Zerstörerisch — Bestätigung mit CLEAR.'.i18n,
+                flag: AirStationConfigFlags.CLEAR_SD_CARD,
+                buttonColor: Colors.red.shade700,
               ),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: Text('Sensoren neu einlesen (25)'.i18n),
-                value: _cfg.refreshSensors,
-                onChanged: _busy ? null : (v) => setState(() => _cfg.refreshSensors = v),
+              const Divider(height: 24),
+              _actionBlock(
+                title: 'Sensoren neu einlesen (TLV 25)'.i18n,
+                subtitle:
+                    'Nach dem Schreiben Bluetooth trennen und Station neu starten.'.i18n,
+                flag: AirStationConfigFlags.REFRESH_SENSORS,
               ),
             ],
           ),
@@ -276,11 +305,7 @@ class _AirStationStartupFlagsDialogState extends State<_AirStationStartupFlagsDi
       actions: [
         TextButton(
           onPressed: _busy ? null : () => Navigator.of(context).pop(),
-          child: Text('Abbrechen'.i18n),
-        ),
-        FilledButton(
-          onPressed: _busy ? null : _save,
-          child: Text('Speichern'.i18n),
+          child: Text('Schließen'.i18n),
         ),
       ],
     );
