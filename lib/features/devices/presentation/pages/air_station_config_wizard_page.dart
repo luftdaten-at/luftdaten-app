@@ -50,7 +50,13 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
   Widget build(BuildContext context) {
     return PopScope(
       canPop: canPop(),
-      onPopInvoked: (_) => onPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) {
+          _onWizardRouteDidPop();
+        } else {
+          _onWizardPopBlocked();
+        }
+      },
       child: GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         child: Scaffold(
@@ -60,10 +66,7 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
                 Text('Air Station konfigurieren'.i18n, style: const TextStyle(color: Colors.white)),
             backgroundColor: Theme.of(context).primaryColor,
             leading: IconButton(
-              onPressed: () {
-                if (canPop()) Navigator.of(context).pop();
-                onPop();
-              },
+              onPressed: () => Navigator.maybePop(context),
               icon: const Icon(Icons.chevron_left, color: Colors.white),
             ),
           ),
@@ -1078,6 +1081,56 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
     );
   }
 
+  /// Wizard route actually popped (back gesture, programmatic pop).
+  void _onWizardRouteDidPop() {
+    if (widget.controller.stage == AirStationConfigWizardStage.firstDataSuccess) {
+      AirStationConfigWizardController.removeController(widget.controller.id);
+    }
+  }
+
+  /// Pop was blocked ([canPop] false); confirm whether to discard or resume later.
+  void _onWizardPopBlocked() {
+    if (!mounted) {
+      return;
+    }
+    switch (widget.controller.stage) {
+      case AirStationConfigWizardStage.waitingForFirstData:
+      case AirStationConfigWizardStage.firstDataSuccess:
+        return;
+      default:
+        break;
+    }
+    showLDDialog(
+      context,
+      title: 'Konfigurator verlassen'.i18n,
+      icon: Icons.settings,
+      text: 'Möchtest du die Konfiguration später fortsetzen oder den Konfigurator '
+              'vollständig beenden?'
+          .i18n,
+      actions: [
+        LDDialogAction(
+          label: 'Beenden'.i18n,
+          filled: false,
+          onTap: () async {
+            await Future.delayed(Duration.zero);
+            if (!mounted) return;
+            Navigator.of(context).pop();
+            AirStationConfigWizardController.removeController(widget.controller.id);
+          },
+        ),
+        LDDialogAction(
+          label: 'Später fortsetzen'.i18n,
+          filled: true,
+          onTap: () async {
+            await Future.delayed(Duration.zero);
+            if (!mounted) return;
+            Navigator.of(context).pop();
+          },
+        ),
+      ],
+    );
+  }
+
   bool canPop() {
     if (widget.controller.stage == AirStationConfigWizardStage.waitingForFirstData) {
       return true;
@@ -1086,46 +1139,5 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
       return true;
     }
     return false;
-  }
-
-  void onPop() {
-    if (widget.controller.stage == AirStationConfigWizardStage.waitingForFirstData) {
-      // Do nothing here, we're just waiting for data
-    } else if (widget.controller.stage == AirStationConfigWizardStage.firstDataSuccess) {
-      // Natural end point, destroy wizard
-      // Pop would already have proceeded
-      AirStationConfigWizardController.removeController(widget.controller.id);
-    } else {
-      // Ask for user to confirm where they wish to return to the wizard
-      showLDDialog(
-        context,
-        title: 'Konfigurator verlassen'.i18n,
-        icon: Icons.settings,
-        text: 'Möchtest du die Konfiguration später fortsetzen oder den Konfigurator '
-                'vollständig beenden?'
-            .i18n,
-        actions: [
-          LDDialogAction(
-            label: 'Beenden'.i18n,
-            filled: false,
-            onTap: () async {
-              await Future.delayed(Duration.zero);
-              if(!mounted) return;
-              Navigator.of(context).pop();
-              AirStationConfigWizardController.removeController(widget.controller.id);
-            },
-          ),
-          LDDialogAction(
-            label: 'Später fortsetzen'.i18n,
-            filled: true,
-            onTap: () async {
-              await Future.delayed(Duration.zero);
-              if(!mounted) return;
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
-      );
-    }
   }
 }

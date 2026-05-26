@@ -18,6 +18,7 @@
 
 import 'dart:async';
 import 'dart:collection';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -67,10 +68,17 @@ class DataLocationItem extends DataItem {
 */
 
 class MapHttpProvider extends HttpProvider {
-  /// Bulk current values for map markers (CSV: sid,latitude,longitude,pm1,pm25,pm10).
-  /// The historical bulk URL without `station_ids` returns HTTP 422; use current/all instead.
-  static final String _mapStationsCsvUrl =
-      'https://api.luftdaten.at/v1/station/current/all';
+  /// Bulk current values for Messnetz map markers (`FeatureCollection` GeoJSON).
+  /// Query filters active stations (`last_active` seconds) without calibration layers.
+  static final Uri _mapStationsGeoJsonUri = Uri.https(
+    'api.luftdaten.at',
+    '/v1/station/current',
+    <String, String>{
+      'last_active': '3600',
+      'output_format': 'geojson',
+      'calibration_data': 'false',
+    },
+  );
 
   List<Measurement> allItems = [];
   DateTime? _lastfetch;
@@ -86,50 +94,106 @@ class MapHttpProvider extends HttpProvider {
 
   Future<void> _fetch() async {
     allItems = [];
-    final Response resp =
-        await http.get(Uri.parse(_mapStationsCsvUrl), headers: httpHeaders);
+    final Response resp = await http.get(_mapStationsGeoJsonUri, headers: httpHeaders);
     if (resp.statusCode != 200) {
       logger.d('MapHttpProvider fetch failed with status code: ${resp.statusCode}');
       return;
     }
 
-    final lines =
-        resp.body.split(RegExp(r'\r?\n')).where((l) => l.isNotEmpty).toList();
-    if (lines.length < 2) {
-      logger.d('MapHttpProvider: empty CSV body');
+    final dynamic decoded;
+    try {
+      decoded = jsonDecode(resp.body);
+    } catch (e, st) {
+      logger.d('MapHttpProvider: JSON decode failed: $e $st');
       return;
     }
 
-    for (final line in lines.skip(1)) {
-      final parts = line.split(',');
-      if (parts.length < 6) continue;
-      final sid = parts[0].trim();
-      final lat = double.tryParse(parts[1].trim());
-      final lon = double.tryParse(parts[2].trim());
-      if (lat == null || lon == null) continue;
+    final features = (decoded is Map<String, dynamic>) ? decoded['features'] : null;
+    if (features is! List) {
+      logger.d('MapHttpProvider: missing or invalid features array');
+      return;
+    }
 
-      final pm1 = _parseCsvDouble(parts[3]);
-      final pm25 = _parseCsvDouble(parts[4]);
-      final pm10 = _parseCsvDouble(parts[5]);
-
-      final values = <Values>[
-        Values(Dimension.PM1_0, pm1),
-        Values(Dimension.PM2_5, pm25),
-        Values(Dimension.PM10_0, pm10),
-      ];
-
-      allItems.add(Measurement(Location(lat, lon, null), values, sid, null));
+    for (final Object? rawFeature in features) {
+      if (rawFeature is! Map) continue;
+      final feature = Map<String, dynamic>.from(rawFeature);
+      final m = measurementFromStationCurrentGeoFeature(feature);
+      if (m != null) allItems.add(m);
     }
 
     _lastfetch = DateTime.now();
-    logger.d('MapHttpProvider: loaded ${allItems.length} stations from CSV');
+    logger.d('MapHttpProvider: loaded ${allItems.length} stations from GeoJSON');
   }
 
-  /// API uses the literal string `None` for missing CSV cells.
-  static double? _parseCsvDouble(String raw) {
-    final t = raw.trim();
-    if (t.isEmpty || t.toLowerCase() == 'none') return null;
-    return double.tryParse(t);
+  /// Parses one GeoJSON Feature from `/v1/station/current` (see API `output_format=geojson`).
+  ///
+  /// PM1 / PM2.5 / PM10 are taken from all `properties.sensors[*].values`; later entries overwrite
+  /// earlier ones when the same dimension appears on multiple sensors.
+  static Measurement? measurementFromStationCurrentGeoFeature(Map<String, dynamic> feature) {
+    final geomRaw = feature['geometry'];
+    if (geomRaw is! Map) return null;
+    final geom = Map<String, dynamic>.from(geomRaw);
+    if (geom['type'] != 'Point') return null;
+
+    final coords = geom['coordinates'];
+    if (coords is! List || coords.length < 2) return null;
+    final lonNum = coords[0];
+    final latNum = coords[1];
+    if (lonNum is! num || latNum is! num) return null;
+
+    final propsRaw = feature['properties'];
+    if (propsRaw is! Map) return null;
+    final props = Map<String, dynamic>.from(propsRaw);
+
+    final device = props['device']?.toString();
+    if (device == null || device.isEmpty) return null;
+
+    double? stationHeight;
+    final hRaw = props['height'];
+    if (hRaw is num) {
+      stationHeight = hRaw.toDouble();
+    }
+
+    DateTime? timeMeasured;
+    final timeRaw = props['time']?.toString();
+    if (timeRaw != null && timeRaw.isNotEmpty) {
+      timeMeasured = DateTime.tryParse(timeRaw);
+    }
+
+    final Map<int, double> byDimension = {};
+    final sensors = props['sensors'];
+    if (sensors is List) {
+      for (final sensor in sensors) {
+        if (sensor is! Map) continue;
+        final sensorMap = Map<String, dynamic>.from(sensor);
+        final values = sensorMap['values'];
+        if (values is! List) continue;
+        for (final v in values) {
+          if (v is! Map) continue;
+          final entry = Map<String, dynamic>.from(v);
+          final dimRaw = entry['dimension'];
+          final valRaw = entry['value'];
+          if (dimRaw == null || valRaw == null || valRaw is! num) continue;
+          final dimension = dimRaw is int ? dimRaw : int.tryParse(dimRaw.toString());
+          if (dimension == null) continue;
+          final value = valRaw.toDouble();
+          byDimension[dimension] = value;
+        }
+      }
+    }
+
+    final values = <Values>[
+      Values(Dimension.PM1_0, byDimension[Dimension.PM1_0]),
+      Values(Dimension.PM2_5, byDimension[Dimension.PM2_5]),
+      Values(Dimension.PM10_0, byDimension[Dimension.PM10_0]),
+    ];
+
+    return Measurement(
+      Location(latNum.toDouble(), lonNum.toDouble(), stationHeight),
+      values,
+      device,
+      timeMeasured,
+    );
   }
 }
 

@@ -90,6 +90,46 @@ extension Localization on String {
       {
         "de": "Angezeigte Feinstaubgröße auswählen",
         "en": "Select PM size to display",
+      } +
+      {
+        "de": "Dimension und Farblegende",
+        "en": "Dimension and colour legend",
+      } +
+      {
+        "de": "≤ %s µg/m³",
+        "en": "≤ %s µg/m³",
+      } +
+      {
+        "de": "> %s – ≤ %s µg/m³",
+        "en": "> %s – ≤ %s µg/m³",
+      } +
+      {
+        "de": "> %s µg/m³",
+        "en": "> %s µg/m³",
+      } +
+      {
+        "de": "Farben (Eu‑Luftqualitätsindex für Feinstaub, µg/m³ · stündliche Schwellen)",
+        "en": "Colours (EU air quality index for particulate matter, µg/m³ · hourly thresholds)",
+      } +
+      {
+        "de": "Orientiert sich an den Farbstufen der Europäischen Umweltagentur.",
+        "en": "Bands follow EU EEA colouring for particle maps.",
+      } +
+      {
+        "de": "Farben (Temperatur · Messverlauf)",
+        "en": "Colours (temperature · measurement trace)",
+      } +
+      {
+        "de": "< %s °C",
+        "en": "< %s °C",
+      } +
+      {
+        "de": "%s °C bis < %s °C",
+        "en": "%s °C to < %s °C",
+      } +
+      {
+        "de": "%s °C oder mehr",
+        "en": "%s °C or higher",
       };
 
   String get i18n => localize(this, _t);

@@ -8,13 +8,15 @@ The app uses the [`http`](https://pub.dev/packages/http) package for most progra
 
 **Base URL:** `https://api.luftdaten.at`
 
-### Current snapshot for map (CSV, all stations)
+### Current snapshot for map (GeoJSON, active stations)
 
 - **Class:** `MapHttpProvider`
-- **Request:** `GET` `https://api.luftdaten.at/v1/station/current/all`
-  - The response is delivered as **CSV** (same shape regardless of optional `Accept` / `output_format=json` queries in typical use). The implementation does not rely on JSON for this bulk call.
-- **Response:** CSV with header **`sid,latitude,longitude,pm1,pm25,pm10`**. Each row is converted to a `Measurement` in code (`http_provider.dart`): `Location(lat, lon, null)`, `Values` rows for dimensions `PM1_0`, `PM2_5`, and `PM10_0` (`lib/core/domain/dimensions.dart`), device id `sid`. Missing numeric cells may appear as the literal string `None` and are mapped to null.
-- **Why not `/v1/station/historical`?** That endpoint expects **`station_ids`** (validated by the API; missing ids → HTTP **422**). There is no app-side list of every id at fetch time for the Luftkarte, so bulk “all stations now” uses **`current/all`** instead. Structured JSON shapes for stations are documented in the [Luftdaten.at API Swagger](https://api.luftdaten.at/docs) (e.g. `/v1/station/all` for station metadata).
+- **Request:** `GET` `https://api.luftdaten.at/v1/station/current` with query parameters:
+  - `last_active=3600` — only stations with a reading in the last hour
+  - `output_format=geojson` — **FeatureCollection** GeoJSON
+  - `calibration_data=false` — omit calibration layers from the payload
+- **Response:** GeoJSON **FeatureCollection** with **`features[]`**. Each **Point** feature’s **`geometry.coordinates`** are **`[longitude, latitude]`** (GeoJSON order). **`properties.device`** is the station id; optional **`height`** and **`time`** map to `Location` height and `Measurement.time` when present. PM1 / PM2.5 / PM10 are merged from **`properties.sensors[*].values`** (`dimension` + numeric `value`; later values overwrite when the same dimension repeats). Parsing lives in **`MapHttpProvider.measurementFromStationCurrentGeoFeature`** (`http_provider.dart`); `Values` use dimensions from `lib/core/domain/dimensions.dart`.
+- **Why not `/v1/station/historical`?** That endpoint expects **`station_ids`** (validated by the API; missing ids → HTTP **422**). There is no app-side list of every id at fetch time for the Luftkarte, so the map uses **`/v1/station/current`** with **`last_active`** instead. Structured JSON shapes for stations are documented in the [Luftdaten.at API Swagger](https://api.luftdaten.at/docs) (e.g. `/v1/station/all` for station metadata).
 - **Caching / throttle:** `fetch()` only triggers a network call if the last **successful** load is older than 5 minutes (or 30 seconds if the list is still empty). After HTTP 200, parsed rows populate `allItems` and `_lastfetch` is updated (`http_provider.dart`).
 - **Consumers:** Map page markers when **“Stationäre Messstationen”** overlay is enabled (`AppSettings.showOverlay`), via `ChangeNotifierProvider` + `context.watch<MapHttpProvider>()`. Startup also registers `MapHttpProvider()..fetch()` in `main.dart`.
 - **Colours:** Points and numeric labels follow the [**European Air Quality Index**](https://airindex.eea.europa.eu/) µg/m³ bands (hourly classes), matching the overlays described on [Luftdaten.at Datahub](https://datahub.luftdaten.at). See `Dimension.getColor` in [`lib/core/domain/dimensions.dart`](../lib/core/domain/dimensions.dart) (PM4 uses the PM2.5‑sized bins).

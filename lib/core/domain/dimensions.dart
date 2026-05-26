@@ -139,6 +139,26 @@ class Dimension {
   static const List<double> _eeaPm1Pm25InclusiveUppersMicrog = [5, 15, 50, 90, 140];
   static const List<double> _eeaPm10InclusiveUppersMicrog = [15, 45, 120, 195, 270];
 
+  /// µg/m³ inclusive upper thresholds (length 5) for Eu‑AQI colouring on maps when [dimensionId] is PM1–PM4 or PM10.
+  /// Returns `null` for other dimensions.
+  static List<double>? europeanEuPmInclusiveUpperMicrograms(int dimensionId) {
+    switch (dimensionId) {
+      case PM1_0:
+      case PM2_5:
+      case PM4_0:
+        return List<double>.from(_eeaPm1Pm25InclusiveUppersMicrog);
+      case PM10_0:
+        return List<double>.from(_eeaPm10InclusiveUppersMicrog);
+      default:
+        return null;
+    }
+  }
+
+  /// Six Eu‑AQI PM category colours matching [getColor] for Eu‑AQI PM map markers.
+  static List<material.Color> europeanEuPmBandColors() => ColorConstants.eeaEuPmCategoryRgb
+      .map((rgb) => material.Color.fromARGB(255, rgb[0], rgb[1], rgb[2]))
+      .toList(growable: false);
+
   /// Stepped Eu-AQI colours (cyan → magenta) for [bands] µg/m³ upper bounds inclusive for Good … Very poor.
   static material.Color _eeaPmRgbFromBands(
       double val, List<double> inclusiveUppersFive, List<List<int>> categoriesSix) {

@@ -44,6 +44,7 @@ import 'package:luftdaten.at/features/map/presentation/pages/station_details_pag
 import 'package:luftdaten.at/core/utils/gradient_color.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 import 'package:luftdaten.at/core/widgets/start_button.dart';
+import 'package:luftdaten.at/features/map/presentation/widgets/map_dimension_legend.dart';
 import 'package:luftdaten.at/features/map/presentation/widgets/marker_dialog.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -55,6 +56,9 @@ import 'package:luftdaten.at/features/measurements/data/value_marker.dart';
 import 'package:luftdaten.at/core/widgets/progress.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'package:luftdaten.at/core/domain/dimensions.dart' as enums;
+
+/// Returned by the map dimension menu when only the legend is tapped: close popup, keep dimension.
+const _kMapLegendDismissMenuValue = -1;
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -662,27 +666,40 @@ class _MapPageState extends State<MapPage>
                 alignment: Alignment.topRight,
                 child: Padding(
                   padding: const EdgeInsets.all(20),
-                  child: PopupMenuButton(
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(
+                  child: PopupMenuButton<int>(
+                    constraints: const BoxConstraints(minWidth: 288),
+                    itemBuilder: (context) => [
+                      PopupMenuItem<int>(
+                        value: _kMapLegendDismissMenuValue,
+                        padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 320),
+                          child: MapDimensionLegend(dimensionId: mapDisplayType),
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                      const PopupMenuItem<int>(
                         value: enums.Dimension.PM1_0,
                         child: Text('PM1.0'),
                       ),
-                      const PopupMenuItem(
+                      const PopupMenuItem<int>(
                         value: enums.Dimension.PM2_5,
                         child: Text('PM2.5'),
                       ),
-                      const PopupMenuItem(
+                      const PopupMenuItem<int>(
                         value: enums.Dimension.PM10_0,
                         child: Text('PM10.0'),
                       ),
                       if (_workshopController.currentWorkshop != null)
-                        PopupMenuItem(
+                        PopupMenuItem<int>(
                           value: enums.Dimension.TEMPERATURE,
                           child: Text('Temperatur'.i18n),
                         ),
                     ],
                     onSelected: (value) async {
+                      if (value == _kMapLegendDismissMenuValue) {
+                        return;
+                      }
                       // Wait for the popup menu closing animation to finish to avoid perception of lag
                       await Future.delayed(const Duration(milliseconds: 330));
                       setState(() {
@@ -696,7 +713,7 @@ class _MapPageState extends State<MapPage>
                         elevation: WidgetStateProperty.all(2),
                         shadowColor: WidgetStateProperty.all(Colors.black),
                       ),
-                      tooltip: 'Angezeigte Feinstaubgröße auswählen'.i18n,
+                      tooltip: 'Dimension und Farblegende'.i18n,
                       color: Colors.black,
                       onPressed: null,
                       icon: SizedBox(
