@@ -18,7 +18,6 @@
 
 import 'dart:async';
 import 'dart:collection';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -68,8 +67,11 @@ class DataLocationItem extends DataItem {
 */
 
 class MapHttpProvider extends HttpProvider {
-  /// for every station fetches the current values with thier location
-  final String API_URL = "https://api.luftdaten.at/v1/station/historical?end=current&precision=all&output_format=json&include_location=true";
+  /// Bulk current values for map markers (CSV: sid,latitude,longitude,pm1,pm25,pm10).
+  /// The historical bulk URL without `station_ids` returns HTTP 422; use current/all instead.
+  static final String _mapStationsCsvUrl =
+      'https://api.luftdaten.at/v1/station/current/all';
+
   List<Measurement> allItems = [];
   DateTime? _lastfetch;
 
@@ -77,24 +79,57 @@ class MapHttpProvider extends HttpProvider {
     if (_lastfetch == null ||
         DateTime.now().difference(_lastfetch!).inSeconds > 300 ||
         (allItems.isEmpty && DateTime.now().difference(_lastfetch!).inSeconds > 30)) {
-      _lastfetch = DateTime.now();
       await _fetch();
     }
     notifyListeners();
   }
 
   Future<void> _fetch() async {
-    // fetch in json format
     allItems = [];
-    Response resp = await http.get(Uri.parse(API_URL), headers: httpHeaders);
-    if(resp.statusCode == 200){
-      var json = jsonDecode(resp.body);
-      for(var j in json){
-        allItems.add(Measurement.fromJson(j));
-      }
-    }else{
-      logger.d("MapHttpProvider fetch failed with status code: ${resp.statusCode}");
+    final Response resp =
+        await http.get(Uri.parse(_mapStationsCsvUrl), headers: httpHeaders);
+    if (resp.statusCode != 200) {
+      logger.d('MapHttpProvider fetch failed with status code: ${resp.statusCode}');
+      return;
     }
+
+    final lines =
+        resp.body.split(RegExp(r'\r?\n')).where((l) => l.isNotEmpty).toList();
+    if (lines.length < 2) {
+      logger.d('MapHttpProvider: empty CSV body');
+      return;
+    }
+
+    for (final line in lines.skip(1)) {
+      final parts = line.split(',');
+      if (parts.length < 6) continue;
+      final sid = parts[0].trim();
+      final lat = double.tryParse(parts[1].trim());
+      final lon = double.tryParse(parts[2].trim());
+      if (lat == null || lon == null) continue;
+
+      final pm1 = _parseCsvDouble(parts[3]);
+      final pm25 = _parseCsvDouble(parts[4]);
+      final pm10 = _parseCsvDouble(parts[5]);
+
+      final values = <Values>[
+        Values(Dimension.PM1_0, pm1),
+        Values(Dimension.PM2_5, pm25),
+        Values(Dimension.PM10_0, pm10),
+      ];
+
+      allItems.add(Measurement(Location(lat, lon, null), values, sid, null));
+    }
+
+    _lastfetch = DateTime.now();
+    logger.d('MapHttpProvider: loaded ${allItems.length} stations from CSV');
+  }
+
+  /// API uses the literal string `None` for missing CSV cells.
+  static double? _parseCsvDouble(String raw) {
+    final t = raw.trim();
+    if (t.isEmpty || t.toLowerCase() == 'none') return null;
+    return double.tryParse(t);
   }
 }
 
@@ -109,6 +144,10 @@ class SingleStationHttpProvider extends HttpProvider {
 
   /// ([Data last day], [last week], [last month]):
   List<List<DataItem>> items = [[], [], []];
+
+  /// True once the CSV request for slice [index] has finished (success with rows, success empty, or HTTP/parse failure).
+  final List<bool> sliceReady = [false, false, false];
+
   bool finished = false;
   bool error = false;
 
@@ -132,21 +171,43 @@ class SingleStationHttpProvider extends HttpProvider {
     await _fetch();
   }
 
+  void _resetSliceState() {
+    for (var i = 0; i < 3; i++) {
+      items[i] = [];
+      sliceReady[i] = false;
+    }
+  }
+
   Future<void> _fetch() async {
     /**
      * fetches data for last day, week and month
      */
     finished = false;
     error = false;
+    _resetSliceState();
     notifyListeners();
     logger.d('SingleStationHttpProvider: Fetching data for $device_id');
-    await _fetchForPrecision(0, "all");
-    await _fetchForPrecision(1, "hour");
-    await _fetchForPrecision(2, "hour");
+    await Future.wait([
+      _runSlice(0, "all"),
+      _runSlice(1, "hour"),
+      _runSlice(2, "hour"),
+    ]);
 
     finished = true;
     logger.d('Fetch done for $device_id.');
     notifyListeners();
+  }
+
+  Future<void> _runSlice(int index, String precision) async {
+    try {
+      await _fetchForPrecision(index, precision);
+    } catch (e, st) {
+      logger.d('SingleStationHttpProvider: slice $index failed for $device_id: $e $st');
+      error = true;
+    } finally {
+      sliceReady[index] = true;
+      notifyListeners();
+    }
   }
 
   Future<void> _fetchForPrecision(int index, String precision) async {
@@ -166,19 +227,28 @@ class SingleStationHttpProvider extends HttpProvider {
     String requestUrl = "$API_URL/?station_ids=$device_id&precision=$precision&output_format=csv&start=${start.toIso8601String()}";
     Response response = await http.get(Uri.parse(requestUrl), headers: httpHeaders);
 
-    if(response.statusCode == 200){
-      // all good
-      // header: device,time_measured,dimension,value
+    if (response.statusCode == 200) {
+      // API CSV header (current): device,time_measured,dimension,dimension_name,value
+      // Some older responses used 4 columns without dimension_name; parser supports both.
       SplayTreeMap<DateTime, Map<int, double>> data = SplayTreeMap();
-      for(var line in response.body.split("\n").sublist(1)){ // sublist(1) kipp header
-        if(line.isEmpty) continue;
-        var [device, time_measured_string, dimension_string, value_string] = line.split(",");
+      for (final line in response.body.split('\n')) {
+        if (line.isEmpty || line.startsWith('device,')) continue;
+        final parts = line.split(',');
+        if (parts.length < 4) continue;
+        try {
+          final timeMeasuredString = parts[1].trim();
+          final dimensionString = parts[2].trim();
+          final valueString = parts[parts.length - 1].trim();
 
-        DateTime time_measured = DateTime.parse(time_measured_string);
-        int dimension = int.parse(dimension_string);
-        double value = double.parse(value_string);
+          DateTime timeMeasured = DateTime.parse(timeMeasuredString);
+          int dimension = int.parse(dimensionString);
+          double value = double.parse(valueString);
 
-        data.putIfAbsent(time_measured, () => <int, double>{})[dimension] = value;
+          data.putIfAbsent(timeMeasured, () => <int, double>{})[dimension] = value;
+        } catch (_) {
+          logger.d('SingleStationHttpProvider: skip malformed CSV line for $device_id');
+          continue;
+        }
       }
 
       for (var entry in data.entries) {
@@ -191,7 +261,7 @@ class SingleStationHttpProvider extends HttpProvider {
         items[index].add(item);
       }
       logger.d('Added ${items[index].length} entries for $device_id ($index)');
-    }else{
+    } else {
       // bad
       logger.d("Unexpected, not adding entries for $device_id ($index)");
       error = true;

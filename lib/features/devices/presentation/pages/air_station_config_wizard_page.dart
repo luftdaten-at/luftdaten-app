@@ -4,6 +4,9 @@ import 'package:lottie/lottie.dart';
 import 'package:luftdaten.at/features/devices/logic/air_station_config_wizard_controller.dart';
 import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.i18n.dart';
+import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_mqtt_config_dialog.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_startup_flags_dialog.dart';
 import 'package:luftdaten.at/core/utils/list_extensions.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
@@ -28,6 +31,7 @@ class AirStationConfigWizardPage extends StatefulWidget {
 class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
     with TickerProviderStateMixin {
   late AnimationController animation;
+  bool _bleApiKeyObscured = true;
 
   @override
   void initState() {
@@ -372,8 +376,10 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
               child: Text('Konfiguration abbrechen'.i18n),
             ),
             TextButton(
-              onPressed: () {
-                widget.controller.config = AirStationConfig.defaultConfig(widget.controller.id);
+              onPressed: () async {
+                widget.controller.config =
+                    AirStationConfig.defaultConfig(widget.controller.id);
+                await widget.controller.prepareBleStationFormControllers();
                 widget.controller.stage = AirStationConfigWizardStage.editSettings;
               },
               child: Text('Trotzdem fortfahren'.i18n),
@@ -650,149 +656,315 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
   }
 
   Widget buildEditConfigScreen() {
-    return Padding(
+    final tzC = widget.controller.tzBleController;
+    final apiC = widget.controller.apiKeyBleController;
+    if (tzC == null || apiC == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final cfg = widget.controller.config!;
+    final presetLogs = [...AirStationBleLogLevels.ordered];
+    final dropdownItems = [...presetLogs];
+    final rawLog = cfg.logLevel;
+    if (rawLog != null && rawLog.isNotEmpty && !dropdownItems.contains(rawLog)) {
+      dropdownItems.insert(0, rawLog);
+    }
+    final selectedLog = (rawLog != null && rawLog.isNotEmpty) ? rawLog : 'INFO';
+    final dropdownValue =
+        dropdownItems.contains(selectedLog) ? selectedLog : dropdownItems.first;
+
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Spacer(flex: 2),
-            Center(
-              child: Icon(
-                Icons.settings,
-                size: 90,
-                color: Theme.of(context).primaryColor,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(height: 12),
+          Center(
+            child: Icon(
+              Icons.settings,
+              size: 90,
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text('Einstellungen'.i18n,
+              style: const TextStyle(fontSize: 26), textAlign: TextAlign.center),
+          const SizedBox(height: 30),
+          Row(
+            children: [
+              const SizedBox(width: 8),
+              Text(
+                'Automatische Updates über WLAN'.i18n,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Flexible(
+                child: DropdownButton(
+                  value: cfg.autoUpdateMode,
+                  isDense: true,
+                  items: AutoUpdateMode.values
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e.toString())))
+                      .toList(),
+                  padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
+                  underline: const SizedBox(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        cfg.autoUpdateMode = val;
+                      });
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          const Row(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              SizedBox(width: 8),
+              Expanded(child: Divider(height: 1)),
+              SizedBox(width: 8),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const SizedBox(width: 8),
+              Text(
+                'Batteriesparmodus'.i18n,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Flexible(
+                child: DropdownButton(
+                  value: cfg.batterySaverMode,
+                  isDense: true,
+                  items: BatterySaverMode.values
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e.toString())))
+                      .toList(),
+                  padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
+                  underline: const SizedBox(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        cfg.batterySaverMode = val;
+                      });
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          const Row(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              SizedBox(width: 8),
+              Expanded(child: Divider(height: 1)),
+              SizedBox(width: 8),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const SizedBox(width: 8),
+              Text(
+                'Messintervall'.i18n,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Flexible(
+                child: DropdownButton(
+                  value: cfg.measurementInterval,
+                  isDense: true,
+                  items: AirStationMeasurementInterval.values
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e.toString())))
+                      .toList(),
+                  padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
+                  underline: const SizedBox(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        cfg.measurementInterval = val;
+                      });
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          const Row(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              SizedBox(width: 8),
+              Expanded(child: Divider(height: 1)),
+              SizedBox(width: 8),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+              child: Text(
+                'Zeitzone (IANA)'.i18n,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(height: 20),
-            Text('Einstellungen'.i18n,
-                style: const TextStyle(fontSize: 26), textAlign: TextAlign.center),
-            const SizedBox(height: 30),
-            Row(
-              children: [
-                const SizedBox(width: 8),
-                Text(
-                  'Automatische Updates über WLAN'.i18n,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+            child: TextField(
+              controller: tzC,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                labelText: 'TZ'.i18n,
+                hintText: 'Europe/Vienna',
+              ),
+              autocorrect: false,
+            ),
+          ),
+          const Row(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              SizedBox(width: 8),
+              Expanded(child: Divider(height: 1)),
+              SizedBox(width: 8),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const SizedBox(width: 8),
+              Text(
+                'Protokollstufe (LOG_LEVEL)'.i18n,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Flexible(
+                child: DropdownButton<String>(
+                  value: dropdownValue,
+                  isDense: true,
+                  items: dropdownItems
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
+                  underline: const SizedBox(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        cfg.logLevel = val;
+                      });
+                    }
+                  },
                 ),
-              ],
+              ),
+            ],
+          ),
+          const Row(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              SizedBox(width: 8),
+              Expanded(child: Divider(height: 1)),
+              SizedBox(width: 8),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+              child: Text(
+                'API-Schlüssel (Datahub)'.i18n,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Flexible(
-                  child: DropdownButton(
-                    value: widget.controller.config!.autoUpdateMode,
-                    isDense: true,
-                    items: AutoUpdateMode.values
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e.toString())))
-                        .toList(),
-                    padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
-                    underline: const SizedBox(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          widget.controller.config!.autoUpdateMode = val;
-                        });
-                      }
-                    },
-                  ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+            child: TextField(
+              controller: apiC,
+              obscureText: _bleApiKeyObscured,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                labelText: 'api_key'.i18n,
+                suffixIcon: IconButton(
+                  tooltip: 'Anzeigen'.i18n,
+                  icon: Icon(_bleApiKeyObscured ? Icons.visibility : Icons.visibility_off),
+                  onPressed: () =>
+                      setState(() => _bleApiKeyObscured = !_bleApiKeyObscured),
                 ),
-              ],
+              ),
+              autocorrect: false,
+              onChanged: (_) => widget.controller.markApiKeyBleFieldEdited(),
             ),
-            const Row(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                SizedBox(width: 8),
-                Expanded(child: Divider(height: 1)),
-                SizedBox(width: 8),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const SizedBox(width: 8),
-                Text(
-                  'Batteriesparmodus'.i18n,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Flexible(
-                  child: DropdownButton(
-                    value: widget.controller.config!.batterySaverMode,
-                    isDense: true,
-                    items: BatterySaverMode.values
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e.toString())))
-                        .toList(),
-                    padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
-                    underline: const SizedBox(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          widget.controller.config!.batterySaverMode = val;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const Row(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                SizedBox(width: 8),
-                Expanded(child: Divider(height: 1)),
-                SizedBox(width: 8),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const SizedBox(width: 8),
-                Text(
-                  'Messintervall'.i18n,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Flexible(
-                  child: DropdownButton(
-                    value: widget.controller.config!.measurementInterval,
-                    isDense: true,
-                    items: AirStationMeasurementInterval.values
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e.toString())))
-                        .toList(),
-                    padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
-                    underline: const SizedBox(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          widget.controller.config!.measurementInterval = val;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 30),
-            FilledButton(
-              onPressed: () {
-                widget.controller.stage = AirStationConfigWizardStage.setLocation;
-              },
-              child: Text('Weiter'.i18n),
-            ),
-            const Spacer(flex: 3),
-          ],
-        ),
+          ),
+          const SizedBox(height: 24),
+          OutlinedButton(
+            onPressed: () async {
+              try {
+                final dev =
+                    getIt<DeviceManager>().devices.where((e) => e.bleName == widget.controller.id).first;
+                await showAirStationMqttConfigDialog(
+                  context: context,
+                  device: dev,
+                  preferExistingMutableConfig: widget.controller.config,
+                );
+              } catch (_) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Air Station konnte nicht ermittelt werden.'.i18n)),
+                );
+              }
+              if (mounted) setState(() {});
+            },
+            child: Text('MQTT / Home Assistant (BLE)'.i18n),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: () async {
+              try {
+                final dev =
+                    getIt<DeviceManager>().devices.where((e) => e.bleName == widget.controller.id).first;
+                await showAirStationStartupFlagsDialog(
+                  context: context,
+                  device: dev,
+                  preferExistingMutableConfig: widget.controller.config,
+                );
+              } catch (_) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Air Station konnte nicht ermittelt werden.'.i18n)),
+                );
+              }
+              if (mounted) setState(() {});
+            },
+            child: Text('Startup (BLE) …'.i18n),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: () {
+              widget.controller.stage = AirStationConfigWizardStage.setLocation;
+            },
+            child: Text('Weiter'.i18n),
+          ),
+          const SizedBox(height: 24),
+        ],
       ),
     );
   }

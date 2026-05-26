@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bluetooth_enable/bluetooth_enable.dart';
 import 'package:collection_providers/collection_providers.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +13,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart'; // Import geolocator package for GPS
 
 import 'ble_controller.dart';
+import 'station_secrets_store.dart';
 
 class AirStationConfigWizardController extends ChangeNotifier {
   static final MapChangeNotifier<String, AirStationConfigWizardController> _activeControllers = MapChangeNotifier();
@@ -49,6 +52,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
           // Resume from standard connection screen
         } else {
           c.stage = AirStationConfigWizardStage.editSettings;
+          unawaited(c.prepareBleStationFormControllers());
         }
       } else {
         // Resume from standard connection screen
@@ -65,8 +69,10 @@ class AirStationConfigWizardController extends ChangeNotifier {
   }
 
   static void removeController(String id) {
+    final ctrl = _activeControllers[id];
+    ctrl?.disposeBleStationFormControllers();
+    ctrl?.wifi?.dispose();
     _activeControllers.remove(id);
-    _activeControllers[id]?.notifyListeners();
     saveAll();
   }
 
@@ -126,6 +132,15 @@ class AirStationConfigWizardController extends ChangeNotifier {
 
   AirStationWifiConfig? wifi;
 
+  /// TLV 18 (`TZ`) editing — IANA name, e.g. `Europe/Vienna`.
+  TextEditingController? tzBleController;
+
+  /// TLV 20 (`api_key`) — app stores in secure storage, not SharedPreferences.
+  TextEditingController? apiKeyBleController;
+
+  /// Whether the user typed in [apiKeyBleController]; TLV `20` is sent only then.
+  bool apiKeyBleFieldEdited = false;
+
   DateTime? _configLoadedAt, _configSentAt, _firstDataSuccessReceivedAt;
 
   DateTime? get configLoadedAt => _configLoadedAt;
@@ -147,6 +162,36 @@ class AirStationConfigWizardController extends ChangeNotifier {
   set firstDataSuccessReceivedAt(DateTime? time) {
     _firstDataSuccessReceivedAt = time;
     saveAll();
+  }
+
+  /// Rebuilds TZ / API key text controllers after [config] changes (BLE read or default).
+  Future<void> prepareBleStationFormControllers() async {
+    disposeBleStationFormControllers();
+    final cfg = config;
+    tzBleController = TextEditingController(text: cfg?.tz ?? '');
+    apiKeyBleController = TextEditingController();
+    try {
+      final stored = await StationSecretsStore.instance.readApiKey(id);
+      if (stored != null && stored.isNotEmpty) {
+        apiKeyBleController!.text = stored;
+      }
+    } catch (e, st) {
+      logger.d('prepareBleStationFormControllers: secure read failed ($e) $st');
+    }
+    apiKeyBleFieldEdited = false;
+    notifyListeners();
+  }
+
+  void disposeBleStationFormControllers() {
+    tzBleController?.dispose();
+    tzBleController = null;
+    apiKeyBleController?.dispose();
+    apiKeyBleController = null;
+    apiKeyBleFieldEdited = false;
+  }
+
+  void markApiKeyBleFieldEdited() {
+    apiKeyBleFieldEdited = true;
   }
 
   void verifyDeviceState() async {
@@ -268,6 +313,16 @@ class AirStationConfigWizardController extends ChangeNotifier {
       config = AirStationConfig.fromBytes(id, bytes);
       configLoadedAt = DateTime.now();
       saveAll();
+      final pending = config!.pendingApiKeyForSecureStore;
+      if (pending != null && pending.isNotEmpty) {
+        try {
+          await StationSecretsStore.instance.writeApiKey(id, pending);
+        } catch (e, st) {
+          logger.d('Failed to persist api key from air_station_configuration TLV: $e $st');
+        }
+        config!.pendingApiKeyForSecureStore = null;
+      }
+      await prepareBleStationFormControllers();
     } catch (e) {
       // Reading or parsing failed
       stage = AirStationConfigWizardStage.failedToLoadConfig;
@@ -286,23 +341,38 @@ class AirStationConfigWizardController extends ChangeNotifier {
     stage = AirStationConfigWizardStage.sending;
     BleDevice dev = getIt<DeviceManager>().devices.where((e) => e.bleName == id).first;
     try {
-      List<int> bytes = config!.toBytes();
+      final tzTrimmed = tzBleController?.text.trim() ?? '';
+      config!.tz = tzTrimmed.isEmpty ? null : tzTrimmed;
+      final apiTrimmed = apiKeyBleController?.text.trim() ?? '';
+      final sendApiKeyTlv = apiKeyBleFieldEdited && apiTrimmed.isNotEmpty;
 
-      if(wifi?.valid??false) {
+      List<int> bytes = config!.toBytes(
+        appendApiKeyTlv20: sendApiKeyTlv,
+        apiKeyForTlv20: apiTrimmed,
+      );
+
+      if (wifi?.valid ?? false) {
         bytes.addAll(wifi!.toBytes());
       }
 
       bool success = await getIt<BleController>().sendAirStationConfig(dev, bytes);
       dev.disconnect();
-      if(success) {
-        // TODO this is temporary until firmware is updated
-        // (though it may remain the permanent solution for old-firmware devices)
+      if (success) {
+        try {
+          if (sendApiKeyTlv && apiTrimmed.isNotEmpty) {
+            await StationSecretsStore.instance.writeApiKey(id, apiTrimmed);
+          }
+          await config!.persist();
+        } catch (_) {
+          /* best-effort; device already accepted config */
+        }
+        apiKeyBleFieldEdited = false;
         stage = AirStationConfigWizardStage.checkLed;
         configSentAt = DateTime.now();
       } else {
         stage = AirStationConfigWizardStage.configTransmissionFailed;
       }
-    } catch(_) {
+    } catch (_) {
       stage = AirStationConfigWizardStage.configTransmissionFailed;
     }
   }

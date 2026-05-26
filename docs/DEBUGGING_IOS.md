@@ -18,6 +18,16 @@ If debugging is unstable:
 - In Xcode: **Window → Devices and Simulators** — check that the device is trusted and developer mode is enabled (iOS 16+).
 - Try **Product → Clean Build Folder** in Xcode, then `flutter clean && flutter pub get && flutter run`.
 
+## Swift Package Manager (SPM) migration errors
+
+Flutter may try **“Adding Swift Package Manager integration…”** when SPM is enabled. If `xcodebuild` fails resolving plugin packages (for example **`public headers ("include") directory path … is invalid`** for **`flutter_native_splash`**), SPM metadata for that plugin is incompatible with the current Xcode/Flutter toolchain.
+
+This repo disables SPM **per project** so iOS deps use CocoaPods consistently:
+
+[`pubspec.yaml`](../pubspec.yaml) → `flutter` → `config` → **`enable-swift-package-manager: false`** (see [Flutter docs — turn off SPM](https://docs.flutter.dev/packages-and-plugins/swift-package-manager/for-app-developers#how-to-turn-off-swift-package-manager)).
+
+If Xcode already partially added **`FlutterGeneratedPluginSwiftPackage`**, turn SPM off as above, then run `flutter clean`, open **`ios/Runner.xcworkspace`**, remove that local package and any related **Runner** frameworks / scheme **Pre-actions**, as in [remove SPM integration](https://docs.flutter.dev/packages-and-plugins/swift-package-manager/for-app-developers#how-to-remove-swift-package-manager-integration), then **`cd ios && pod install`**.
+
 ## Bluetooth and background
 
 BLE behavior differs between **simulator** (limited/no real BLE) and **device**. For protocol work, use a physical device.

@@ -17,6 +17,10 @@
 
 import 'package:flutter/material.dart' as material;
 
+/// Particulate map colours follow the European Air Quality Index (µg/m³, hourly bands)
+/// as described by the European Environment Agency ([EEA AIR INDEX](https://airindex.eea.europa.eu/))
+/// — the same methodology referenced on the Luftdaten.at Datahub for PM overlays
+/// (<https://datahub.luftdaten.at>).
 class Dimension {
   static const int PM0_1 = 1;
   static const int PM1_0 = 2;
@@ -63,18 +67,6 @@ class Dimension {
     UVI: [
       [3, 6, 8, 11],
       [ColorConstants.GREEN, ColorConstants.YELLOW, ColorConstants.ORANGE, ColorConstants.RED, ColorConstants.PURPLE]
-    ],
-    PM1_0: [
-      [9, 35, 55, 125, 250.5],
-      [ColorConstants.GREEN_LIGHT, ColorConstants.YELLOW, ColorConstants.ORANGE, ColorConstants.RED, ColorConstants.PURPLE, ColorConstants.BROWN_DARK]
-    ],
-    PM2_5: [
-      [9, 35, 55, 125, 250.5],
-      [ColorConstants.GREEN_LIGHT, ColorConstants.YELLOW, ColorConstants.ORANGE, ColorConstants.RED, ColorConstants.PURPLE, ColorConstants.BROWN_DARK]
-    ],
-    PM10_0: [
-      [54, 154, 254, 354, 424],
-      [ColorConstants.GREEN_LIGHT, ColorConstants.YELLOW, ColorConstants.ORANGE, ColorConstants.RED, ColorConstants.PURPLE, ColorConstants.BROWN_DARK]
     ],
   };
 
@@ -143,7 +135,41 @@ class Dimension {
 
   static String get_name(int dim) => _names[dim] ?? "Name not found";
 
+  /// EEA Eu-AQI µg/m³ thresholds (hourly): upper inclusive for Good … Very poor; Extremely poor is above the last bin.
+  static const List<double> _eeaPm1Pm25InclusiveUppersMicrog = [5, 15, 50, 90, 140];
+  static const List<double> _eeaPm10InclusiveUppersMicrog = [15, 45, 120, 195, 270];
+
+  /// Stepped Eu-AQI colours (cyan → magenta) for [bands] µg/m³ upper bounds inclusive for Good … Very poor.
+  static material.Color _eeaPmRgbFromBands(
+      double val, List<double> inclusiveUppersFive, List<List<int>> categoriesSix) {
+    assert(inclusiveUppersFive.length == 5 && categoriesSix.length == 6);
+    for (var i = 0; i < inclusiveUppersFive.length; i++) {
+      if (val <= inclusiveUppersFive[i]) {
+        final c = categoriesSix[i];
+        return material.Color.fromARGB(255, c[0], c[1], c[2]);
+      }
+    }
+    final c = categoriesSix[5];
+    return material.Color.fromARGB(255, c[0], c[1], c[2]);
+  }
+
+  /// Returns Eu-AQI PM band colour when [dimensionId] is [PM1_0], [PM2_5], [PM4_0], or [PM10_0]; otherwise `null`.
+  static material.Color? _eeaEuPmColor(int dimensionId, double val) {
+    switch (dimensionId) {
+      case PM1_0:
+      case PM2_5:
+      case PM4_0:
+        return Dimension._eeaPmRgbFromBands(val, _eeaPm1Pm25InclusiveUppersMicrog, ColorConstants.eeaEuPmCategoryRgb);
+      case PM10_0:
+        return Dimension._eeaPmRgbFromBands(val, _eeaPm10InclusiveUppersMicrog, ColorConstants.eeaEuPmCategoryRgb);
+      default:
+        return null;
+    }
+  }
+
   static dynamic getColor(int dimensionId, double val) {
+    final euPm = Dimension._eeaEuPmColor(dimensionId, val);
+    if (euPm != null) return euPm;
     if (!thresholds.containsKey(dimensionId)) return null;
     var th = [-double.infinity, ...(thresholds[dimensionId]![0] as List<num>), double.infinity];
     var colors = thresholds[dimensionId]![1] as List<List<int>>;
@@ -158,6 +184,16 @@ class Dimension {
 }
 
 class ColorConstants {
+  /// Eu-AQI stepped palette (six categories Good … Extremely poor) matching Datahub overlays (EEA index bands).
+  static const eeaEuPmCategoryRgb = [
+    [0, 178, 220], // Good — aqua
+    [120, 200, 100], // Fair — lime
+    [255, 222, 0], // Moderate — yellow
+    [254, 160, 0], // Poor — orange
+    [232, 0, 0], // Very poor — red
+    [154, 0, 154], // Extremely poor — purple
+  ];
+
   static const GREEN = [0, 255, 0];
   static const GREEN_LOW = [0, 50, 0];
   static const BLUE = [0, 0, 255];

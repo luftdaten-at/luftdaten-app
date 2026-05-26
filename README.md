@@ -138,7 +138,7 @@ Here are some useful Flutter commands:
 
 ## Documentation
 
-Architecture, integrations (HTTP, BLE), testing, i18n, iOS debugging, and contributor notes live in **[docs/](docs/README.md)**. Start with the index there for a full table of contents.
+Architecture, integrations (HTTP, BLE), dependency snapshot, testing, i18n, iOS debugging, and contributor notes live in **[docs/](docs/README.md)**. Start with the index there for a full table of contents. Resolved direct/dev packages (after `flutter pub get`) are summarized in [docs/packages.md](docs/packages.md).
 
 ## Contributing
 

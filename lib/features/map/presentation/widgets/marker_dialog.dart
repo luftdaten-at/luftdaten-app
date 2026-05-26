@@ -4,6 +4,7 @@ import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/map/presentation/widgets/marker_dialog.i18n.dart';
 
 import 'package:luftdaten.at/core/utils/gradient_color.dart';
+import 'package:luftdaten.at/core/domain/dimensions.dart' as dim;
 
 class MarkerDialog extends StatefulWidget {
   const MarkerDialog(
@@ -252,13 +253,14 @@ class _MarkerDialogState extends State<MarkerDialog> {
   Color getColor(MeasurableQuantity dimension, double value) {
     switch(dimension) {
       case MeasurableQuantity.pm1:
-        return GradientColor.pm1().getColor(value);
+        return dim.Dimension.getColor(dim.Dimension.PM1_0, value) as Color;
       case MeasurableQuantity.pm25:
-        return GradientColor.pm25().getColor(value);
+        return dim.Dimension.getColor(dim.Dimension.PM2_5, value) as Color;
       case MeasurableQuantity.pm4:
-        return GradientColor.pm4().getColor(value);
+        // PM4 shares Eu-AQI µg bins with PM2.5 (no distinct EEA row on Datahub overlays).
+        return dim.Dimension.getColor(dim.Dimension.PM4_0, value) as Color;
       case MeasurableQuantity.pm10:
-        return GradientColor.pm10().getColor(value);
+        return dim.Dimension.getColor(dim.Dimension.PM10_0, value) as Color;
       case MeasurableQuantity.nox:
         return GradientColor.nox().getColor(value);
       case MeasurableQuantity.voc:

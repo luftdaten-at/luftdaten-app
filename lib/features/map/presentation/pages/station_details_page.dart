@@ -44,9 +44,11 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
       device_id = widget.id!;
     }
 
-    provider = SingleStationHttpProvider(
-      device_id,
-    );
+    if (widget.httpProvider != null && widget.httpProvider!.device_id == device_id) {
+      provider = widget.httpProvider!;
+    } else {
+      provider = SingleStationHttpProvider(device_id);
+    }
 
     super.initState();
   }
@@ -111,7 +113,7 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
       body: ChangeNotifierBuilder(
           notifier: provider,
           builder: (context, provider) {
-            if (!provider.finished) {
+            if (!provider.sliceReady[selectedIndex]) {
               return Center(
                 child: SpinKitDualRing(
                   color: Theme.of(context).primaryColor,
@@ -121,7 +123,7 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
               );
             }
 
-            if (provider.items[1].isEmpty || provider.items[2].isEmpty || provider.items[0].isEmpty) {
+            if (provider.items[selectedIndex].isEmpty) {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(12),
@@ -140,12 +142,25 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
               );
             }
 
-            double? pm1Mean = provider.items[1].first.pm1 != null
-                ? provider.items[1].map((e) => e.pm1).toList().removeListNulls().mean()
-                : null;
-            double? pm25Mean = provider.items[1].where((e) => e.pm25 != null).map((e) => e.pm25!).toList().mean();
-            double? pm10Mean = provider.items[1].where((e) => e.pm10 != null).map((e) => e.pm10!).toList().mean();
-            List<int> daysOverLimit = getDaysOverLimit(getDailyMeans(provider.items[1]));
+            final weekLoaded = provider.sliceReady[1];
+            final weekItems = provider.items[1];
+
+            double? pm1Mean;
+            double? pm25Mean;
+            double? pm10Mean;
+            List<int> daysOverLimit = [0, 0];
+
+            final statsComputed = weekLoaded && weekItems.isNotEmpty;
+            if (statsComputed) {
+              pm1Mean = weekItems.first.pm1 != null
+                  ? weekItems.map((e) => e.pm1).toList().removeListNulls().mean()
+                  : null;
+              pm25Mean =
+                  weekItems.where((e) => e.pm25 != null).map((e) => e.pm25!).toList().mean();
+              pm10Mean =
+                  weekItems.where((e) => e.pm10 != null).map((e) => e.pm10!).toList().mean();
+              daysOverLimit = getDaysOverLimit(getDailyMeans(weekItems));
+            }
 
             GetStorage box = GetStorage('preferences');
             bool showWHO5 = box.read('station-showWHO5') ?? false;
@@ -157,6 +172,18 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (!provider.finished)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      child: Text(
+                        'Weitere Zeiträume werden noch geladen …'.i18n,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: Colors.grey.shade700),
+                      ),
+                    ),
                   Row(
                     children: [
                       const Spacer(flex: 1),
@@ -267,173 +294,213 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
                       ),
                     ],
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Durchschnittswerte der letzten 7 Tage (μg/m³):'.i18n,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 5),
-                        _DataTable(data: [
-                          if (pm1Mean != null) ['PM1.0', pm1Mean.toStringAsFixed(2)],
-                          ['PM2.5', pm25Mean.toStringAsFixed(2)],
-                          ['PM10', pm10Mean.toStringAsFixed(2)],
-                        ]),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Richtwerte der WHO (μg/m³, 24h-Mittel):'.i18n,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 5),
-                        _DataTable(data: [
-                          [
-                            'PM2.5',
-                            '15',
-                            _statusDot(daysOverLimit[0] == 0),
-                            SizedBox(
-                              height: 20,
-                              child: IconButton(
-                                tooltip: 'Richtwert anzeigen'.i18n,
-                                onPressed: () {
-                                  setState(() {
-                                    showWHO15 = !showWHO15;
-                                    box.write('station-showWHO15', showWHO15);
-                                  });
-                                },
-                                icon: Icon(
-                                  showWHO15 ? Icons.visibility : Icons.visibility_off,
-                                  color: Colors.grey.shade400,
-                                ),
-                                iconSize: 20,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
+                  if (statsComputed)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
+                      child: Builder(
+                        builder: (context) {
+                          final statsPm25 = pm25Mean!;
+                          final statsPm10 = pm10Mean!;
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Durchschnittswerte der letzten 7 Tage (μg/m³):'.i18n,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
-                            )
-                          ],
-                          [
-                            'PM10',
-                            '45',
-                            _statusDot(daysOverLimit[1] == 0),
-                            SizedBox(
-                              height: 20,
-                              child: IconButton(
-                                tooltip: 'Richtwert anzeigen'.i18n,
-                                onPressed: () {
-                                  setState(() {
-                                    showWHO45 = !showWHO45;
-                                    box.write('station-showWHO45', showWHO45);
-                                  });
-                                },
-                                icon: Icon(
-                                  showWHO45 ? Icons.visibility : Icons.visibility_off,
-                                  color: Colors.grey.shade400,
-                                ),
-                                iconSize: 20,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
+                              const SizedBox(height: 5),
+                              _DataTable(data: [
+                                if (pm1Mean != null) ['PM1.0', pm1Mean.toStringAsFixed(2)],
+                                ['PM2.5', statsPm25.toStringAsFixed(2)],
+                                ['PM10', statsPm10.toStringAsFixed(2)],
+                              ]),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Richtwerte der WHO (μg/m³, 24h-Mittel):'.i18n,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
+                              const SizedBox(height: 5),
+                              _DataTable(data: [
+                                [
+                                  'PM2.5',
+                                  '15',
+                                  _statusDot(daysOverLimit[0] == 0),
+                                  SizedBox(
+                                    height: 20,
+                                    child: IconButton(
+                                      tooltip: 'Richtwert anzeigen'.i18n,
+                                      onPressed: () {
+                                        setState(() {
+                                          showWHO15 = !showWHO15;
+                                          box.write('station-showWHO15', showWHO15);
+                                        });
+                                      },
+                                      icon: Icon(
+                                        showWHO15 ? Icons.visibility : Icons.visibility_off,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                      iconSize: 20,
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                  )
+                                ],
+                                [
+                                  'PM10',
+                                  '45',
+                                  _statusDot(daysOverLimit[1] == 0),
+                                  SizedBox(
+                                    height: 20,
+                                    child: IconButton(
+                                      tooltip: 'Richtwert anzeigen'.i18n,
+                                      onPressed: () {
+                                        setState(() {
+                                          showWHO45 = !showWHO45;
+                                          box.write('station-showWHO45', showWHO45);
+                                        });
+                                      },
+                                      icon: Icon(
+                                        showWHO45 ? Icons.visibility : Icons.visibility_off,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                      iconSize: 20,
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                  ),
+                                ],
+                              ]),
+                              if (daysOverLimit[0] > 0 || daysOverLimit[1] > 0)
+                                const SizedBox(height: 5),
+                              if (daysOverLimit[0] > 0)
+                                Text(
+                                  'PM2.5 überschritten an %s Tagen/Woche.'.i18n.fill([daysOverLimit[0]]),
+                                  style: const TextStyle(fontStyle: FontStyle.italic),
+                                ),
+                              if (daysOverLimit[1] > 0)
+                                Text(
+                                  'PM10 überschritten an %s Tagen/Woche.'.i18n.fill([daysOverLimit[1]]),
+                                  style: const TextStyle(fontStyle: FontStyle.italic),
+                                ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Richtwerte der WHO (μg/m³, Jahresmittel):'.i18n,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 5),
+                              _DataTable(data: [
+                                [
+                                  'PM2.5',
+                                  '5',
+                                  _statusDot(statsPm25 <= 5),
+                                  SizedBox(
+                                    height: 20,
+                                    child: IconButton(
+                                      tooltip: 'Richtwert anzeigen'.i18n,
+                                      onPressed: () {
+                                        setState(() {
+                                          showWHO5 = !showWHO5;
+                                          box.write('station-showWHO5', showWHO5);
+                                        });
+                                      },
+                                      icon: Icon(
+                                        showWHO5 ? Icons.visibility : Icons.visibility_off,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                      iconSize: 20,
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                  ),
+                                ],
+                                [
+                                  'PM10',
+                                  '15',
+                                  _statusDot(statsPm10 <= 15),
+                                  SizedBox(
+                                    height: 20,
+                                    child: IconButton(
+                                      tooltip: 'Richtwert anzeigen'.i18n,
+                                      onPressed: () {
+                                        setState(() {
+                                          showWHO15 = !showWHO15;
+                                          box.write('station-showWHO15', showWHO15);
+                                        });
+                                      },
+                                      icon: Icon(
+                                        showWHO15 ? Icons.visibility : Icons.visibility_off,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                      iconSize: 20,
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                  ),
+                                ],
+                              ]),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Aktuelle Messwerte (μg/m³):'.i18n,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                '${"Gemessen".i18n}: ${DateFormat('d.M.y, HH:mm').format(weekItems.last.timestamp!.toLocal())}.',
+                                style: const TextStyle(fontStyle: FontStyle.italic),
+                              ),
+                              Text(
+                                '(vor %s)'.i18n.fill([
+                                  durationToString(DateTime.now()
+                                      .toUtc()
+                                      .difference(weekItems.last.timestamp!.toUtc()))
+                                ]),
+                                style: const TextStyle(fontStyle: FontStyle.italic),
+                              ),
+                              const SizedBox(height: 5),
+                              _DataTable(data: [
+                                if (weekItems.last.pm1 != null)
+                                  ['PM1.0', Text(weekItems.last.pm1!.toStringAsFixed(2))],
+                                ['PM2.5', Text(weekItems.last.pm25!.toStringAsFixed(2))],
+                                ['PM10', Text(weekItems.last.pm10!.toStringAsFixed(2))],
+                              ]),
+                            ],
+                          );
+                        },
+                      ),
+                    )
+                  else if (weekLoaded && weekItems.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                      child: Text(
+                        'Keine Daten für den 7-Tage‑Zeitraum.'.i18n,
+                        style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey.shade700),
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Theme.of(context).primaryColor,
                             ),
-                          ],
-                        ]),
-                        if (daysOverLimit[0] > 0 || daysOverLimit[1] > 0) const SizedBox(height: 5),
-                        if (daysOverLimit[0] > 0)
-                          Text(
-                            'PM2.5 überschritten an %s Tagen/Woche.'.i18n.fill([daysOverLimit[0]]),
-                            style: const TextStyle(fontStyle: FontStyle.italic),
                           ),
-                        if (daysOverLimit[1] > 0)
-                          Text(
-                            'PM10 überschritten an %s Tagen/Woche.'.i18n.fill([daysOverLimit[1]]),
-                            style: const TextStyle(fontStyle: FontStyle.italic),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Statistik wird noch geladen …'.i18n,
+                              style:
+                                  TextStyle(fontStyle: FontStyle.italic, color: Colors.grey.shade700),
+                            ),
                           ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Richtwerte der WHO (μg/m³, Jahresmittel):'.i18n,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 5),
-                        _DataTable(data: [
-                          [
-                            'PM2.5',
-                            '5',
-                            _statusDot(pm25Mean <= 5),
-                            SizedBox(
-                              height: 20,
-                              child: IconButton(
-                                tooltip: 'Richtwert anzeigen'.i18n,
-                                onPressed: () {
-                                  setState(() {
-                                    showWHO5 = !showWHO5;
-                                    box.write('station-showWHO5', showWHO5);
-                                  });
-                                },
-                                icon: Icon(
-                                  showWHO5 ? Icons.visibility : Icons.visibility_off,
-                                  color: Colors.grey.shade400,
-                                ),
-                                iconSize: 20,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                            ),
-                          ],
-                          [
-                            'PM10',
-                            '15',
-                            _statusDot(pm10Mean <= 15),
-                            SizedBox(
-                              height: 20,
-                              child: IconButton(
-                                tooltip: 'Richtwert anzeigen'.i18n,
-                                onPressed: () {
-                                  setState(() {
-                                    showWHO15 = !showWHO15;
-                                    box.write('station-showWHO15', showWHO15);
-                                  });
-                                },
-                                icon: Icon(
-                                  showWHO15 ? Icons.visibility : Icons.visibility_off,
-                                  color: Colors.grey.shade400,
-                                ),
-                                iconSize: 20,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                            ),
-                          ],
-                        ]),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Aktuelle Messwerte (μg/m³):'.i18n,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          '${"Gemessen".i18n}: ${DateFormat('d.M.y, HH:mm').format(provider.items[1].last.timestamp!.toLocal())}.',
-                          style: const TextStyle(fontStyle: FontStyle.italic),
-                        ),
-                        Text(
-                          '(vor %s)'.i18n.fill([
-                            durationToString(DateTime.now()
-                                .toUtc()
-                                .difference(provider.items[1].last.timestamp!.toUtc()))
-                          ]),
-                          style: const TextStyle(fontStyle: FontStyle.italic),
-                        ),
-                        const SizedBox(height: 5),
-                        _DataTable(data: [
-                          if (provider.items[1].last.pm1 != null)
-                            ['PM1.0', Text(provider.items[1].last.pm1!.toStringAsFixed(2))],
-                          ['PM2.5', Text(provider.items[1].last.pm25!.toStringAsFixed(2))],
-                          ['PM10', Text(provider.items[1].last.pm10!.toStringAsFixed(2))],
-                        ]),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
                 ],
               ),
             );

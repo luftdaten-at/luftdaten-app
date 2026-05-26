@@ -16,11 +16,13 @@ Extended documentation for the Luftdaten.at Flutter app. The root [README.md](..
 | [DEBUGGING_IOS.md](DEBUGGING_IOS.md) | iOS device debugging, LLDB, BLE vs simulator. |
 | [contributing.md](contributing.md) | PR checklist, layout, license, privacy notes. |
 | [external-apis.md](external-apis.md) | HTTP hosts, endpoints, OSM tiles, integrations. |
+| [packages.md](packages.md) | Resolved direct/dev dependency snapshot (pairs with `pubspec.lock`; refresh after upgrades). |
 | [bluetooth.md](bluetooth.md) | BLE plugin, permissions, GATT UUIDs, protocol v1/v2. |
 
 ## Keeping docs in sync
 
 - **HTTP / backends:** Update [external-apis.md](external-apis.md) when adding or changing hosts, paths, or payloads.
+- **Dependencies:** After changing `pubspec.yaml` constraints, run `flutter pub get`, commit `pubspec.lock`, and refresh the tables in [packages.md](packages.md) (same machine/Flutter SDK as CI when possible — e.g. `dart pub deps --json`).
 - **BLE:** Update [bluetooth.md](bluetooth.md) when UUIDs, protocol detection, or connection behavior changes.
 - **Structure / DI / routes:** Update [architecture.md](architecture.md).
 - **Tooling / CI:** Update [development.md](development.md) and, if needed, describe new checks in [contributing.md](contributing.md).

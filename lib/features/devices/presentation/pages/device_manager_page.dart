@@ -12,6 +12,8 @@ import 'package:luftdaten.at/features/devices/logic/air_station_config_wizard_co
 import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
 import 'package:luftdaten.at/features/devices/data/battery_details.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/air_station_config_wizard_page.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_mqtt_config_dialog.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_startup_flags_dialog.dart';
 import 'package:luftdaten.at/core/utils/list_extensions.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/device_connect_button.dart';
 import 'package:luftdaten.at/core/widgets/rotating_widget.dart';
@@ -737,6 +739,40 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
                               MaterialStateProperty.all(Theme.of(context).primaryColor),
                         ),
                         tooltip: 'Gerät konfigurieren'.i18n,
+                      ),
+                      IconButton.filled(
+                        onPressed: device.state == BleDeviceState.connected
+                            ? () {
+                                showAirStationMqttConfigDialog(
+                                  context: context,
+                                  device: device,
+                                );
+                              }
+                            : null,
+                        icon: const Icon(Icons.integration_instructions_outlined),
+                        style: ButtonStyle(
+                          backgroundColor: device.state == BleDeviceState.connected
+                              ? MaterialStateProperty.all(Theme.of(context).primaryColorDark)
+                              : MaterialStateProperty.all(Colors.grey.shade300),
+                        ),
+                        tooltip: 'MQTT (BLE) …'.i18n,
+                      ),
+                      IconButton.filled(
+                        onPressed: device.state == BleDeviceState.connected
+                            ? () {
+                                showAirStationStartupFlagsDialog(
+                                  context: context,
+                                  device: device,
+                                );
+                              }
+                            : null,
+                        icon: const Icon(Icons.restart_alt),
+                        style: ButtonStyle(
+                          backgroundColor: device.state == BleDeviceState.connected
+                              ? MaterialStateProperty.all(Theme.of(context).primaryColorDark)
+                              : MaterialStateProperty.all(Colors.grey.shade300),
+                        ),
+                        tooltip: 'Startup (BLE) …'.i18n,
                       ),
                       IconButton.filled(
                         onPressed: () {

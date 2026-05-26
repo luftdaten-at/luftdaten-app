@@ -7,11 +7,13 @@ import 'package:luftdaten.at/features/devices/data/device_error.dart';
 import 'package:luftdaten.at/features/devices/data/sensor_details.dart';
 
 import 'package:luftdaten.at/core/core.dart';
+import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
 import 'package:luftdaten.at/features/devices/logic/ble_json_parser.dart';
 import '../data/battery_details.dart';
 import '../data/ble_device.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/core/config/app_settings.dart';
+import 'package:luftdaten.at/features/devices/logic/station_secrets_store.dart';
 
 class BleControllerV2 implements BleControllerForProtocol {
   // Singleton
@@ -22,6 +24,17 @@ class BleControllerV2 implements BleControllerForProtocol {
   factory BleControllerV2() => _instance;
 
   final _ble = FlutterReactiveBle();
+
+  Future<void> _persistApiKeyIfPresent(BleDevice device) async {
+    final key = device.apiKey?.trim();
+    if (key == null || key.isEmpty) return;
+    try {
+      await StationSecretsStore.instance.writeApiKey(device.bleName, key);
+      logger.d('Persisted api key for station BLE name ${device.bleName} to secure storage');
+    } catch (e, st) {
+      logger.d('Failed to persist api key to secure storage: $e ($st)');
+    }
+  }
 
   // UUIDs
   final Uuid _serviceId = Uuid.parse("0931b4b5-2917-4a8d-9e72-23103c09ac29");
@@ -43,9 +56,10 @@ class BleControllerV2 implements BleControllerForProtocol {
         final jsonStr = utf8.decode(rawDeviceDetails);
         final info = json.decode(jsonStr) as Map<String, dynamic>;
         final apikey = BleJsonParser.parseApiKey(info);
-        if (apikey != null) {
+        if (apikey != null && apikey.isNotEmpty) {
           device.apiKey = apikey;
           logger.d('getDeviceDetails: parsed apiKey from device info JSON');
+          await _persistApiKeyIfPresent(device);
         }
         final station = info['station'];
         device.firmwareVersion = BleJsonParser.parseFirmwareFromStation(
@@ -85,6 +99,7 @@ class BleControllerV2 implements BleControllerForProtocol {
           try {
             device.apiKey = utf8.decode(apiKeyBytes);
             logger.d('getDeviceDetails: parsed apiKey from device info (binary)');
+            await _persistApiKeyIfPresent(device);
           } catch (_) {}
         }
       }
@@ -200,9 +215,10 @@ class BleControllerV2 implements BleControllerForProtocol {
       rawSensorData = List<int>.from(j[1]);
       logger.d('BLE JSON metadata j[0]: $data');
       final apikey = BleJsonParser.parseApiKey(data);
-      if (apikey != null && (device.apiKey == null || device.apiKey!.isEmpty)) {
+      if (apikey != null && apikey.isNotEmpty) {
         device.apiKey = apikey;
         logger.d('BLE: cached apiKey from sensor metadata to device');
+        await _persistApiKeyIfPresent(device);
       }
       return [_SensorDataParser(rawSensorData).parse(), data];
     }
@@ -229,10 +245,16 @@ class BleControllerV2 implements BleControllerForProtocol {
       deviceId: device.bleId!
     );
     try {
-      print("send bytes");
-      print(bytes);
-      await _ble.writeCharacteristicWithoutResponse(qc, value: bytes);
-      print("erfolgreich");
+      final chunks =
+          AirStationBleHomeAssistantDefaults.chunkSetAirStationConfiguration(bytes);
+      for (var i = 0; i < chunks.length; i++) {
+        await _ble.writeCharacteristicWithoutResponse(qc, value: chunks[i]);
+        logger.d(
+            'sendAirStationConfig fragment ${i + 1}/${chunks.length}, len=${chunks[i].length}');
+        if (i + 1 < chunks.length) {
+          await Future.delayed(const Duration(milliseconds: 400));
+        }
+      }
       return true;
     } catch (e) {
       logger.d(e);

@@ -2,7 +2,7 @@ name: luftdaten.at
 description: Luftdaten.at - Air Quality Measurement
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.7.0+66
+version: 1.7.1+71
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -14,6 +14,7 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.2
   shared_preferences: ^2.2.0
+  flutter_secure_storage: ^9.2.4
   provider: ^6.0.5
   permission_handler: ^12.0.0
   flutter_reactive_ble: ^5.2.0
@@ -91,6 +92,11 @@ flutter_launcher_icons:
   ios: true
 
 flutter:
+  # CocoaPods fallback: some plugins (e.g. flutter_native_splash SPM metadata) fail Xcode SPM
+  # resolution (“public headers include path … invalid”). See docs/DEBUGGING_IOS.md.
+  config:
+    enable-swift-package-manager: false
+
   assets:
     - assets/icon.png
     - assets/icon-blue-full.png
