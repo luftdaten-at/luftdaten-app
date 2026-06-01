@@ -71,7 +71,17 @@ abstract class BackgroundService {
             desiredAccuracy: LocationAccuracy.high, timeLimit: const Duration(seconds: 10));
         logger.d('Got position: $position');
       } catch (e) {
-        logger.e('Failed to get location: $e');
+        logger.e('Failed to get current location: $e');
+        try {
+          position = await Geolocator.getLastKnownPosition();
+          if (position != null) {
+            logger.d('Using last known position: $position');
+          } else {
+            logger.e('No last known position available for workshop upload');
+          }
+        } catch (e2) {
+          logger.e('Failed to get last known location: $e2');
+        }
       }
     } else {
       logger.d('Not recording location');

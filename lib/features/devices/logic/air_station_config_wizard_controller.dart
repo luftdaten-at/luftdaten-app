@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bluetooth_enable/bluetooth_enable.dart';
 import 'package:collection_providers/collection_providers.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +13,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart'; // Import geolocator package for GPS
 
 import 'ble_controller.dart';
+import 'device_api_key_ble_sync.dart';
 
 class AirStationConfigWizardController extends ChangeNotifier {
   static final MapChangeNotifier<String, AirStationConfigWizardController> _activeControllers = MapChangeNotifier();
@@ -49,6 +52,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
           // Resume from standard connection screen
         } else {
           c.stage = AirStationConfigWizardStage.editSettings;
+          unawaited(c.prepareBleStationFormControllers());
         }
       } else {
         // Resume from standard connection screen
@@ -65,8 +69,10 @@ class AirStationConfigWizardController extends ChangeNotifier {
   }
 
   static void removeController(String id) {
+    final ctrl = _activeControllers[id];
+    ctrl?.disposeBleStationFormControllers();
+    ctrl?.wifi?.dispose();
     _activeControllers.remove(id);
-    _activeControllers[id]?.notifyListeners();
     saveAll();
   }
 
@@ -126,6 +132,9 @@ class AirStationConfigWizardController extends ChangeNotifier {
 
   AirStationWifiConfig? wifi;
 
+  /// TLV 18 (`TZ`) editing — IANA name, e.g. `Europe/Vienna`.
+  TextEditingController? tzBleController;
+
   DateTime? _configLoadedAt, _configSentAt, _firstDataSuccessReceivedAt;
 
   DateTime? get configLoadedAt => _configLoadedAt;
@@ -147,6 +156,19 @@ class AirStationConfigWizardController extends ChangeNotifier {
   set firstDataSuccessReceivedAt(DateTime? time) {
     _firstDataSuccessReceivedAt = time;
     saveAll();
+  }
+
+  /// Rebuilds TZ text controller after [config] changes (BLE read or default).
+  Future<void> prepareBleStationFormControllers() async {
+    disposeBleStationFormControllers();
+    final cfg = config;
+    tzBleController = TextEditingController(text: cfg?.tz ?? '');
+    notifyListeners();
+  }
+
+  void disposeBleStationFormControllers() {
+    tzBleController?.dispose();
+    tzBleController = null;
   }
 
   void verifyDeviceState() async {
@@ -268,6 +290,12 @@ class AirStationConfigWizardController extends ChangeNotifier {
       config = AirStationConfig.fromBytes(id, bytes);
       configLoadedAt = DateTime.now();
       saveAll();
+      final pending = config!.pendingApiKeyForSecureStore;
+      if (pending != null && pending.isNotEmpty) {
+        await DeviceApiKeyBleSync.applyKey(dev, pending, logSource: 'wizard_air_station_configuration');
+        config!.pendingApiKeyForSecureStore = null;
+      }
+      await prepareBleStationFormControllers();
     } catch (e) {
       // Reading or parsing failed
       stage = AirStationConfigWizardStage.failedToLoadConfig;
@@ -286,23 +314,29 @@ class AirStationConfigWizardController extends ChangeNotifier {
     stage = AirStationConfigWizardStage.sending;
     BleDevice dev = getIt<DeviceManager>().devices.where((e) => e.bleName == id).first;
     try {
+      final tzTrimmed = tzBleController?.text.trim() ?? '';
+      config!.tz = tzTrimmed.isEmpty ? null : tzTrimmed;
+
       List<int> bytes = config!.toBytes();
 
-      if(wifi?.valid??false) {
+      if (wifi?.valid ?? false) {
         bytes.addAll(wifi!.toBytes());
       }
 
       bool success = await getIt<BleController>().sendAirStationConfig(dev, bytes);
       dev.disconnect();
-      if(success) {
-        // TODO this is temporary until firmware is updated
-        // (though it may remain the permanent solution for old-firmware devices)
+      if (success) {
+        try {
+          await config!.persist();
+        } catch (_) {
+          /* best-effort; device already accepted config */
+        }
         stage = AirStationConfigWizardStage.checkLed;
         configSentAt = DateTime.now();
       } else {
         stage = AirStationConfigWizardStage.configTransmissionFailed;
       }
-    } catch(_) {
+    } catch (_) {
       stage = AirStationConfigWizardStage.configTransmissionFailed;
     }
   }

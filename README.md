@@ -8,8 +8,9 @@ The **Luftdaten App** is a mobile application that allows users to visualize rea
 2. [Project Setup](#project-setup)
 3. [Using the App](#using-the-app)
 4. [Flutter Commands](#flutter-commands)
-5. [Contributing](#contributing)
-6. [License](#license)
+5. [Documentation](#documentation)
+6. [Contributing](#contributing)
+7. [License](#license)
 
 ## Installation
 
@@ -120,7 +121,7 @@ Here are some useful Flutter commands:
 - **Automatically format code**:
 
   ```bash
-  flutter format .
+  dart format .
   ```
 
 - **Running tests**:
@@ -134,6 +135,10 @@ Here are some useful Flutter commands:
   ```bash
   flutter clean
   ```
+
+## Documentation
+
+Architecture, integrations (HTTP, BLE), dependency snapshot, testing, i18n, iOS debugging, and contributor notes live in **[docs/](docs/README.md)**. Start with the index there for a full table of contents. Resolved direct/dev packages (after `flutter pub get`) are summarized in [docs/packages.md](docs/packages.md).
 
 ## Contributing
 

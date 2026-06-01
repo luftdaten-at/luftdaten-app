@@ -320,6 +320,16 @@ class FirmwareVersion {
 
   const FirmwareVersion(this.major, this.minor, [this.patch = 0]);
 
+  /// Treats `{0.0.0}` as unknown (firmware parse not yet populated).
+  bool get isUnsetPlaceholder => major == 0 && minor == 0 && patch == 0;
+
+  /// Lexicographic (major, minor, patch).
+  bool isOlderThan(FirmwareVersion other) {
+    if (major != other.major) return major < other.major;
+    if (minor != other.minor) return minor < other.minor;
+    return patch < other.patch;
+  }
+
   @override
   String toString() {
     return '$major.$minor.$patch';

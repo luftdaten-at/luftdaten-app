@@ -17,6 +17,7 @@ import 'package:luftdaten.at/features/dashboard/presentation/pages/favorites_pag
 import 'package:luftdaten.at/core/app/presentation/home_page.i18n.dart';
 import 'package:luftdaten.at/core/app/presentation/settings_page.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
+import 'package:luftdaten.at/core/app/toaster.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'package:luftdaten.at/features/measurements/presentation/widgets/current_trip_export_dialog.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/file_manager_dialog.dart';
@@ -80,6 +81,18 @@ class _PageViewerPageState extends State<PageViewerPage> {
           notifier: getIt<WorkshopController>(),
           builder: (context, workshopController) {
             workshopController.checkIfWorkshopHasEnded();
+            if (workshopController.pendingMissingApiKeyHint) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                final wc = getIt<WorkshopController>();
+                if (!wc.pendingMissingApiKeyHint) return;
+                wc.clearMissingApiKeyHint();
+                Toaster.showFailureToast(
+                  'Workshop-Uploads benötigen einen Datahub API-Schlüssel auf dem Gerät. Stelle api_key in der Geräte-Firmware ein und verbinde erneut. Zuvor per BLE synchronisierte Schlüssel können weiterhin aus dem App-Speicher verwendet werden.'
+                      .i18n,
+                  padded: true,
+                );
+              });
+            }
             if (workshopController.currentWorkshop == null) return const SizedBox();
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),

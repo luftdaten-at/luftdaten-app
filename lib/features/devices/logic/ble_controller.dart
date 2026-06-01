@@ -1,6 +1,7 @@
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:luftdaten.at/features/devices/logic/ble_controller_v1.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
+import 'package:luftdaten.at/features/devices/logic/sd_ble_export.dart';
 
 import 'package:luftdaten.at/core/core.dart';
 import 'ble_controller_v2.dart';
@@ -62,6 +63,25 @@ class BleController {
   Future<List<int>?> readAirStationConfiguration(BleDevice device) async {
     await getProtocolVersion(device);
     return BleControllerForProtocol(device.protocolVersion!).readAirStationConfiguration(device);
+  }
+
+  /// Idle peek: SD JSONL file on wifiless Air Station is non-empty (protocol v2 only).
+  Future<SdBleExportIdleInfo?> peekSdBleExport(BleDevice device) async {
+    await getProtocolVersion(device);
+    if (device.protocolVersion != 2) return null;
+    return BleControllerV2().peekSdBleExportIdle(device);
+  }
+
+  /// Stream SD JSONL lines over BLE (`0x08` START/NEXT); protocol v2 / Air Station only.
+  Future<SdBleImportResult> importSdJsonlFromBle(
+    BleDevice device, {
+    void Function(int lineIndex)? onProgress,
+  }) async {
+    await getProtocolVersion(device);
+    if (device.protocolVersion != 2) {
+      return SdBleImportResult.error('SD-Import benötigt Firmware-Protokoll 2.');
+    }
+    return BleControllerV2().importSdJsonlLines(device, onProgress: onProgress);
   }
 }
 

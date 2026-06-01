@@ -244,17 +244,6 @@ class _ConfigureAirStationPageState extends State<ConfigureAirStationPage> {
           },
         ),
         _spacer(),
-        _settingsDropdownRow(
-          title: 'Energiesparmodus'.i18n,
-          value: batterySaverMode.toString(),
-          options: BatterySaverMode.values.map((e) => e.toString()).toList(),
-          onSelected: (val) {
-            setState(() {
-              batterySaverMode = BatterySaverMode.parseString(val);
-            });
-          },
-        ),
-        _spacer(),
         // TODO allow for entering a custom interval
         _settingsDropdownRow(
           title: 'Messintervall'.i18n,
@@ -526,10 +515,6 @@ enum BatterySaverMode {
   @override
   String toString() {
     return _name.i18n;
-  }
-
-  factory BatterySaverMode.parseString(String name) {
-    return BatterySaverMode.values.where((e) => e.toString() == name).first;
   }
 
   factory BatterySaverMode.parseBinary(int binary) {

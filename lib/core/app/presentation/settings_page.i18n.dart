@@ -171,6 +171,16 @@ extension Localization on String {
         "en": "Serial BLE console",
       } +
       {
+        "de": "Startup (BLE) in Geräteübersicht",
+        "en": "Startup (BLE) in device overview",
+      } +
+      {
+        "de":
+            "Zeigt die Schaltfläche „Startup (BLE) …“ bei Air Stations in der Geräteliste (Bluetooth).",
+        "en":
+            "Shows the \"Startup (BLE)\" action for Air Stations in the Bluetooth device list.",
+      } +
+      {
         "de": "Willkommensbildschirm öffnen",
         "en": "Show welcome screen",
       } +

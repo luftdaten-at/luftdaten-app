@@ -16,6 +16,7 @@
 */
 
 import 'package:flutter/cupertino.dart';
+import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 
 Logger logger = Logger(
@@ -39,6 +40,20 @@ class LdLogger extends ChangeNotifier with LogPrinter {
   void add(LogEvent message) {
     messages.add(message);
     notifyListeners();
+  }
+
+  /// Plain-text export of in-memory log lines (same format as the log screen).
+  String toExportText() {
+    final fmt = DateFormat('yyyy-MM-dd HH:mm:ss');
+    final buffer = StringBuffer()
+      ..writeln('Luftdaten.at app log')
+      ..writeln('Exported: ${fmt.format(DateTime.now())}')
+      ..writeln('Entries: ${messages.length}')
+      ..writeln('---');
+    for (final event in messages) {
+      buffer.writeln('${fmt.format(event.time)}: ${event.message}');
+    }
+    return buffer.toString();
   }
 }
 

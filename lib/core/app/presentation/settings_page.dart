@@ -458,6 +458,16 @@ class _SettingsPageState extends State<SettingsPage> {
                         onChanged: (val) => setState(() => AppSettings.I.showSerialMonitor = val)),
                     _spacer(),
                     _settingsSwitchRow(
+                      title: 'Startup (BLE) in Geräteübersicht'.i18n,
+                      desc:
+                          'Zeigt die Schaltfläche „Startup (BLE) …“ bei Air Stations in der Geräteliste (Bluetooth).'
+                              .i18n,
+                      value: AppSettings.I.showAirStationStartupBleInDeviceOverview,
+                      onChanged: (val) => setState(
+                          () => AppSettings.I.showAirStationStartupBleInDeviceOverview = val),
+                    ),
+                    _spacer(),
+                    _settingsSwitchRow(
                         title: 'Staging-Server verwenden'.i18n,
                         value: AppSettings.I.useStagingServer,
                         onChanged: (val) => setState(() => AppSettings.I.useStagingServer = val)),

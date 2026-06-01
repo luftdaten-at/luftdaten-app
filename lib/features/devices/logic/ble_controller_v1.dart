@@ -9,6 +9,7 @@ import '../data/ble_device.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import '../data/sensor_details.dart';
 import 'package:luftdaten.at/core/config/app_settings.dart';
+import 'package:luftdaten.at/features/devices/logic/device_api_key_resolver.dart';
 import 'ble_controller.dart';
 
 class BleControllerV1 implements BleControllerForProtocol {
@@ -80,6 +81,10 @@ class BleControllerV1 implements BleControllerForProtocol {
     }
     device.availableSensors = sensorDetails;
     device.batteryDetails = BatteryDetails(status: BatteryStatus.unsupported);
+    await DeviceApiKeyResolver.hydrateDeviceFromSecureStorage(device);
+    if (device.apiKey != null && device.apiKey!.isNotEmpty) {
+      logger.d('getDeviceDetails: apiKey loaded from secure storage');
+    }
   }
 
   @override

@@ -123,6 +123,12 @@ extension Localization on String {
       {
         "de": "Batteriestatus",
         "en": "Battery status",
+      } +
+      {
+        "de":
+            "Workshop-Uploads benötigen einen Datahub API-Schlüssel auf dem Gerät. Stelle api_key in der Geräte-Firmware ein und verbinde erneut. Zuvor per BLE synchronisierte Schlüssel können weiterhin aus dem App-Speicher verwendet werden.",
+        "en":
+            "Workshop uploads need a Datahub API key on the device. Configure api_key in device firmware and reconnect over BLE. A key synced earlier may still be used from app storage.",
       };
 
   String get i18n => localize(this, _t);

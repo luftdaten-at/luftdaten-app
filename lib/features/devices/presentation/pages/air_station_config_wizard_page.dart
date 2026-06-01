@@ -4,6 +4,9 @@ import 'package:lottie/lottie.dart';
 import 'package:luftdaten.at/features/devices/logic/air_station_config_wizard_controller.dart';
 import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.i18n.dart';
+import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_mqtt_config_dialog.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_startup_flags_dialog.dart';
 import 'package:luftdaten.at/core/utils/list_extensions.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
@@ -46,7 +49,13 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
   Widget build(BuildContext context) {
     return PopScope(
       canPop: canPop(),
-      onPopInvoked: (_) => onPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) {
+          _onWizardRouteDidPop();
+        } else {
+          _onWizardPopBlocked();
+        }
+      },
       child: GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         child: Scaffold(
@@ -56,10 +65,7 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
                 Text('Air Station konfigurieren'.i18n, style: const TextStyle(color: Colors.white)),
             backgroundColor: Theme.of(context).primaryColor,
             leading: IconButton(
-              onPressed: () {
-                if (canPop()) Navigator.of(context).pop();
-                onPop();
-              },
+              onPressed: () => Navigator.maybePop(context),
               icon: const Icon(Icons.chevron_left, color: Colors.white),
             ),
           ),
@@ -372,8 +378,10 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
               child: Text('Konfiguration abbrechen'.i18n),
             ),
             TextButton(
-              onPressed: () {
-                widget.controller.config = AirStationConfig.defaultConfig(widget.controller.id);
+              onPressed: () async {
+                widget.controller.config =
+                    AirStationConfig.defaultConfig(widget.controller.id);
+                await widget.controller.prepareBleStationFormControllers();
                 widget.controller.stage = AirStationConfigWizardStage.editSettings;
               },
               child: Text('Trotzdem fortfahren'.i18n),
@@ -650,149 +658,243 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
   }
 
   Widget buildEditConfigScreen() {
-    return Padding(
+    final tzC = widget.controller.tzBleController;
+    if (tzC == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final cfg = widget.controller.config!;
+    final presetLogs = [...AirStationBleLogLevels.ordered];
+    final dropdownItems = [...presetLogs];
+    final rawLog = cfg.logLevel;
+    if (rawLog != null && rawLog.isNotEmpty && !dropdownItems.contains(rawLog)) {
+      dropdownItems.insert(0, rawLog);
+    }
+    final selectedLog = (rawLog != null && rawLog.isNotEmpty) ? rawLog : 'INFO';
+    final dropdownValue =
+        dropdownItems.contains(selectedLog) ? selectedLog : dropdownItems.first;
+
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Spacer(flex: 2),
-            Center(
-              child: Icon(
-                Icons.settings,
-                size: 90,
-                color: Theme.of(context).primaryColor,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(height: 12),
+          Center(
+            child: Icon(
+              Icons.settings,
+              size: 90,
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text('Einstellungen'.i18n,
+              style: const TextStyle(fontSize: 26), textAlign: TextAlign.center),
+          const SizedBox(height: 30),
+          Row(
+            children: [
+              const SizedBox(width: 8),
+              Text(
+                'Automatische Updates über WLAN'.i18n,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Flexible(
+                child: DropdownButton(
+                  value: cfg.autoUpdateMode,
+                  isDense: true,
+                  items: AutoUpdateMode.values
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e.toString())))
+                      .toList(),
+                  padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
+                  underline: const SizedBox(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        cfg.autoUpdateMode = val;
+                      });
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          const Row(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              SizedBox(width: 8),
+              Expanded(child: Divider(height: 1)),
+              SizedBox(width: 8),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const SizedBox(width: 8),
+              Text(
+                'Messintervall'.i18n,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Flexible(
+                child: DropdownButton(
+                  value: cfg.measurementInterval,
+                  isDense: true,
+                  items: AirStationMeasurementInterval.values
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e.toString())))
+                      .toList(),
+                  padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
+                  underline: const SizedBox(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        cfg.measurementInterval = val;
+                      });
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          const Row(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              SizedBox(width: 8),
+              Expanded(child: Divider(height: 1)),
+              SizedBox(width: 8),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+              child: Text(
+                'Zeitzone (IANA)'.i18n,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(height: 20),
-            Text('Einstellungen'.i18n,
-                style: const TextStyle(fontSize: 26), textAlign: TextAlign.center),
-            const SizedBox(height: 30),
-            Row(
-              children: [
-                const SizedBox(width: 8),
-                Text(
-                  'Automatische Updates über WLAN'.i18n,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+            child: TextField(
+              controller: tzC,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                labelText: 'TZ'.i18n,
+                hintText: 'Europe/Vienna',
+              ),
+              autocorrect: false,
+            ),
+          ),
+          const Row(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              SizedBox(width: 8),
+              Expanded(child: Divider(height: 1)),
+              SizedBox(width: 8),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const SizedBox(width: 8),
+              Text(
+                'Protokollstufe (LOG_LEVEL)'.i18n,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Flexible(
+                child: DropdownButton<String>(
+                  value: dropdownValue,
+                  isDense: true,
+                  items: dropdownItems
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
+                  underline: const SizedBox(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        cfg.logLevel = val;
+                      });
+                    }
+                  },
                 ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Flexible(
-                  child: DropdownButton(
-                    value: widget.controller.config!.autoUpdateMode,
-                    isDense: true,
-                    items: AutoUpdateMode.values
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e.toString())))
-                        .toList(),
-                    padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
-                    underline: const SizedBox(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          widget.controller.config!.autoUpdateMode = val;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const Row(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                SizedBox(width: 8),
-                Expanded(child: Divider(height: 1)),
-                SizedBox(width: 8),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const SizedBox(width: 8),
-                Text(
-                  'Batteriesparmodus'.i18n,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Flexible(
-                  child: DropdownButton(
-                    value: widget.controller.config!.batterySaverMode,
-                    isDense: true,
-                    items: BatterySaverMode.values
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e.toString())))
-                        .toList(),
-                    padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
-                    underline: const SizedBox(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          widget.controller.config!.batterySaverMode = val;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const Row(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                SizedBox(width: 8),
-                Expanded(child: Divider(height: 1)),
-                SizedBox(width: 8),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const SizedBox(width: 8),
-                Text(
-                  'Messintervall'.i18n,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Flexible(
-                  child: DropdownButton(
-                    value: widget.controller.config!.measurementInterval,
-                    isDense: true,
-                    items: AirStationMeasurementInterval.values
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e.toString())))
-                        .toList(),
-                    padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
-                    underline: const SizedBox(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          widget.controller.config!.measurementInterval = val;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 30),
-            FilledButton(
-              onPressed: () {
-                widget.controller.stage = AirStationConfigWizardStage.setLocation;
-              },
-              child: Text('Weiter'.i18n),
-            ),
-            const Spacer(flex: 3),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const Row(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              SizedBox(width: 8),
+              Expanded(child: Divider(height: 1)),
+              SizedBox(width: 8),
+            ],
+          ),
+          const SizedBox(height: 24),
+          OutlinedButton(
+            onPressed: () async {
+              try {
+                final dev =
+                    getIt<DeviceManager>().devices.where((e) => e.bleName == widget.controller.id).first;
+                await showAirStationMqttConfigDialog(
+                  context: context,
+                  device: dev,
+                  preferExistingMutableConfig: widget.controller.config,
+                );
+              } catch (_) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Air Station konnte nicht ermittelt werden.'.i18n)),
+                );
+              }
+              if (mounted) setState(() {});
+            },
+            child: Text('MQTT / Home Assistant (BLE)'.i18n),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: () async {
+              try {
+                final dev =
+                    getIt<DeviceManager>().devices.where((e) => e.bleName == widget.controller.id).first;
+                await showAirStationStartupFlagsDialog(
+                  context: context,
+                  device: dev,
+                  preferExistingMutableConfig: widget.controller.config,
+                );
+              } catch (_) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Air Station konnte nicht ermittelt werden.'.i18n)),
+                );
+              }
+              if (mounted) setState(() {});
+            },
+            child: Text('Startup (BLE) …'.i18n),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: () {
+              widget.controller.stage = AirStationConfigWizardStage.setLocation;
+            },
+            child: Text('Weiter'.i18n),
+          ),
+          const SizedBox(height: 24),
+        ],
       ),
     );
   }
@@ -947,6 +1049,56 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
     );
   }
 
+  /// Wizard route actually popped (back gesture, programmatic pop).
+  void _onWizardRouteDidPop() {
+    if (widget.controller.stage == AirStationConfigWizardStage.firstDataSuccess) {
+      AirStationConfigWizardController.removeController(widget.controller.id);
+    }
+  }
+
+  /// Pop was blocked ([canPop] false); confirm whether to discard or resume later.
+  void _onWizardPopBlocked() {
+    if (!mounted) {
+      return;
+    }
+    switch (widget.controller.stage) {
+      case AirStationConfigWizardStage.waitingForFirstData:
+      case AirStationConfigWizardStage.firstDataSuccess:
+        return;
+      default:
+        break;
+    }
+    showLDDialog(
+      context,
+      title: 'Konfigurator verlassen'.i18n,
+      icon: Icons.settings,
+      text: 'Möchtest du die Konfiguration später fortsetzen oder den Konfigurator '
+              'vollständig beenden?'
+          .i18n,
+      actions: [
+        LDDialogAction(
+          label: 'Beenden'.i18n,
+          filled: false,
+          onTap: () async {
+            await Future.delayed(Duration.zero);
+            if (!mounted) return;
+            Navigator.of(context).pop();
+            AirStationConfigWizardController.removeController(widget.controller.id);
+          },
+        ),
+        LDDialogAction(
+          label: 'Später fortsetzen'.i18n,
+          filled: true,
+          onTap: () async {
+            await Future.delayed(Duration.zero);
+            if (!mounted) return;
+            Navigator.of(context).pop();
+          },
+        ),
+      ],
+    );
+  }
+
   bool canPop() {
     if (widget.controller.stage == AirStationConfigWizardStage.waitingForFirstData) {
       return true;
@@ -955,46 +1107,5 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
       return true;
     }
     return false;
-  }
-
-  void onPop() {
-    if (widget.controller.stage == AirStationConfigWizardStage.waitingForFirstData) {
-      // Do nothing here, we're just waiting for data
-    } else if (widget.controller.stage == AirStationConfigWizardStage.firstDataSuccess) {
-      // Natural end point, destroy wizard
-      // Pop would already have proceeded
-      AirStationConfigWizardController.removeController(widget.controller.id);
-    } else {
-      // Ask for user to confirm where they wish to return to the wizard
-      showLDDialog(
-        context,
-        title: 'Konfigurator verlassen'.i18n,
-        icon: Icons.settings,
-        text: 'Möchtest du die Konfiguration später fortsetzen oder den Konfigurator '
-                'vollständig beenden?'
-            .i18n,
-        actions: [
-          LDDialogAction(
-            label: 'Beenden'.i18n,
-            filled: false,
-            onTap: () async {
-              await Future.delayed(Duration.zero);
-              if(!mounted) return;
-              Navigator.of(context).pop();
-              AirStationConfigWizardController.removeController(widget.controller.id);
-            },
-          ),
-          LDDialogAction(
-            label: 'Später fortsetzen'.i18n,
-            filled: true,
-            onTap: () async {
-              await Future.delayed(Duration.zero);
-              if(!mounted) return;
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
-      );
-    }
   }
 }

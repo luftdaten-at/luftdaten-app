@@ -42,6 +42,8 @@ import 'package:luftdaten.at/features/measurements/logic/file_handler.dart';
 import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
 import 'package:luftdaten.at/features/measurements/logic/workshop_controller.dart';
 import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
+import 'package:luftdaten.at/features/devices/logic/sd_ble_import_storage.dart';
+import 'package:luftdaten.at/features/measurements/logic/datahub_measurement_client.dart';
 import 'package:luftdaten.at/core/app/presentation/welcome_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -76,6 +78,7 @@ void main() async {
     await GoogleFonts.pendingFonts([GoogleFonts.nunitoSansTextTheme()]);
     await GetStorage.init('currentTrip');
     await GetStorage.init('preferences');
+    await SdBleImportStorage.ensureInitialized();
     await AppSettings.I.init();
     await DeviceInfo.init();
 
@@ -98,6 +101,8 @@ void main() async {
     getIt.registerSingleton<PreferencesHandler>(PreferencesHandler()..init());
     getIt.registerSingleton<NewsController>(NewsController()..init());
     getIt.registerSingleton<WorkshopController>(WorkshopController()..init());
+    getIt.registerSingleton<SdBleImportStorage>(SdBleImportStorage());
+    getIt.registerSingleton<DatahubMeasurementClient>(DatahubMeasurementClient());
     getIt.registerSingleton<BatteryInfoAggregator>(BatteryInfoAggregator());
 
     await AirStationConfigWizardController.init();

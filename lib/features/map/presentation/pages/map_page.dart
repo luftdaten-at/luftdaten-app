@@ -34,6 +34,7 @@ import 'package:luftdaten.at/core/app/preferences_handler.dart';
 import 'package:luftdaten.at/core/app/toaster.dart';
 import 'package:luftdaten.at/features/dashboard/logic/favorites_manager.dart';
 import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
+import 'package:luftdaten.at/features/measurements/logic/workshop_controller.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/measurements/data/measurement.dart';
@@ -43,6 +44,7 @@ import 'package:luftdaten.at/features/map/presentation/pages/station_details_pag
 import 'package:luftdaten.at/core/utils/gradient_color.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 import 'package:luftdaten.at/core/widgets/start_button.dart';
+import 'package:luftdaten.at/features/map/presentation/widgets/map_dimension_legend.dart';
 import 'package:luftdaten.at/features/map/presentation/widgets/marker_dialog.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -54,6 +56,9 @@ import 'package:luftdaten.at/features/measurements/data/value_marker.dart';
 import 'package:luftdaten.at/core/widgets/progress.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'package:luftdaten.at/core/domain/dimensions.dart' as enums;
+
+/// Returned by the map dimension menu when only the legend is tapped: close popup, keep dimension.
+const _kMapLegendDismissMenuValue = -1;
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -86,6 +91,7 @@ class _MapPageState extends State<MapPage>
   int mapDisplayType = enums.Dimension.PM2_5;
 
   final CompassController _compassController = CompassController();
+  late final WorkshopController _workshopController;
 
   /// Stable TileLayer to avoid rebuild-driven connection churn (reduces tile load errors).
   /// Use tile.openstreetmap.org without subdomains (OSM recommends this; see operations#737).
@@ -95,23 +101,25 @@ class _MapPageState extends State<MapPage>
   );
 
   Color getLDColor(MeasuredDataPoint item) {
-    //if (item.flatten.pm10 != null) {
-    //  return FormattedValue.from(MeasurableQuantity.pm10, item.flatten.pm10!).color;
-    //}
     if (mapDisplayType == enums.Dimension.PM1_0) {
       if (item.flatten.pm1 == null) return Colors.grey;
-      return GradientColor.pm1().getColor(item.flatten.pm1!);
+      return enums.Dimension.getColor(enums.Dimension.PM1_0, item.flatten.pm1!) as Color;
     } else if (mapDisplayType == enums.Dimension.PM2_5) {
       if (item.flatten.pm25 == null) return Colors.grey;
-      return GradientColor.pm25().getColor(item.flatten.pm25!);
+      return enums.Dimension.getColor(enums.Dimension.PM2_5, item.flatten.pm25!) as Color;
     } else if (mapDisplayType == enums.Dimension.PM10_0) {
       if (item.flatten.pm10 == null) return Colors.grey;
-      return GradientColor.pm10().getColor(item.flatten.pm10!);
+      return enums.Dimension.getColor(enums.Dimension.PM10_0, item.flatten.pm10!) as Color;
     } else if (mapDisplayType == enums.Dimension.TEMPERATURE) {
       if (item.flatten.temperature == null) return Colors.grey;
       return GradientColor.temperature().getColor(item.flatten.temperature!);
     }
     return Colors.blue;
+  }
+
+  bool measurementHasDisplayedValue(Measurement m) {
+    final v = m.get_valueByDimension(mapDisplayType);
+    return v != null && !v.isNaN;
   }
 
   void updateStations({bool zoomin = false, MapEvent? event}) {
@@ -126,11 +134,31 @@ class _MapPageState extends State<MapPage>
     super.initState();
     logger.d("MapPage: initState()");
     _textController = TextEditingController();
+    _workshopController = getIt<WorkshopController>();
+    _workshopController.addListener(_syncMapDimensionWithWorkshop);
     mapDisplayType = getIt<PreferencesHandler>().selectedPM;
+    _normalizeMapDimensionAgainstWorkshop();
+  }
+
+  void _normalizeMapDimensionAgainstWorkshop() {
+    if (_workshopController.currentWorkshop == null &&
+        mapDisplayType == enums.Dimension.TEMPERATURE) {
+      mapDisplayType = enums.Dimension.PM2_5;
+      getIt<PreferencesHandler>().selectedPM = enums.Dimension.PM2_5;
+    }
+  }
+
+  /// Temperature is workshop-only on the Luftkarte; reset when leaving a campaign.
+  void _syncMapDimensionWithWorkshop() {
+    if (!mounted) return;
+    setState(() {
+      _normalizeMapDimensionAgainstWorkshop();
+    });
   }
 
   @override
   void dispose() {
+    _workshopController.removeListener(_syncMapDimensionWithWorkshop);
     _textController.dispose();
     _mapMovedSubscription?.cancel();
     super.dispose();
@@ -341,7 +369,9 @@ class _MapPageState extends State<MapPage>
           ChangeNotifierBuilder(
               notifier: AppSettings.I,
               builder: (context, settings) {
-                if (!settings.showOverlay) return const SizedBox();
+                final bool showMessnetz =
+                    settings.showOverlay && mapDisplayType != enums.Dimension.TEMPERATURE;
+                if (!showMessnetz) return const SizedBox();
                 return MarkerClusterLayerWidget(
                   options: MarkerClusterLayerOptions(
                     maxClusterRadius: 45,
@@ -352,6 +382,7 @@ class _MapPageState extends State<MapPage>
                     markers: context
                         .watch<MapHttpProvider>()
                         .allItems
+                        .where(measurementHasDisplayedValue)
                         .map(
                           (e) => ValueMarker<Measurement>(
                             point: LatLng(e.location.lat, e.location.lon),
@@ -363,14 +394,10 @@ class _MapPageState extends State<MapPage>
                               iconSize: 40,
                               padding: EdgeInsets.zero,
                               icon: Builder(builder: (context) {
-                                double? value = e.get_valueByDimension(mapDisplayType);
-                                if (value?.isNaN ?? false) value = null;
-                                Color color;
-                                if (value != null) {
-                                  color = enums.Dimension.getColor(mapDisplayType, value);
-                                } else {
-                                  color = Colors.grey;
-                                }
+                                double value =
+                                    e.get_valueByDimension(mapDisplayType)!;
+                                Color color =
+                                    enums.Dimension.getColor(mapDisplayType, value) as Color;
                                 return Container(
                                   height: 40,
                                   width: 40,
@@ -380,9 +407,7 @@ class _MapPageState extends State<MapPage>
                                   ),
                                   child: Center(
                                     child: Text(
-                                      value != null
-                                          ? value.toStringAsFixed(value <= 99.9 ? 1 : 0)
-                                          : '',
+                                      value.toStringAsFixed(value <= 99.9 ? 1 : 0),
                                       style: TextStyle(
                                         color: color.computeLuminance() > 0.179
                                             ? Colors.black
@@ -411,7 +436,8 @@ class _MapPageState extends State<MapPage>
                       double? value = count == 0 ? null : acc / count;
                       Color color;
                       if (value != null) {
-                        color = enums.Dimension.getColor(mapDisplayType, value);
+                        color =
+                            enums.Dimension.getColor(mapDisplayType, value) as Color;
                       } else {
                         color = Colors.grey;
                       }
@@ -634,31 +660,46 @@ class _MapPageState extends State<MapPage>
           ChangeNotifierBuilder(
             notifier: AppSettings.I,
             builder: (context, settings) {
-              if (!settings.showOverlay) return const SizedBox();
+              final workshopActive = _workshopController.currentWorkshop != null;
+              if (!settings.showOverlay && !workshopActive) return const SizedBox();
               return Align(
                 alignment: Alignment.topRight,
                 child: Padding(
                   padding: const EdgeInsets.all(20),
-                  child: PopupMenuButton(
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(
+                  child: PopupMenuButton<int>(
+                    constraints: const BoxConstraints(minWidth: 288),
+                    itemBuilder: (context) => [
+                      PopupMenuItem<int>(
+                        value: _kMapLegendDismissMenuValue,
+                        padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 320),
+                          child: MapDimensionLegend(dimensionId: mapDisplayType),
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                      const PopupMenuItem<int>(
                         value: enums.Dimension.PM1_0,
                         child: Text('PM1.0'),
                       ),
-                      const PopupMenuItem(
+                      const PopupMenuItem<int>(
                         value: enums.Dimension.PM2_5,
                         child: Text('PM2.5'),
                       ),
-                      const PopupMenuItem(
+                      const PopupMenuItem<int>(
                         value: enums.Dimension.PM10_0,
                         child: Text('PM10.0'),
                       ),
-                      PopupMenuItem(
-                        value: enums.Dimension.TEMPERATURE,
-                        child: Text('Temperatur'.i18n),
-                      ),
+                      if (_workshopController.currentWorkshop != null)
+                        PopupMenuItem<int>(
+                          value: enums.Dimension.TEMPERATURE,
+                          child: Text('Temperatur'.i18n),
+                        ),
                     ],
                     onSelected: (value) async {
+                      if (value == _kMapLegendDismissMenuValue) {
+                        return;
+                      }
                       // Wait for the popup menu closing animation to finish to avoid perception of lag
                       await Future.delayed(const Duration(milliseconds: 330));
                       setState(() {
@@ -672,7 +713,7 @@ class _MapPageState extends State<MapPage>
                         elevation: WidgetStateProperty.all(2),
                         shadowColor: WidgetStateProperty.all(Colors.black),
                       ),
-                      tooltip: 'Angezeigte Feinstaubgröße auswählen'.i18n,
+                      tooltip: 'Dimension und Farblegende'.i18n,
                       color: Colors.black,
                       onPressed: null,
                       icon: SizedBox(
