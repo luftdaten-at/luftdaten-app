@@ -56,6 +56,40 @@ void main() {
     test('returns null when station is not a Map', () {
       expect(BleJsonParser.parseApiKey({'station': 'not-a-map'}), isNull);
     });
+
+    test('extracts from device.api.key', () {
+      expect(
+        BleJsonParser.parseApiKey({
+          'device': {
+            'api': {'key': 'portable-api-key'},
+          },
+        }),
+        'portable-api-key',
+      );
+    });
+
+    test('extracts from device.apikey', () {
+      expect(
+        BleJsonParser.parseApiKey({
+          'device': {'apikey': 'device-block-key'},
+        }),
+        'device-block-key',
+      );
+    });
+
+    test('prefers station.api.key over device.api.key', () {
+      expect(
+        BleJsonParser.parseApiKey({
+          'station': {
+            'api': {'key': 'station-wins'},
+          },
+          'device': {
+            'api': {'key': 'device-loses'},
+          },
+        }),
+        'station-wins',
+      );
+    });
   });
 
   group('BleJsonParser.parseFirmwareFromStation', () {

@@ -398,11 +398,8 @@ class AirStationConfig {
   }
 
   /// Air Station TLV write: `[0x06][records…]` matching firmware decode.
-  /// When [appendApiKeyTlv20], include flag `20` with [apiKeyForTlv20] (UTF-8, max 255 bytes).
-  List<int> toBytes({
-    bool appendApiKeyTlv20 = false,
-    String? apiKeyForTlv20,
-  }) {
+  /// API key (flag `20`) is read from firmware over BLE only; never written from the app.
+  List<int> toBytes() {
     List<int> bytes = [0x06];
 
     void appendInt32Tlv(int flag, int value) {
@@ -436,10 +433,6 @@ class AirStationConfig {
     final logVal = logLevel?.trim() ?? '';
     if (logVal.isNotEmpty) {
       appendUtf8Tlv(AirStationConfigFlags.LOG_LEVEL.value, logVal);
-    }
-
-    if (appendApiKeyTlv20 && apiKeyForTlv20 != null && apiKeyForTlv20.trim().isNotEmpty) {
-      appendUtf8Tlv(AirStationConfigFlags.API_KEY.value, apiKeyForTlv20.trim());
     }
 
     return bytes;

@@ -103,11 +103,26 @@ Controlled by `AppSettings.I.useStagingServer`:
 
 **Class:** `WorkshopController` (`lib/features/measurements/logic/workshop_controller.dart`)
 
-### Upload trip measurements
+### Upload trip measurements (workshop campaigns)
 
 - **URL:** `POST https://<host>/api/v1/devices/data/`
 - **Headers:** `Content-Type: application/json`
-- **Body:** JSON built per measurement point (device id, firmware, model, apikey from BLE when available, workshop id, participant uid, sensor readings, optional GPS). See `_buildWorkshopPayload` and `attemptSendData`.
+- **Client:** `WorkshopController.attemptSendData` → `DatahubMeasurementClient.postWorkshopMeasurement` → `WorkshopDatahubPayload.build` (`lib/features/measurements/logic/workshop_datahub_payload.dart`)
+- **Prerequisites:** active ongoing trip, phone GPS on each point (`AppSettings.recordLocation`, enabled automatically while a workshop is joined), **Datahub device API key** (required in `device.apikey`)
+- **API key resolution** (`DeviceApiKeyResolver`): BLE JSON metadata (`station.api.key`, `device.api.key`, …) → in-memory `BleDevice.apiKey` (synced on connect via `DeviceApiKeyBleSync`) → `StationSecretsStore` (secure cache, keyed by BLE broadcast name). Keys are read from firmware only ([`ble-characteristics.md`](https://github.com/luftdaten-at/firmware/blob/main/docs/ble-characteristics.md)): `device_info` JSON/binary, Air Station TLV `20` on `air_station_configuration`, or sensor JSON wrapper. The app does not accept manual API key entry; if the device exposes no key, configure `api_key` on the device and reconnect.
+- **Body (per measurement):** Datahub requires **paired** top-level `workshop` and `location` when tagging a campaign; omitting either stores a plain device measurement without workshop map coordinates.
+
+```json
+{
+  "device": { "time": "<ISO8601 UTC>", "id": "<device id>", "firmware": "…", "model": 1, "apikey": "…" },
+  "workshop": { "id": "<workshop slug>", "participant": "<uuid>", "mode": "walking" },
+  "location": { "lat": 48.17, "lon": 16.36 },
+  "sensors": { "1": { "type": 1, "data": { "3": 12.5 } } }
+}
+```
+
+- **Legacy:** the app no longer posts flat arrays to `/api/workshop/data/add/`; workshop maps use the `Measurement` model via `/api/v1/devices/data/`.
+- **Upload cursor:** `lastSent` is the latest **measurement timestamp** successfully uploaded (not wall-clock time).
 
 ### SD BLE import (firmware `get_json()` lines)
 

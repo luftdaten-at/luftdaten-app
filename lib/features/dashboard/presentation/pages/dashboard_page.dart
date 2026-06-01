@@ -12,6 +12,7 @@ import 'package:luftdaten.at/features/dashboard/presentation/pages/enter_worksho
 import 'package:luftdaten.at/features/dashboard/presentation/pages/favorites_page.dart';
 import 'package:luftdaten.at/features/dashboard/presentation/widgets/air_station_wizard_dashboard_tile.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
+import 'package:luftdaten.at/core/app/toaster.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'package:luftdaten.at/features/dashboard/presentation/widgets/dashboard_station_tile.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -285,6 +286,18 @@ class _DashboardPage extends State<DashboardPage> {
       ChangeNotifierBuilder(
         notifier: getIt<WorkshopController>(),
         builder: (context, workshopController) {
+          if (workshopController.pendingMissingApiKeyHint) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final wc = getIt<WorkshopController>();
+              if (!wc.pendingMissingApiKeyHint) return;
+              wc.clearMissingApiKeyHint();
+              Toaster.showFailureToast(
+                'Workshop-Uploads benötigen einen Datahub API-Schlüssel auf dem Gerät. Stelle api_key in der Geräte-Firmware ein und verbinde erneut. Zuvor per BLE synchronisierte Schlüssel können weiterhin aus dem App-Speicher verwendet werden.'
+                    .i18n,
+                padded: true,
+              );
+            });
+          }
           if(workshopController.currentWorkshop == null) {
             return _buildTappableTile(
               title: 'An Workshop teilnehmen'.i18n,

@@ -31,7 +31,6 @@ class AirStationConfigWizardPage extends StatefulWidget {
 class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
     with TickerProviderStateMixin {
   late AnimationController animation;
-  bool _bleApiKeyObscured = true;
 
   @override
   void initState() {
@@ -660,8 +659,7 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
 
   Widget buildEditConfigScreen() {
     final tzC = widget.controller.tzBleController;
-    final apiC = widget.controller.apiKeyBleController;
-    if (tzC == null || apiC == null) {
+    if (tzC == null) {
       return const Center(child: CircularProgressIndicator());
     }
     final cfg = widget.controller.config!;
@@ -845,36 +843,6 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
               Expanded(child: Divider(height: 1)),
               SizedBox(width: 8),
             ],
-          ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
-              child: Text(
-                'API-Schlüssel (Datahub)'.i18n,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
-            child: TextField(
-              controller: apiC,
-              obscureText: _bleApiKeyObscured,
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                labelText: 'api_key'.i18n,
-                suffixIcon: IconButton(
-                  tooltip: 'Anzeigen'.i18n,
-                  icon: Icon(_bleApiKeyObscured ? Icons.visibility : Icons.visibility_off),
-                  onPressed: () =>
-                      setState(() => _bleApiKeyObscured = !_bleApiKeyObscured),
-                ),
-              ),
-              autocorrect: false,
-              onChanged: (_) => widget.controller.markApiKeyBleFieldEdited(),
-            ),
           ),
           const SizedBox(height: 24),
           OutlinedButton(

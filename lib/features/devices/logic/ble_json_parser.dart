@@ -1,28 +1,40 @@
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 
 /// Parses JSON structures sent by the CircuitPython BLE device.
-/// Device sends: station.api.key, station.apikey, or top-level apikey.
+/// Device sends: station.api.key, device.api.key, station.apikey, or top-level apikey.
 class BleJsonParser {
   BleJsonParser._();
 
   /// Extracts API key from BLE JSON. Handles:
-  /// - station.api.key (Air Around / get_info)
-  /// - station.apikey (base get_info)
-  /// - apikey (top-level fallback)
+  /// - station.api.key (Air Station / get_info)
+  /// - station.apikey
+  /// - device.api.key (portable models / get_info)
+  /// - device.apikey
+  /// - apikey on device block or top-level
   static String? parseApiKey(Map<String, dynamic>? j) {
     if (j == null || j.isEmpty) return null;
-    final station = j['station'];
-    if (station is Map) {
-      final api = station['api'];
-      if (api is Map) {
-        final key = api['key'];
-        if (key is String && key.isNotEmpty) return key;
-      }
-      final v = station['apikey'];
-      if (v is String && v.isNotEmpty) return v;
+
+    final fromStation = _parseApiKeyFromBlock(j['station']);
+    if (fromStation != null) return fromStation;
+
+    final fromDevice = _parseApiKeyFromBlock(j['device']);
+    if (fromDevice != null) return fromDevice;
+
+    final top = j['apikey'];
+    if (top is String && top.isNotEmpty) return top;
+    return null;
+  }
+
+  static String? _parseApiKeyFromBlock(Object? block) {
+    if (block is! Map) return null;
+    final map = Map<String, dynamic>.from(block);
+    final api = map['api'];
+    if (api is Map) {
+      final key = api['key'];
+      if (key is String && key.isNotEmpty) return key;
     }
-    final v = j['apikey'];
-    if (v is String && v.isNotEmpty) return v;
+    final apikey = map['apikey'];
+    if (apikey is String && apikey.isNotEmpty) return apikey;
     return null;
   }
 

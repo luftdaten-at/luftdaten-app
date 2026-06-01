@@ -1253,12 +1253,13 @@ class _DeviceConfigDialogState extends State<DeviceConfigDialog> {
             child: Text('Abbrechen'.i18n, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
+            onPressed: () async {
               widget.device.measurementInterval = measuringIntervalInternal;
               if (nameController.text.isNotEmpty && editingName) {
                 widget.device.userAssignedName = nameController.text;
               }
+              if (!context.mounted) return;
+              Navigator.pop(context);
               getIt<DeviceManager>().notifyListeners();
             },
             style: ButtonStyle(

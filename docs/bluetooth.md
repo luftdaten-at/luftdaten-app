@@ -104,7 +104,7 @@ Binary sensor payloads are interpreted into `SensorDataPoint` / `MeasurableQuant
 - Live measurements and trips (`TripController`, background services).
 - Device manager UI, optional multi-device measurements (`AppSettings.I.enableMultiDeviceMeasurements`).
 - Air Station configuration wizard (writes commands / config per protocol).
-- Workshop uploads: `WorkshopController` can include an **apikey** from the device when firmware exposes it (JSON or binary v2); otherwise uploads may be skipped (see logs in `attemptSendData`).
+- Workshop uploads: `DeviceApiKeyBleSync` reads the Datahub API key from BLE on connect (`device_info`, Air Station TLV `20`, sensor JSON metadata) and persists it to `StationSecretsStore`; `DeviceApiKeyResolver` uses BLE cache then secure storage. See firmware [`ble-characteristics.md`](https://github.com/luftdaten-at/firmware/blob/main/docs/ble-characteristics.md). If the device has no `api_key` configured, uploads are skipped (`pendingMissingApiKeyHint` toast) unless a key was synced on a previous connect.
 - **Serial BLE console** (`BLESerialPage`) and **nearby device debug** (`nearby_devices_debug_page.dart`) for development / support.
 - Registration wizard copy references BLE MAC (registration UI is currently commented out — see [external-apis.md](external-apis.md)).
 

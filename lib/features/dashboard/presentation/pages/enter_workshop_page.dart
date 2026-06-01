@@ -4,6 +4,7 @@ import 'package:lottie/lottie.dart';
 import 'package:luftdaten.at/core/app/toaster.dart';
 import 'package:luftdaten.at/features/measurements/logic/workshop_controller.dart';
 import 'package:luftdaten.at/features/devices/data/workshop_configuration.dart';
+import 'package:luftdaten.at/features/devices/data/app_permissions.dart';
 import 'package:luftdaten.at/core/utils/day.dart';
 
 import 'package:luftdaten.at/core/core.dart';
@@ -220,7 +221,9 @@ class _EnterWorkshopPageState extends State<EnterWorkshopPage> with TickerProvid
                               child: Text('Abbrechen'.i18n)),
                           const SizedBox(width: 5),
                           FilledButton(
-                              onPressed: () {
+                              onPressed: () async {
+                                await AppPermissions.locationWhileInUse.request();
+                                if (!context.mounted) return;
                                 getIt<WorkshopController>().currentWorkshop = config;
                                 Navigator.of(context).pop(true);
                                 Toaster.showSuccessToast(

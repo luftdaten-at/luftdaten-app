@@ -14,7 +14,8 @@ import '../data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/logic/sd_ble_export.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/core/config/app_settings.dart';
-import 'package:luftdaten.at/features/devices/logic/station_secrets_store.dart';
+import 'package:luftdaten.at/features/devices/logic/device_api_key_ble_sync.dart';
+import 'package:luftdaten.at/features/devices/logic/device_api_key_resolver.dart';
 
 class BleControllerV2 implements BleControllerForProtocol {
   // Singleton
@@ -25,17 +26,6 @@ class BleControllerV2 implements BleControllerForProtocol {
   factory BleControllerV2() => _instance;
 
   final _ble = FlutterReactiveBle();
-
-  Future<void> _persistApiKeyIfPresent(BleDevice device) async {
-    final key = device.apiKey?.trim();
-    if (key == null || key.isEmpty) return;
-    try {
-      await StationSecretsStore.instance.writeApiKey(device.bleName, key);
-      logger.d('Persisted api key for station BLE name ${device.bleName} to secure storage');
-    } catch (e, st) {
-      logger.d('Failed to persist api key to secure storage: $e ($st)');
-    }
-  }
 
   // UUIDs
   final Uuid _serviceId = Uuid.parse("0931b4b5-2917-4a8d-9e72-23103c09ac29");
@@ -60,12 +50,11 @@ class BleControllerV2 implements BleControllerForProtocol {
       try {
         final jsonStr = utf8.decode(rawDeviceDetails);
         final info = json.decode(jsonStr) as Map<String, dynamic>;
-        final apikey = BleJsonParser.parseApiKey(info);
-        if (apikey != null && apikey.isNotEmpty) {
-          device.apiKey = apikey;
-          logger.d('getDeviceDetails: parsed apiKey from device info JSON');
-          await _persistApiKeyIfPresent(device);
-        }
+        await DeviceApiKeyBleSync.applyFromBleMetadata(
+          device,
+          info,
+          logSource: 'device_info_json',
+        );
         final station = info['station'];
         device.firmwareVersion = BleJsonParser.parseFirmwareFromStation(
           station is Map ? Map<String, dynamic>.from(station) : null,
@@ -102,12 +91,28 @@ class BleControllerV2 implements BleControllerForProtocol {
           final apiKeyBytes = rawDeviceDetails.sublist(
               sensorBlockEnd + 1, sensorBlockEnd + 1 + apiKeyLen);
           try {
-            device.apiKey = utf8.decode(apiKeyBytes);
-            logger.d('getDeviceDetails: parsed apiKey from device info (binary)');
-            await _persistApiKeyIfPresent(device);
+            await DeviceApiKeyBleSync.applyKey(
+              device,
+              utf8.decode(apiKeyBytes),
+              logSource: 'device_info_binary',
+            );
           } catch (_) {}
         }
       }
+    }
+    if (device.model == LDDeviceModel.station) {
+      try {
+        final tlvBytes = await readAirStationConfiguration(device);
+        if (tlvBytes != null && tlvBytes.isNotEmpty) {
+          await DeviceApiKeyBleSync.applyFromAirStationConfigBytes(device, tlvBytes);
+        }
+      } catch (e) {
+        logger.d('getDeviceDetails: air_station_configuration read failed: $e');
+      }
+    }
+    await DeviceApiKeyResolver.hydrateDeviceFromSecureStorage(device);
+    if (device.apiKey != null && device.apiKey!.isNotEmpty) {
+      logger.d('getDeviceDetails: apiKey loaded (hydrated from secure storage or BLE)');
     }
     try {
       List<int> rawSensorDetails =
@@ -219,12 +224,11 @@ class BleControllerV2 implements BleControllerForProtocol {
       final data = j[0] as Map<String, dynamic>;
       rawSensorData = List<int>.from(j[1]);
       logger.d('BLE JSON metadata j[0]: $data');
-      final apikey = BleJsonParser.parseApiKey(data);
-      if (apikey != null && apikey.isNotEmpty) {
-        device.apiKey = apikey;
-        logger.d('BLE: cached apiKey from sensor metadata to device');
-        await _persistApiKeyIfPresent(device);
-      }
+      await DeviceApiKeyBleSync.applyFromBleMetadata(
+        device,
+        data,
+        logSource: 'sensor_values_json',
+      );
       return [_SensorDataParser(rawSensorData).parse(), data];
     }
 
