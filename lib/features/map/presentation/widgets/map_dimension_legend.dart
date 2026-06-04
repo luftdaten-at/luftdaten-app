@@ -70,48 +70,64 @@ class MapDimensionLegend extends StatelessWidget {
   Widget build(BuildContext context) {
     final pmRows = _euPmRows(context);
     if (pmRows.isNotEmpty) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Farben (Eu‑Luftqualitätsindex für Feinstaub, µg/m³ · stündliche Schwellen)'.i18n,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            ...pmRows,
-            const SizedBox(height: 8),
-            Text(
-              'Orientiert sich an den Farbstufen der Europäischen Umweltagentur.'.i18n,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),
-            ),
-          ],
-        ),
+      return _legendPanel(
+        context,
+        [
+          Text(
+            'Farben (Eu‑Luftqualitätsindex für Feinstaub, µg/m³ · stündliche Schwellen)'.i18n,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          ...pmRows,
+          const SizedBox(height: 8),
+          Text(
+            'Orientiert sich an den Farbstufen der Europäischen Umweltagentur.'.i18n,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),
+          ),
+        ],
       );
     }
 
     if (dimensionId == enums.Dimension.TEMPERATURE) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Farben (Temperatur · Messverlauf)'.i18n,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            ..._temperatureRows(),
-          ],
-        ),
+      return _legendPanel(
+        context,
+        [
+          Text(
+            'Farben (Temperatur · Messverlauf)'.i18n,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          ..._temperatureRows(),
+        ],
       );
     }
 
     return const SizedBox.shrink();
   }
+}
+
+Widget _legendPanel(BuildContext context, List<Widget> body) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 4),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: IconButton(
+            icon: const Icon(Icons.close, size: 20),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            visualDensity: VisualDensity.compact,
+            tooltip: 'Schließen'.i18n,
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        ...body,
+      ],
+    ),
+  );
 }
 
 class _LegendRow extends StatelessWidget {
