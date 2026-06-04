@@ -24,6 +24,34 @@ void main() {
     }
   });
 
+  group('BatteryDetails.hasReportableBattery', () {
+    test('true for charging and discharging', () {
+      expect(
+        BatteryDetails(status: BatteryStatus.charging).hasReportableBattery,
+        isTrue,
+      );
+      expect(
+        BatteryDetails(status: BatteryStatus.discharging, percentage: 50).hasReportableBattery,
+        isTrue,
+      );
+    });
+
+    test('false for faulty unsupported unknown', () {
+      expect(
+        BatteryDetails(status: BatteryStatus.faulty).hasReportableBattery,
+        isFalse,
+      );
+      expect(
+        BatteryDetails(status: BatteryStatus.unsupported).hasReportableBattery,
+        isFalse,
+      );
+      expect(
+        BatteryDetails(status: BatteryStatus.unknown).hasReportableBattery,
+        isFalse,
+      );
+    });
+  });
+
   group('BatteryDetails.fromBytes', () {
     test('returns faulty when byte 0 is 0', () {
       final details = BatteryDetails.fromBytes([0, 50, 38]);

@@ -10,23 +10,29 @@ class BatteryInfoAggregator extends ChangeNotifier {
 
   List<BatteryDetails> collectedBatteryDetails = [];
 
-  bool _show = false;
-
-  bool get show {
-    return _show && currentBatteryDetails != null;
-  }
+  bool get show => currentBatteryDetails?.hasReportableBattery ?? false;
 
   void onConnectionStatusUpdated() {
-    bool newShow = getIt<DeviceManager>().devices.any((e) => e.state == BleDeviceState.connected);
-    if (_show != newShow) {
-      _show = newShow;
-      notifyListeners();
+    syncFromConnectedDevices();
+  }
+
+  void syncFromConnectedDevices() {
+    BatteryDetails? next;
+    for (final device in getIt<DeviceManager>().devices) {
+      if (device.state != BleDeviceState.connected) continue;
+      final details = device.batteryDetails;
+      if (details != null && details.hasReportableBattery) {
+        next = details;
+        break;
+      }
     }
+    if (currentBatteryDetails == next) return;
+    currentBatteryDetails = next;
+    notifyListeners();
   }
 
   void add(BatteryDetails details) {
-    currentBatteryDetails = details;
     collectedBatteryDetails.add(details);
-    notifyListeners();
+    syncFromConnectedDevices();
   }
 }

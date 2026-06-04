@@ -15,9 +15,12 @@ class MockFactories {
 class _MockBatteryInfoAggregator extends BatteryInfoAggregator {
   @override
   void add(BatteryDetails details) {
-    // No-op; avoid DeviceManager dependency
-    currentBatteryDetails = details;
     collectedBatteryDetails.add(details);
-    // Don't call notifyListeners to avoid trigger chain
+    if (details.hasReportableBattery) {
+      currentBatteryDetails = details;
+    }
   }
+
+  @override
+  void syncFromConnectedDevices() {}
 }

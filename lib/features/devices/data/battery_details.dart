@@ -6,6 +6,10 @@ class BatteryDetails {
   final double? percentage, voltage;
   final DateTime? timestamp;
 
+  /// True when firmware reports a battery sensor (byte 0 = 1) with valid %/voltage.
+  bool get hasReportableBattery =>
+      status == BatteryStatus.charging || status == BatteryStatus.discharging;
+
   BatteryDetails({required this.status, this.percentage, this.voltage, this.timestamp}) {
     getIt<BatteryInfoAggregator>().add(this);
   }

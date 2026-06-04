@@ -119,6 +119,7 @@ class BleDevice extends ChangeNotifier {
   set batteryDetails(BatteryDetails? details) {
     _batteryDetails = details;
     notifyListeners();
+    getIt<BatteryInfoAggregator>().syncFromConnectedDevices();
   }
 
   List<DeviceError> errors = [];

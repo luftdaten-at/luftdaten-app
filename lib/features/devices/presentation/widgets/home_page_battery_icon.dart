@@ -30,17 +30,12 @@ class HomePageBatteryIcon extends StatelessWidget {
   }
 
   Widget _buildIcon(BatteryInfoAggregator batteryInfoAggregator) {
-    switch (batteryInfoAggregator.currentBatteryDetails!.status) {
-      case BatteryStatus.unknown:
-        return const SizedBox();
-      case BatteryStatus.unsupported:
-      case BatteryStatus.faulty:
-        return const Icon(Icons.battery_unknown_outlined, color: Colors.grey);
+    final details = batteryInfoAggregator.currentBatteryDetails!;
+    switch (details.status) {
       case BatteryStatus.charging:
         return const Icon(Icons.battery_charging_full_outlined, color: Colors.green);
       case BatteryStatus.discharging:
-      // Depends on battery percentage
-        double percentage = batteryInfoAggregator.currentBatteryDetails!.percentage ?? 0;
+        final percentage = details.percentage ?? 0;
         if (percentage > 90) {
           return Icon(Icons.battery_full, color: Colors.greenAccent.shade200);
         } else if (percentage > 70) {
@@ -52,6 +47,10 @@ class HomePageBatteryIcon extends StatelessWidget {
         } else {
           return Icon(Icons.battery_alert, color: Colors.redAccent.shade200);
         }
+      case BatteryStatus.unknown:
+      case BatteryStatus.unsupported:
+      case BatteryStatus.faulty:
+        return const SizedBox.shrink();
     }
   }
 }
