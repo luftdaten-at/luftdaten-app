@@ -424,7 +424,8 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
                     const SizedBox(width: 5),
                     Text(shortenedName, style: const TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(width: 5),
-                    if (device.state == BleDeviceState.connected && device.batteryDetails != null)
+                    if (device.state == BleDeviceState.connected &&
+                        device.batteryDetails?.hasReportableBattery == true)
                       ..._getBatteryIconAndText(device.batteryDetails!),
                     const Spacer(flex: 1),
                     DeviceConnectButton(device: device),
