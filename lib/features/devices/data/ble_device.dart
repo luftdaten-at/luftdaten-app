@@ -15,6 +15,7 @@ import 'package:luftdaten.at/features/devices/data/device_error.dart';
 import 'package:luftdaten.at/features/devices/data/sensor_details.dart';
 
 import 'package:luftdaten.at/core/widgets/ui.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/ble_device_notices_presenter.dart';
 
 class BleDevice extends ChangeNotifier {
   // Device state
@@ -218,6 +219,7 @@ class BleDevice extends ChangeNotifier {
             await Future<void>.delayed(const Duration(milliseconds: 800));
             await ble.getDeviceDetailsAndCheckProtocol(this);
             state = BleDeviceState.connected;
+            BleDeviceNoticesPresenter.showAfterConnectIfNeeded(this);
             if (!completer.isCompleted) completer.complete(true);
           } on IncompatibleFirmwareException catch (e) {
             state = BleDeviceState.error;

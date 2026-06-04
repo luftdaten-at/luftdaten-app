@@ -29,6 +29,10 @@ extension Localization on String {
       {
         'de': 'Gerätestatus',
         'en': 'Device status',
+      } +
+      {
+        'de': 'Gerät: %s',
+        'en': 'Device: %s',
       };
 
   String get i18n => localize(this, _t);

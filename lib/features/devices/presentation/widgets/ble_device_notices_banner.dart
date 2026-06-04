@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device_status.dart';
-import 'package:luftdaten.at/core/widgets/ui.dart';
 
 import 'ble_device_notices_banner.i18n.dart';
+import 'ble_device_notices_presenter.dart';
 
 /// Shows operational notices from BLE `device_status` (firmware flags + Wi‑Fi detail).
 class BleDeviceNoticesBanner extends StatelessWidget {
@@ -40,7 +40,7 @@ class BleDeviceNoticesBanner extends StatelessWidget {
       return IconButton(
         icon: Icon(Icons.warning_amber_rounded, color: Theme.of(context).colorScheme.error),
         tooltip: 'Gerätestatus'.i18n,
-        onPressed: () => _showNoticesDialog(context, notices),
+        onPressed: () => BleDeviceNoticesPresenter.showNoticesDialog(context, notices),
       );
     }
 
@@ -53,26 +53,6 @@ class BleDeviceNoticesBanner extends StatelessWidget {
     );
   }
 
-  void _showNoticesDialog(BuildContext context, List<BleDeviceNotice> notices) {
-    showLDDialog(
-      context,
-      title: 'Gerätestatus'.i18n,
-      icon: Icons.warning_amber_rounded,
-      color: Colors.orange,
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: notices
-            .map(
-              (n) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(messageForNotice(n)),
-              ),
-            )
-            .toList(),
-      ),
-    );
-  }
 }
 
 class _NoticeRow extends StatelessWidget {

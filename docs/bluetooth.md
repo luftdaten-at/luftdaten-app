@@ -46,6 +46,8 @@ Copy explains that BLE is required to communicate with the measurement device. B
 - Calls `connectToDevice` with `connectionTimeout: 5` seconds.
 - **iOS:** Does **not** pass `servicesWithCharacteristicsToDiscover`, so the stack performs **full GATT discovery**. This avoids missing write-only characteristics when using partial discovery.
 
+After a successful connect, `BleDevice.connect()` reads device details (including protocol v2 `device_status`). If operational notices are present (WLAN failure, incomplete configuration, no sensor, etc.), the app shows a **Gerätestatus** dialog via `BleDeviceNoticesPresenter` (same messages as `BleDeviceNoticesBanner` on Geräte / Dashboard). Polling `refreshDeviceStatus` does not re-open that dialog.
+
 ---
 
 ## GATT service and protocol selection
