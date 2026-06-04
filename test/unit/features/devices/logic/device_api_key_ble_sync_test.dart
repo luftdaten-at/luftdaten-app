@@ -1,8 +1,10 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/logic/device_api_key_ble_sync.dart';
+import 'package:luftdaten.at/features/devices/logic/station_secrets_store.dart';
 
 BleDevice _testDevice() {
   return BleDevice(
@@ -21,8 +23,13 @@ List<int> _tlv20(String key) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  setUpAll(() {
+    FlutterSecureStorage.setMockInitialValues({});
+  });
+
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
   });
 
   group('DeviceApiKeyBleSync.applyFromAirStationConfigBytes', () {
@@ -34,6 +41,10 @@ void main() {
       );
       expect(applied, isTrue);
       expect(device.apiKey, 'ble-station-key');
+      expect(
+        await StationSecretsStore.instance.readApiKey(device.bleName),
+        'ble-station-key',
+      );
     });
 
     test('returns false when TLV has no API key', () async {
@@ -60,6 +71,10 @@ void main() {
       );
       expect(applied, isTrue);
       expect(device.apiKey, 'json-metadata-key');
+      expect(
+        await StationSecretsStore.instance.readApiKey(device.bleName),
+        'json-metadata-key',
+      );
     });
   });
 }

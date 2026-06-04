@@ -657,7 +657,25 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
                 },
                 title: Row(
                   children: [
-                    Text(shortenedName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 5),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: devStateColors[device.state] ?? Colors.black,
+                        borderRadius: const BorderRadius.all(Radius.circular(6)),
+                      ),
+                      height: 12,
+                      width: 12,
+                    ),
+                    const SizedBox(width: 2),
+                    _getStatusBluetoothIcon(device.state),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        shortenedName,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                     IconButton(
                       onPressed: () {
                         showDialog(
@@ -669,7 +687,11 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
                       iconSize: 20,
                       tooltip: 'Umbenennen'.i18n,
                     ),
+                    if (device.state == BleDeviceState.connected &&
+                        device.batteryDetails?.hasReportableBattery == true)
+                      ..._getBatteryIconAndText(device.batteryDetails!),
                     const Spacer(flex: 1),
+                    DeviceConnectButton(device: device),
                   ],
                 ),
                 children: [
