@@ -9,11 +9,11 @@ import 'package:luftdaten.at/features/devices/data/sensor_details.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
 import 'package:luftdaten.at/features/devices/logic/ble_json_parser.dart';
-import '../data/battery_details.dart';
 import '../data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/logic/sd_ble_export.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/core/config/app_settings.dart';
+import 'package:luftdaten.at/features/devices/data/ble_device_status.dart';
 import 'package:luftdaten.at/features/devices/logic/device_api_key_ble_sync.dart';
 import 'package:luftdaten.at/features/devices/logic/device_api_key_resolver.dart';
 
@@ -150,9 +150,26 @@ class BleControllerV2 implements BleControllerForProtocol {
     List<int> rawBatteryData =
         await _ble.readCharacteristic(_characteristic(_deviceStatusId, device));
     logger.d('getDeviceDetails: rawBatteryData len=${rawBatteryData.length}, hex=${rawBatteryData.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}, raw=$rawBatteryData');
-    device.batteryDetails = BatteryDetails.fromBytes(rawBatteryData.sublist(0, 3));
-    logger.d('Battery status: ${device.batteryDetails}');
+    applyDeviceStatusBytes(device, rawBatteryData);
+    logger.d(
+      'Device status: battery=${device.batteryDetails}, '
+      'notices=${device.operationalNotices.map((n) => n.id).join(",")}',
+    );
     device.notify();
+  }
+
+  @override
+  Future<void> refreshDeviceStatus(BleDevice device) async {
+    if (device.state != BleDeviceState.connected || device.bleId == null) return;
+    try {
+      final raw = await _ble.readCharacteristic(_characteristic(_deviceStatusId, device));
+      applyDeviceStatusBytes(device, raw);
+      logger.d(
+        'refreshDeviceStatus: notices=${device.operationalNotices.map((n) => n.id).join(",")}',
+      );
+    } catch (e) {
+      logger.d('refreshDeviceStatus failed: $e');
+    }
   }
 
   Future<List<int>> _readWithRetry(QualifiedCharacteristic qc) async {
@@ -187,8 +204,11 @@ class BleControllerV2 implements BleControllerForProtocol {
     await Future.delayed(const Duration(milliseconds: 2500));
     List<int> rawBatteryData =
         await _readWithRetry(_characteristic(_deviceStatusId, device));
-    device.batteryDetails = BatteryDetails.fromBytes(rawBatteryData.sublist(0, 3));
-    logger.d('Battery status: ${device.batteryDetails}');
+    applyDeviceStatusBytes(device, rawBatteryData);
+    logger.d(
+      'Battery/status: ${device.batteryDetails}, '
+      'notices=${device.operationalNotices.map((n) => n.id).join(",")}',
+    );
     if(measureBattery) logger.d('(Newly requested)');
     List<int> rawSensorData = await _readWithRetry(_characteristic(_sensorDataId, device));
     if (rawSensorData.length < 2) {

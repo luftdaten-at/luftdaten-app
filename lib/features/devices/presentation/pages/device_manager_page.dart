@@ -16,6 +16,7 @@ import 'package:luftdaten.at/features/devices/presentation/pages/air_station_con
 import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_sd_ble_import.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_startup_flags_dialog.dart';
 import 'package:luftdaten.at/core/utils/list_extensions.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/ble_device_notices_banner.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/device_connect_button.dart';
 import 'package:luftdaten.at/core/widgets/rotating_widget.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -63,6 +64,34 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
 
   /// Throttle BLE reads for sd_log_export (battery updates reconnect frequently).
   final Map<String, DateTime> _lastSdBleExportPeekAtByBleName = {};
+
+  /// Poll `device_status` every 2s while an expansion tile is open and connected.
+  final Map<String, Timer> _deviceStatusPollTimersByBleName = {};
+
+  @override
+  void dispose() {
+    for (final t in _deviceStatusPollTimersByBleName.values) {
+      t.cancel();
+    }
+    _deviceStatusPollTimersByBleName.clear();
+    super.dispose();
+  }
+
+  void _onDeviceTileExpansionChanged(BleDevice device, bool expanded) {
+    final name = device.bleName;
+    _deviceStatusPollTimersByBleName[name]?.cancel();
+    _deviceStatusPollTimersByBleName.remove(name);
+    if (!expanded || device.state != BleDeviceState.connected) return;
+    unawaited(getIt<BleController>().refreshDeviceStatus(device));
+    _deviceStatusPollTimersByBleName[name] = Timer.periodic(
+      const Duration(seconds: 2),
+      (_) {
+        if (device.state == BleDeviceState.connected) {
+          unawaited(getIt<BleController>().refreshDeviceStatus(device));
+        }
+      },
+    );
+  }
 
   Future<void> _peekSdBleExportAvailability(BleDevice device) async {
     if (device.state != BleDeviceState.connected) return;
@@ -364,6 +393,12 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
     return ChangeNotifierBuilder(
         notifier: device,
         builder: (context, device) {
+          if (initiallyExpanded &&
+              !_deviceStatusPollTimersByBleName.containsKey(device.bleName)) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _onDeviceTileExpansionChanged(device, true);
+            });
+          }
           String shortenedName = device.displayName.replaceAll('Air aRound ', '');
           return ColoredBox(
             color: device.state == BleDeviceState.connected
@@ -372,6 +407,7 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
             child: Material(
               child: ExpansionTile(
                 initiallyExpanded: initiallyExpanded,
+                onExpansionChanged: (expanded) => _onDeviceTileExpansionChanged(device, expanded),
                 title: Row(
                   children: [
                     const SizedBox(width: 5),
@@ -395,6 +431,7 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
                   ],
                 ),
                 children: [
+                  BleDeviceNoticesBanner(device: device),
                   Row(
                     children: [
                       Expanded(
@@ -586,6 +623,13 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
         builder: (context, device) {
           String shortenedName = device.displayName;
 
+          if (initiallyExpanded &&
+              !_deviceStatusPollTimersByBleName.containsKey(device.bleName)) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _onDeviceTileExpansionChanged(device, true);
+            });
+          }
+
           if (device.state == BleDeviceState.connected) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               unawaited(_peekSdBleExportAvailability(device));
@@ -605,6 +649,7 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
               child: ExpansionTile(
                 initiallyExpanded: initiallyExpanded,
                 onExpansionChanged: (expanded) {
+                  _onDeviceTileExpansionChanged(device, expanded);
                   if (expanded && device.state == BleDeviceState.connected) {
                     unawaited(_peekSdBleExportAvailability(device));
                   }
@@ -627,6 +672,7 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
                   ],
                 ),
                 children: [
+                  BleDeviceNoticesBanner(device: device),
                   Row(
                     children: [
                       Expanded(

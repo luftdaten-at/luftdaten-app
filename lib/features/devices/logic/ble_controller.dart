@@ -72,6 +72,13 @@ class BleController {
     return BleControllerV2().peekSdBleExportIdle(device);
   }
 
+  /// Poll `device_status` for battery and operational notices (protocol v2).
+  Future<void> refreshDeviceStatus(BleDevice device) async {
+    await getProtocolVersion(device);
+    if (device.protocolVersion != 2) return;
+    return BleControllerV2().refreshDeviceStatus(device);
+  }
+
   /// Stream SD JSONL lines over BLE (`0x08` START/NEXT); protocol v2 / Air Station only.
   Future<SdBleImportResult> importSdJsonlFromBle(
     BleDevice device, {
@@ -120,4 +127,7 @@ abstract class BleControllerForProtocol {
   Future<bool> sendAirStationConfig(BleDevice device, List<int> bytes);
 
   Future<List<int>?> readAirStationConfiguration(BleDevice device);
+
+  /// Reads `device_status` (battery + operational flags). Protocol v2 only.
+  Future<void> refreshDeviceStatus(BleDevice device) async {}
 }

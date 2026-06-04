@@ -120,6 +120,9 @@ class BleControllerV1 implements BleControllerForProtocol {
   }
 
   @override
+  Future<void> refreshDeviceStatus(BleDevice device) async {}
+
+  @override
   Future<List<int>?> readAirStationConfiguration(BleDevice device) async {
     if (device.state != BleDeviceState.connected) {
       return null;
