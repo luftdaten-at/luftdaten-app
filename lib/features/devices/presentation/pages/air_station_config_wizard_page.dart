@@ -560,8 +560,34 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
           body: [
             'Deine Air Station sendet erfolgreich Messwerte über WLAN. Du kannst die Mess-'
                 'Werte nun im Dashboard verfolgen.',
+            if (widget.controller.lastVerificationApiLat != null &&
+                widget.controller.lastVerificationApiLon != null)
+              _geoSuccessDetailLine(),
           ],
           icon: Icons.celebration,
+          buttons: [
+            FilledButton(
+              onPressed: () {
+                AirStationConfigWizardController.removeController(widget.controller.id);
+                Navigator.pop(context);
+              },
+              child: Text('Konfiguration abschließen'.i18n),
+            ),
+          ],
+        );
+      case AirStationConfigWizardStage.firstDataSuccessWithGeoWarning:
+        return buildInfoScreen(
+          title: 'Messwerte empfangen — Standort prüfen',
+          body: [
+            'Deine Air Station sendet Messwerte an die API. Der Standort in der Luftdaten-Karte '
+                'weicht jedoch von deiner Eingabe ab oder ist noch nicht sichtbar.',
+            if (widget.controller.lastVerificationApiLat != null &&
+                widget.controller.lastVerificationApiLon != null)
+              _geoSuccessDetailLine(),
+            'Öffne die Geräte-Einstellungen und prüfe Längen-/Breitengrad, oder warte einige '
+                'Minuten und lade die Luftkarte neu.',
+          ],
+          icon: Icons.warning_amber_rounded,
           buttons: [
             FilledButton(
               onPressed: () {
@@ -1034,7 +1060,52 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
     );
   }
 
+  String _geoSuccessDetailLine() {
+    final lat = widget.controller.lastVerificationApiLat!;
+    final lon = widget.controller.lastVerificationApiLon!;
+    final dist = widget.controller.lastVerificationGeoDistanceM;
+    final distPart = dist != null
+        ? ' (Abweichung ca. ${dist.round()} m)'
+        : '';
+    return 'Standort in der API: ${lat.toStringAsFixed(5)}°, ${lon.toStringAsFixed(5)}°$distPart';
+  }
+
+  Widget _verificationCheckRow(String label, bool? ok) {
+    final IconData icon;
+    final Color color;
+    if (ok == true) {
+      icon = Icons.check_circle_outline;
+      color = Colors.green.shade700;
+    } else if (ok == false) {
+      icon = Icons.schedule;
+      color = Colors.orange.shade800;
+    } else {
+      icon = Icons.radio_button_unchecked;
+      color = Colors.grey.shade600;
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(label, style: TextStyle(fontSize: 15, color: color)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget buildWaitForDataScreen() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startStatusPollIfConnected());
+
+    final progress = widget.controller.verificationProgress;
+    final attemptLabel = progress != null && progress.attemptCount > 0
+        ? 'Prüfung ${progress.attemptCount} …'
+        : 'Starte Prüfung …';
+
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Center(
@@ -1042,6 +1113,7 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            _buildBleNoticesBanner(),
             const Spacer(flex: 2),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -1051,7 +1123,24 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
                 const Ellipsis(style: TextStyle(fontSize: 26), fixedWidth: true),
               ],
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 8),
+            Text(
+              attemptLabel,
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            _verificationCheckRow('Messwerte in der API'.i18n, progress?.measurementsOk),
+            _verificationCheckRow('Standort in der API'.i18n, progress?.geoOk),
+            if (progress?.lastError != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Netzwerkfehler — erneuter Versuch …'.i18n,
+                style: TextStyle(fontSize: 13, color: Colors.orange.shade800),
+                textAlign: TextAlign.center,
+              ),
+            ],
+            const SizedBox(height: 12),
             Center(
               child: LottieBuilder.asset(
                 'assets/lottie/loading.json',
@@ -1093,7 +1182,8 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
 
   /// Wizard route actually popped (back gesture, programmatic pop).
   void _onWizardRouteDidPop() {
-    if (widget.controller.stage == AirStationConfigWizardStage.firstDataSuccess) {
+    if (widget.controller.stage == AirStationConfigWizardStage.firstDataSuccess ||
+        widget.controller.stage == AirStationConfigWizardStage.firstDataSuccessWithGeoWarning) {
       AirStationConfigWizardController.removeController(widget.controller.id);
     }
   }
@@ -1106,6 +1196,7 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
     switch (widget.controller.stage) {
       case AirStationConfigWizardStage.waitingForFirstData:
       case AirStationConfigWizardStage.firstDataSuccess:
+      case AirStationConfigWizardStage.firstDataSuccessWithGeoWarning:
         return;
       default:
         break;
@@ -1145,7 +1236,8 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
     if (widget.controller.stage == AirStationConfigWizardStage.waitingForFirstData) {
       return true;
     }
-    if (widget.controller.stage == AirStationConfigWizardStage.firstDataSuccess) {
+    if (widget.controller.stage == AirStationConfigWizardStage.firstDataSuccess ||
+        widget.controller.stage == AirStationConfigWizardStage.firstDataSuccessWithGeoWarning) {
       return true;
     }
     return false;
