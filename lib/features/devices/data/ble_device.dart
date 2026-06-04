@@ -8,6 +8,7 @@ import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
 import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/features/devices/data/battery_details.dart';
+import 'package:luftdaten.at/features/devices/data/ble_device_status.dart';
 import 'package:luftdaten.at/features/devices/data/chip_id.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.i18n.dart';
 import 'package:luftdaten.at/features/devices/data/device_error.dart';
@@ -23,6 +24,9 @@ class BleDevice extends ChangeNotifier {
 
   set state(BleDeviceState state) {
     _state = state;
+    if (state != BleDeviceState.connected) {
+      _operationalNotices = [];
+    }
     notifyListeners();
     getIt<BatteryInfoAggregator>().onConnectionStatusUpdated();
   }
@@ -118,6 +122,15 @@ class BleDevice extends ChangeNotifier {
   }
 
   List<DeviceError> errors = [];
+
+  List<BleDeviceNotice> _operationalNotices = [];
+
+  List<BleDeviceNotice> get operationalNotices => _operationalNotices;
+
+  set operationalNotices(List<BleDeviceNotice> notices) {
+    _operationalNotices = List<BleDeviceNotice>.from(notices);
+    notifyListeners();
+  }
 
   /// Identifier that is used to connect to a BLE device. On Android, this is the MAC address.
   /// On iOS, this is a unique identifier which can change between app starts, and is extracted

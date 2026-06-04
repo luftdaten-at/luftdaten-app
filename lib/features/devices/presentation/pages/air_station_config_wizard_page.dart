@@ -5,7 +5,10 @@ import 'package:luftdaten.at/features/devices/logic/air_station_config_wizard_co
 import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.i18n.dart';
 import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
+import 'package:luftdaten.at/features/devices/data/ble_device.dart';
+import 'package:luftdaten.at/features/devices/logic/ble_controller.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_mqtt_config_dialog.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/ble_device_notices_banner.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_startup_flags_dialog.dart';
 import 'package:luftdaten.at/core/utils/list_extensions.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
@@ -80,8 +83,43 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
 
   @override
   void dispose() {
+    _statusPollTimer?.cancel();
     animation.dispose();
     super.dispose();
+  }
+
+  Timer? _statusPollTimer;
+
+  BleDevice? _wizardBleDevice() {
+    try {
+      return getIt<DeviceManager>()
+          .devices
+          .firstWhere((e) => e.bleName == widget.controller.id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Widget _buildBleNoticesBanner() {
+    final dev = _wizardBleDevice();
+    if (dev == null) return const SizedBox.shrink();
+    return ChangeNotifierBuilder(
+      notifier: dev,
+      builder: (_, device) => BleDeviceNoticesBanner(device: device),
+    );
+  }
+
+  void _startStatusPollIfConnected() {
+    _statusPollTimer?.cancel();
+    final dev = _wizardBleDevice();
+    if (dev == null || dev.state != BleDeviceState.connected) return;
+    unawaited(getIt<BleController>().refreshDeviceStatus(dev));
+    _statusPollTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      final d = _wizardBleDevice();
+      if (d != null && d.state == BleDeviceState.connected) {
+        unawaited(getIt<BleController>().refreshDeviceStatus(d));
+      }
+    });
   }
 
   Widget buildContent() {
@@ -262,8 +300,6 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
           body: [
             'Stelle zunächst sicher, dass deine Air Station mit einem Netzteil mit mindestens '
                 '2A Stromstärke verbunden ist.',
-            'Drücke dann den „BT“-Knopf am Gerät. Die Status-LED neben dem Knopf sollte nun '
-                'blau leuchten. Drücke dann auf „Weiter“.',
           ],
           icon: Icons.bluetooth,
           buttons: [
@@ -673,12 +709,15 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
     final dropdownValue =
         dropdownItems.contains(selectedLog) ? selectedLog : dropdownItems.first;
 
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startStatusPollIfConnected());
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          _buildBleNoticesBanner(),
           const SizedBox(height: 12),
           Center(
             child: Icon(
@@ -904,6 +943,8 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
   }
 
   Widget buildEditWifiScreen() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startStatusPollIfConnected());
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Center(
@@ -911,6 +952,7 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            _buildBleNoticesBanner(),
             const Spacer(flex: 2),
             Center(
               child: Icon(
