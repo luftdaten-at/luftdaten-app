@@ -670,6 +670,7 @@ class _MapPageState extends State<MapPage>
                     constraints: const BoxConstraints(minWidth: 288),
                     itemBuilder: (context) => [
                       PopupMenuItem<int>(
+                        enabled: false,
                         value: _kMapLegendDismissMenuValue,
                         padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
                         child: ConstrainedBox(
