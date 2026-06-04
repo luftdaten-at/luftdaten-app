@@ -14,6 +14,7 @@ import 'package:geolocator/geolocator.dart'; // Import geolocator package for GP
 
 import 'ble_controller.dart';
 import 'device_api_key_ble_sync.dart';
+import 'air_station_setup_verification.dart';
 
 class AirStationConfigWizardController extends ChangeNotifier {
   static final MapChangeNotifier<String, AirStationConfigWizardController> _activeControllers = MapChangeNotifier();
@@ -41,9 +42,11 @@ class AirStationConfigWizardController extends ChangeNotifier {
       AirStationConfigWizardController c =
           AirStationConfigWizardController.fromJson((e as Map).cast<String, dynamic>());
       // Check which phase to resume from
-      if(c.firstDataSuccessReceivedAt != null) {
-        c.waitForFirstData();
-      } else if(c.configSentAt != null) {
+      if (c.firstDataSuccessReceivedAt != null) {
+        c.stage = c.geoWarningOnSuccess
+            ? AirStationConfigWizardStage.firstDataSuccessWithGeoWarning
+            : AirStationConfigWizardStage.firstDataSuccess;
+      } else if (c.configSentAt != null) {
         c.waitForFirstData();
       } else if(c.configLoadedAt != null) {
         if(DateTime.now().difference(c.configLoadedAt!).inMinutes > 15) {
@@ -106,6 +109,17 @@ class AirStationConfigWizardController extends ChangeNotifier {
     if(json['firstDataSuccessReceivedAt'] != null) {
       c._firstDataSuccessReceivedAt = DateTime.parse(json['firstDataSuccessReceivedAt']);
     }
+    c.geoWarningOnSuccess = json['geoWarningOnSuccess'] == true;
+    if (json['lastVerificationApiLat'] != null) {
+      c.lastVerificationApiLat = (json['lastVerificationApiLat'] as num).toDouble();
+    }
+    if (json['lastVerificationApiLon'] != null) {
+      c.lastVerificationApiLon = (json['lastVerificationApiLon'] as num).toDouble();
+    }
+    if (json['lastVerificationGeoDistanceM'] != null) {
+      c.lastVerificationGeoDistanceM =
+          (json['lastVerificationGeoDistanceM'] as num).toDouble();
+    }
     return c;
   }
 
@@ -117,6 +131,11 @@ class AirStationConfigWizardController extends ChangeNotifier {
       if(configLoadedAt != null) 'configLoadedAt': configLoadedAt!.toIso8601String(),
       if(configSentAt != null) 'configSentAt': configSentAt!.toIso8601String(),
       if(firstDataSuccessReceivedAt != null) 'firstDataSuccessReceivedAt': firstDataSuccessReceivedAt!.toIso8601String(),
+      'geoWarningOnSuccess': geoWarningOnSuccess,
+      if (lastVerificationApiLat != null) 'lastVerificationApiLat': lastVerificationApiLat,
+      if (lastVerificationApiLon != null) 'lastVerificationApiLon': lastVerificationApiLon,
+      if (lastVerificationGeoDistanceM != null)
+        'lastVerificationGeoDistanceM': lastVerificationGeoDistanceM,
     };
   }
 
@@ -136,6 +155,14 @@ class AirStationConfigWizardController extends ChangeNotifier {
   TextEditingController? tzBleController;
 
   DateTime? _configLoadedAt, _configSentAt, _firstDataSuccessReceivedAt;
+
+  bool geoWarningOnSuccess = false;
+  double? lastVerificationApiLat;
+  double? lastVerificationApiLon;
+  double? lastVerificationGeoDistanceM;
+
+  SetupVerificationProgress? verificationProgress;
+  bool _verificationLoopActive = false;
 
   DateTime? get configLoadedAt => _configLoadedAt;
 
@@ -343,16 +370,142 @@ class AirStationConfigWizardController extends ChangeNotifier {
 
   Future<void> waitForFirstData() async {
     stage = AirStationConfigWizardStage.waitingForFirstData;
-    // TODO periodically check for data
-    _checkForDataOnline();
+    verificationProgress = SetupVerificationProgress();
+    notifyListeners();
+    if (_verificationLoopActive) return;
+    _verificationLoopActive = true;
+    try {
+      await _checkForDataOnline();
+    } finally {
+      _verificationLoopActive = false;
+    }
+  }
+
+  BleDevice? _wizardBleDevice() {
+    try {
+      return getIt<DeviceManager>().devices.firstWhere((e) => e.bleName == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool _bleHasWifiFailure(BleDevice dev) {
+    return dev.operationalNotices.any((n) =>
+        n.id == 'wifi_failure' ||
+        n.id == 'wifi_credentials_missing' ||
+        n.id == 'wifi_ssid_not_found' ||
+        n.id == 'wifi_connection_failed');
+  }
+
+  bool _bleHasConfigIncomplete(BleDevice dev) {
+    return dev.operationalNotices.any((n) => n.id == 'config_incomplete');
+  }
+
+  Future<bool> _refreshBleStatusIfConnected() async {
+    final dev = _wizardBleDevice();
+    if (dev == null || dev.state != BleDeviceState.connected) return false;
+    try {
+      await getIt<BleController>().refreshDeviceStatus(dev);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Returns true if polling should stop (stage changed).
+  Future<bool> _blePreflightDuringWait() async {
+    if (stage != AirStationConfigWizardStage.waitingForFirstData) return true;
+    if (!await _refreshBleStatusIfConnected()) return false;
+    final dev = _wizardBleDevice();
+    if (dev == null) return false;
+    if (_bleHasWifiFailure(dev)) {
+      stage = AirStationConfigWizardStage.genericWifiFailure;
+      return true;
+    }
+    if (_bleHasConfigIncomplete(dev)) {
+      stage = AirStationConfigWizardStage.editSettings;
+      return true;
+    }
+    return false;
   }
 
   Future<void> _checkForDataOnline() async {
+    final deviceId = AirStationSetupVerification.resolveDeviceId(config, id);
+    if (deviceId.isEmpty) {
+      logger.d('setup verification: no device id for $id');
+      stage = AirStationConfigWizardStage.firstDataFailed;
+      return;
+    }
 
-    // directly go to station detail view
-    stage = AirStationConfigWizardStage.firstDataSuccess;
+    final expectedLat = config?.latitude;
+    final expectedLon = config?.longitude;
+    final deadline = DateTime.now().add(AirStationSetupVerification.maxWait);
+    var attempt = 0;
+    var consecutiveNetworkErrors = 0;
 
-    return;
+    while (DateTime.now().isBefore(deadline)) {
+      if (stage != AirStationConfigWizardStage.waitingForFirstData) return;
+      if (await _blePreflightDuringWait()) return;
+
+      attempt++;
+      final result = await AirStationSetupVerification.runAttempt(
+        deviceId: deviceId,
+        expectedLatitude: expectedLat,
+        expectedLongitude: expectedLon,
+      );
+
+      verificationProgress = SetupVerificationProgress(
+        attemptCount: attempt,
+        measurementsOk: result.measurementsFound,
+        geoOk: result.geoMatchesExpected,
+        apiLatitude: result.apiLatitude,
+        apiLongitude: result.apiLongitude,
+        geoDistanceMeters: result.geoDistanceMeters,
+        lastCheckAt: DateTime.now(),
+        lastError: result.errorMessage,
+      );
+      notifyListeners();
+
+      switch (result.outcome) {
+        case SetupVerificationOutcome.completeSuccess:
+          firstDataSuccessReceivedAt = DateTime.now();
+          geoWarningOnSuccess = false;
+          lastVerificationApiLat = result.apiLatitude;
+          lastVerificationApiLon = result.apiLongitude;
+          lastVerificationGeoDistanceM = result.geoDistanceMeters;
+          stage = AirStationConfigWizardStage.firstDataSuccess;
+          saveAll();
+          return;
+        case SetupVerificationOutcome.successMeasurementsOnly:
+          firstDataSuccessReceivedAt = DateTime.now();
+          geoWarningOnSuccess = true;
+          lastVerificationApiLat = result.apiLatitude;
+          lastVerificationApiLon = result.apiLongitude;
+          lastVerificationGeoDistanceM = result.geoDistanceMeters;
+          stage = AirStationConfigWizardStage.firstDataSuccessWithGeoWarning;
+          saveAll();
+          return;
+        case SetupVerificationOutcome.networkError:
+          consecutiveNetworkErrors++;
+          if (consecutiveNetworkErrors >= 3) {
+            stage = AirStationConfigWizardStage.firstDataCheckFailed;
+            return;
+          }
+          break;
+        case SetupVerificationOutcome.noMeasurementsYet:
+        case SetupVerificationOutcome.pending:
+          consecutiveNetworkErrors = 0;
+          break;
+      }
+
+      if (DateTime.now().isBefore(deadline)) {
+        await Future.delayed(AirStationSetupVerification.pollInterval);
+      }
+    }
+
+    if (stage == AirStationConfigWizardStage.waitingForFirstData) {
+      stage = AirStationConfigWizardStage.firstDataFailed;
+    }
   }
 
   // Method to fetch current location
@@ -393,6 +546,7 @@ enum AirStationConfigWizardStage {
   genericWifiFailure, // Placeholder until we know more from device
   waitingForFirstData,
   firstDataSuccess,
+  firstDataSuccessWithGeoWarning,
   firstDataFailed,
   firstDataCheckFailed,
   setLocation,

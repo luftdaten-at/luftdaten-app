@@ -32,6 +32,17 @@ The app uses the [`http`](https://pub.dev/packages/http) package for most progra
 - **Response:** CSV with header **`device,time_measured,dimension,dimension_name,value`** (5 columns). `SingleStationHttpProvider` reads **`dimension` from column 3 (0-based index 2)** and the **numeric measurement from the last column**, which also matches legacy **4-column** CSV without `dimension_name` as long as `dimension_name` does not contain commas. Dimension IDs map to `Dimension` in `lib/core/domain/dimensions.dart`; charts aggregate timestamps into `DataItem` rows (PM1/PM2.5/PM10 when those dimensions exist for that time).
 - **Consumers:** Dashboard station tiles, station detail / chart flows (`dashboard_station_tile.dart`, `station_details_page.dart`, `map_page.dart`).
 
+### Air Station wizard — setup verification (first data online)
+
+After BLE configuration, [`AirStationConfigWizardController`](lib/features/devices/logic/air_station_config_wizard_controller.dart) polls the API via [`AirStationSetupVerification`](lib/features/devices/logic/air_station_setup_verification.dart) (every **45 s**, up to **12 min**):
+
+1. **Measurements:** `GET /v1/station/historical?station_ids=<deviceId>&precision=all&output_format=csv&start=<now-2h>` — success when the latest `time_measured` is within **30 minutes**.
+2. **Geo:** `GET /v1/station/current?station_ids=<deviceId>&output_format=geojson&last_active=3600` — compares `[lon, lat]` to the coordinates set in the wizard (TLV flags `3–5`), within **100 m** (Haversine).
+
+`deviceId` comes from `AirStationConfig.deviceId` (TLV `8`) or the dashboard fallback (`<ble-suffix>AAA`). While waiting, the wizard also reads BLE **`device_status`** operational flags; **`WIFI_FAILURE`** → WLAN error screen, **`CONFIG_INCOMPLETE`** → settings screen.
+
+Outcomes: full success, success with geo warning (measurements OK but map position mismatch), timeout (`firstDataFailed`), repeated phone network errors (`firstDataCheckFailed`).
+
 ### Map overlay and “sensor.community” wording
 
 In settings, **“Stationäre Messstationen anzeigen”** uses copy that mentions sensor.community (`AppSettings.I.showOverlay`). The **network source for those markers is still** `api.luftdaten.at` via `MapHttpProvider`. The API aggregates the broader citizen-sensor landscape; the app does not implement a separate REST client for `sensor.community` map tiles or APIs.

@@ -60,6 +60,7 @@ class _AirStationWizardDashboardTileState extends State<AirStationWizardDashboar
         status = _WizardTileStatus.waitingForData;
         break;
       case AirStationConfigWizardStage.firstDataSuccess:
+      case AirStationConfigWizardStage.firstDataSuccessWithGeoWarning:
         status = _WizardTileStatus.dataReceivedSuccess;
         break;
       case AirStationConfigWizardStage.firstDataFailed:
