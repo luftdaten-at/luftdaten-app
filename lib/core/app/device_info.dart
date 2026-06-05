@@ -28,12 +28,19 @@ class DeviceInfo {
       deviceName = iosDeviceInfo.utsname.machine;
       iOSVersion = iosDeviceInfo.systemVersion;
       iOSPlatform = iosDeviceInfo.systemName;
+      isPhysicalDevice = iosDeviceInfo.isPhysicalDevice;
     } else {
       AndroidDeviceInfo androidDeviceInfo = await DeviceInfoPlugin().androidInfo;
       deviceName = androidDeviceInfo.model;
       androidSdk = androidDeviceInfo.version.sdkInt;
+      isPhysicalDevice = androidDeviceInfo.isPhysicalDevice;
     }
   }
+
+  /// `false` on iOS Simulator / Android emulator; `null` until [init] completes.
+  static bool? isPhysicalDevice;
+
+  static bool get isSimulator => isPhysicalDevice == false;
 
   static int? androidSdk;
   static String? iOSVersion;

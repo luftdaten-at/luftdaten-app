@@ -22,8 +22,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
-import 'package:luftdaten.at/features/devices/presentation/pages/device_manager_page.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/device_connect_button.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/device_connection_appearance.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 import 'package:luftdaten.at/core/widgets/ui.i18n.dart';
@@ -38,14 +38,13 @@ void snackMessage(BuildContext context, String message) {
   );
 }
 
-Widget getBLEStatus(BleDevice dev) {
+Widget getBLEStatus(BuildContext context, BleDevice dev) {
+  final color = DeviceConnectionAppearance.statusColor(context, dev.state);
   return Container(
     margin: const EdgeInsets.only(left: 24.0),
     decoration: BoxDecoration(
-      color: devStateColors[dev.state] ?? Colors.red,
-      border: Border.all(
-        color: devStateColors[dev.state] ?? Colors.red,
-      ),
+      color: color,
+      border: Border.all(color: color),
       borderRadius: const BorderRadius.all(
         Radius.circular(20),
       ),

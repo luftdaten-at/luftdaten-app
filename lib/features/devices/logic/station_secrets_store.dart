@@ -37,4 +37,29 @@ class StationSecretsStore {
 
   Future<void> deleteMqttPassword(String stationId) =>
       _storage.delete(key: _mqttPasswordLookupKey(stationId));
+
+  String _wifiSsidLookupKey(String stationId) => 'station_wifi_ssid_$stationId';
+
+  String _wifiPasswordLookupKey(String stationId) =>
+      'station_wifi_password_$stationId';
+
+  Future<void> writeWifiCredentials(
+    String stationId, {
+    required String ssid,
+    required String password,
+  }) async {
+    await _storage.write(key: _wifiSsidLookupKey(stationId), value: ssid);
+    await _storage.write(key: _wifiPasswordLookupKey(stationId), value: password);
+  }
+
+  Future<String?> readWifiSsid(String stationId) =>
+      _storage.read(key: _wifiSsidLookupKey(stationId));
+
+  Future<String?> readWifiPassword(String stationId) =>
+      _storage.read(key: _wifiPasswordLookupKey(stationId));
+
+  Future<void> deleteWifiCredentials(String stationId) async {
+    await _storage.delete(key: _wifiSsidLookupKey(stationId));
+    await _storage.delete(key: _wifiPasswordLookupKey(stationId));
+  }
 }

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:i18n_extension/i18n_extension.dart';
 import 'package:luftdaten.at/core/config/app_settings.dart';
@@ -7,6 +8,7 @@ import 'package:luftdaten.at/core/app/device_info.dart';
 import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/features/dashboard/presentation/pages/get_app_page.dart';
+import 'package:luftdaten.at/features/devices/presentation/pages/mock_ble_devices_page.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/nearby_devices_debug_page.dart';
 import 'package:luftdaten.at/core/app/presentation/settings_page.i18n.dart';
 import 'package:luftdaten.at/core/app/presentation/welcome_page.dart';
@@ -458,9 +460,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         onChanged: (val) => setState(() => AppSettings.I.showSerialMonitor = val)),
                     _spacer(),
                     _settingsSwitchRow(
-                      title: 'Startup (BLE) in Geräteübersicht'.i18n,
+                      title: 'Startup (BLE) in Gerätedetail'.i18n,
                       desc:
-                          'Zeigt die Schaltfläche „Startup (BLE) …“ bei Air Stations in der Geräteliste (Bluetooth).'
+                          'Zeigt die Schaltfläche „Startup (BLE) …“ bei Air Stations auf der Gerätedetailseite.'
                               .i18n,
                       value: AppSettings.I.showAirStationStartupBleInDeviceOverview,
                       onChanged: (val) => setState(
@@ -477,6 +479,17 @@ class _SettingsPageState extends State<SettingsPage> {
                       onTap: () => Navigator.of(context).pushNamedAndRemoveUntil(WelcomePage.route, (_) => false),
                     ),
                     _spacer(),
+                    if (kDebugMode)
+                      _settingsButtonRow(
+                        title: 'Mock-BLE-Geräte (Simulator)'.i18n,
+                        desc:
+                            'Simuliert Verbindung und Messwerte ohne echtes Bluetooth (nur Debug-Build).'
+                                .i18n,
+                        onTap: () {
+                          Navigator.of(context).pushNamed(MockBleDevicesPage.route);
+                        },
+                      ),
+                    if (kDebugMode) _spacer(),
                     _settingsButtonRow(
                         title: 'BLE-Geräte in der Nähe'.i18n,
                         desc: 'Nach Luftdaten.at-Geräten in der Nähe suchen.'.i18n,

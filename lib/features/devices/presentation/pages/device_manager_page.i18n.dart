@@ -224,6 +224,22 @@ extension Localization on String {
         "en": "Scan for nearby Bluetooth devices",
       } +
       {
+        "de": "Suche Bluetooth-Geräte…",
+        "en": "Searching for Bluetooth devices…",
+      } +
+      {
+        "de": "Fehler",
+        "en": "Error",
+      } +
+      {
+        "de": "Mock-Gerät hinzufügen",
+        "en": "Add mock device",
+      } +
+      {
+        "de": "Mock-Geräte verwalten",
+        "en": "Manage mock devices",
+      } +
+      {
         "de":
             "Air-Station-Geräte müssen vor der ersten Verwendung konfiguriert werden. Jetzt konfigurieren?",
         "en": "Air Station devices must be configured before first use. Configure now?",

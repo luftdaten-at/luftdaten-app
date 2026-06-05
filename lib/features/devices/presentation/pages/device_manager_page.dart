@@ -1,31 +1,25 @@
 import 'dart:async';
-import 'dart:collection';
 import 'package:native_qr/native_qr.dart';
 
 import 'package:flutter/foundation.dart';
-import 'package:clipboard/clipboard.dart';
-import 'package:convert/convert.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:luftdaten.at/features/devices/logic/air_station_config_wizard_controller.dart';
-import 'package:luftdaten.at/features/devices/logic/ble_controller.dart';
+import 'package:luftdaten.at/features/devices/logic/device_config_store.dart';
 import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
-import 'package:luftdaten.at/features/devices/data/battery_details.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/air_station_config_wizard_page.dart';
-import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_sd_ble_import.dart';
-import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_startup_flags_dialog.dart';
-import 'package:luftdaten.at/core/utils/list_extensions.dart';
-import 'package:luftdaten.at/features/devices/presentation/widgets/ble_device_notices_banner.dart';
-import 'package:luftdaten.at/features/devices/presentation/widgets/device_connect_button.dart';
+import 'package:luftdaten.at/core/widgets/dashboard_list_tile.dart';
+import 'package:luftdaten.at/features/devices/presentation/pages/device_detail_page.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/device_list_tile.dart';
 import 'package:luftdaten.at/core/widgets/rotating_widget.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
+import 'package:luftdaten.at/core/app/device_info.dart';
 import 'package:luftdaten.at/core/config/app_settings.dart';
+import 'package:luftdaten.at/features/devices/presentation/pages/mock_ble_devices_page.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
-import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'device_manager_page.i18n.dart';
 
@@ -35,86 +29,22 @@ class DeviceManagerPage extends StatefulWidget {
 
   static const String route = 'device-manager';
 
+  @visibleForTesting
+  static BleStatus? debugBleStatus;
+
+  @visibleForTesting
+  static void resetForTests() {
+    _DeviceManagerPageState.initialScan = false;
+    debugBleStatus = null;
+  }
+
   @override
   State<DeviceManagerPage> createState() => _DeviceManagerPageState();
 }
 
-final HashMap<BleDeviceState, Color> devStateColors = HashMap.from({
-  BleDeviceState.connecting: Colors.orange,
-  BleDeviceState.connected: Colors.green,
-  BleDeviceState.disconnected: Colors.red,
-  BleDeviceState.discovered: Colors.blue,
-  BleDeviceState.notFound: Colors.grey,
-});
-final HashMap<BleDeviceState, String> devStateStrings = HashMap.from({
-  BleDeviceState.connecting: "Baue Verbindung auf...",
-  BleDeviceState.connected: "Verbunden",
-  BleDeviceState.disconnected: "Keine Verbindung",
-  BleDeviceState.discovered: "Sichtbar",
-  BleDeviceState.notFound: "Nicht in der Nähe",
-  BleDeviceState.unknown: "Nicht in der Nähe",
-});
-
 class _DeviceManagerPageState extends State<DeviceManagerPage> {
   static bool initialScan = false;
   RotatingWidgetController syncIconController = RotatingWidgetController();
-
-  /// SD JSONL availability from last BLE peek (idle `flags` bit 0).
-  final Map<String, bool> _sdBleExportNonEmptyByBleName = {};
-
-  /// Throttle BLE reads for sd_log_export (battery updates reconnect frequently).
-  final Map<String, DateTime> _lastSdBleExportPeekAtByBleName = {};
-
-  /// Poll `device_status` every 2s while an expansion tile is open and connected.
-  final Map<String, Timer> _deviceStatusPollTimersByBleName = {};
-
-  @override
-  void dispose() {
-    for (final t in _deviceStatusPollTimersByBleName.values) {
-      t.cancel();
-    }
-    _deviceStatusPollTimersByBleName.clear();
-    super.dispose();
-  }
-
-  void _onDeviceTileExpansionChanged(BleDevice device, bool expanded) {
-    final name = device.bleName;
-    _deviceStatusPollTimersByBleName[name]?.cancel();
-    _deviceStatusPollTimersByBleName.remove(name);
-    if (!expanded || device.state != BleDeviceState.connected) return;
-    unawaited(getIt<BleController>().refreshDeviceStatus(device));
-    _deviceStatusPollTimersByBleName[name] = Timer.periodic(
-      const Duration(seconds: 2),
-      (_) {
-        if (device.state == BleDeviceState.connected) {
-          unawaited(getIt<BleController>().refreshDeviceStatus(device));
-        }
-      },
-    );
-  }
-
-  Future<void> _peekSdBleExportAvailability(BleDevice device) async {
-    if (device.state != BleDeviceState.connected) return;
-    final now = DateTime.now();
-    final last = _lastSdBleExportPeekAtByBleName[device.bleName];
-    if (last != null &&
-        now.difference(last) < const Duration(seconds: 10)) {
-      return;
-    }
-    _lastSdBleExportPeekAtByBleName[device.bleName] = now;
-    try {
-      final info = await getIt<BleController>().peekSdBleExport(device);
-      if (!mounted) return;
-      setState(() {
-        _sdBleExportNonEmptyByBleName[device.bleName] = info?.sdLogNonEmpty ?? false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _sdBleExportNonEmptyByBleName[device.bleName] = false;
-      });
-    }
-  }
 
   void connectTo(BleDevice device) async {
     logger.d("Connecting to ${device.bleName}");
@@ -161,7 +91,8 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
       body: StreamBuilder(
         stream: FlutterReactiveBle().statusStream,
         builder: (context, stream) {
-          BleStatus bleState = stream.data ?? BleStatus.unknown;
+          BleStatus bleState =
+              DeviceManagerPage.debugBleStatus ?? stream.data ?? BleStatus.unknown;
           if (kDebugMode) {
             logger.d("BLE_state = $bleState");
           }
@@ -193,18 +124,77 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
           }
 
           if (getIt<DeviceManager>().devices.isEmpty) {
-            return Center(
+            return SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.all(32.0),
-                child: Text(
-                  'Du hast noch kein Gerät aktiviert. Verwende die Funktion "Gerät hinzufügen" und scanne den QR Code deines Geräts'
-                      .i18n,
-                  textAlign: TextAlign.center,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Du hast noch kein Gerät aktiviert. Verwende die Funktion "Gerät hinzufügen" und scanne den QR Code deines Geräts'
+                                .i18n,
+                            style: const TextStyle(fontStyle: FontStyle.italic),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                    ),
+                    DashboardListTile(
+                      title: 'Neues Gerät hinzufügen'.i18n,
+                      onTap: () => Navigator.pushNamed(context, QRCodePage.route),
+                    ),
+                    if (AppSettings.mockBleActive && DeviceInfo.isSimulator)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: TextButton(
+                          onPressed: () async {
+                            await Navigator.pushNamed(context, MockBleDevicesPage.route);
+                            setState(() {});
+                          },
+                          child: Text('Mock-Gerät hinzufügen'.i18n),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             );
           }
-          return _buildDeviceList();
+          return Column(
+            children: [
+              Consumer<DeviceManager>(
+                builder: (context, manager, _) {
+                  if (!manager.scanning) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Suche Bluetooth-Geräte…'.i18n,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              Expanded(child: _buildDeviceList()),
+            ],
+          );
         },
       ),
       floatingActionButton: Consumer<DeviceManager>(
@@ -219,6 +209,7 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
             heroTag: "devManMain",
             onPressed: provider.scanning ? null : () => provider.scanForDevices(2000),
             backgroundColor: Colors.white,
+            elevation: 2,
             tooltip: 'Nach Bluetooth-Geräten scannen'.i18n,
             child: RotatingWidget(
               controller: syncIconController,
@@ -229,715 +220,134 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
           );
         },
       ),
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        color: Colors.blue.withOpacity(0.5),
-        child: FilledButton.tonalIcon(
-          label: Text("Neues Gerät hinzufügen".i18n),
-          icon: const Icon(Icons.qr_code),
-          onPressed: () async {
-            BleDevice? addedDevice =
-                await Navigator.pushNamed(context, QRCodePage.route) as BleDevice?;
-            setState(() {});
-            await Future.delayed(Duration.zero);
-            if (addedDevice?.model == LDDeviceModel.station && context.mounted) {
-              // Turn on the dashboard Air Stations tab
-              AppSettings.I.dashboardShowAirStations = true;
-              showLDDialog(
-                context,
-                title: 'Air Station einrichten'.i18n,
-                icon: Icons.settings_outlined,
-                text: 'Neue Air Station-Geräte müssen konfiguriert werden, um sich mit dem WLAN '
-                        'zu verbinden. Jetzt konfigurieren?'
-                    .i18n,
-                actions: [
-                  LDDialogAction(label: 'Später'.i18n, filled: false),
-                  LDDialogAction(
-                    label: 'Konfigurieren'.i18n,
-                    filled: true,
-                    onTap: () {
-                      AirStationConfigWizardController controller =
-                          AirStationConfigWizardController(addedDevice!.bleName);
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                            builder: (_) => AirStationConfigWizardPage(controller: controller)),
-                      );
-                    },
+      bottomNavigationBar: Material(
+        elevation: 4,
+        color: Theme.of(context).colorScheme.surface,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+            child: Row(
+            children: [
+              if (AppSettings.mockBleActive && DeviceInfo.isSimulator)
+                IconButton(
+                  tooltip: 'Mock-Geräte verwalten'.i18n,
+                  onPressed: () async {
+                    await Navigator.pushNamed(context, MockBleDevicesPage.route);
+                    setState(() {});
+                  },
+                  icon: const Icon(Icons.science_outlined),
+                ),
+              Expanded(
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
                   ),
-                ],
-              );
-            }
-          },
+                  label: Text("Neues Gerät hinzufügen".i18n),
+                  icon: const Icon(Icons.qr_code),
+                  onPressed: () async {
+                    BleDevice? addedDevice =
+                        await Navigator.pushNamed(context, QRCodePage.route) as BleDevice?;
+                    setState(() {});
+                    await Future.delayed(Duration.zero);
+                    if (addedDevice?.model == LDDeviceModel.station && context.mounted) {
+                      // Turn on the dashboard Air Stations tab
+                      AppSettings.I.dashboardShowAirStations = true;
+                      showLDDialog(
+                        context,
+                        title: 'Air Station einrichten'.i18n,
+                        icon: Icons.settings_outlined,
+                        text: 'Neue Air Station-Geräte müssen konfiguriert werden, um sich mit dem WLAN '
+                                'zu verbinden. Jetzt konfigurieren?'
+                            .i18n,
+                        actions: [
+                          LDDialogAction(label: 'Später'.i18n, filled: false),
+                          LDDialogAction(
+                            label: 'Konfigurieren'.i18n,
+                            filled: true,
+                            onTap: () {
+                              AirStationConfigWizardController controller =
+                                  AirStationConfigWizardController(addedDevice!.bleName);
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        AirStationConfigWizardPage(controller: controller)),
+                              );
+                            },
+                          ),
+                        ],
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildDeviceList() {
-    DeviceManager deviceManager = getIt<DeviceManager>();
-    List<BleDevice> devices = deviceManager.devices;
-    List<BleDevice> airARoundDevices =
-        devices.where((e) => e.model == LDDeviceModel.aRound).toList();
-    List<BleDevice> airBadgeDevices = devices.where((e) => e.model == LDDeviceModel.badge).toList();
-    List<BleDevice> airBikeDevices = devices.where((e) => e.model == LDDeviceModel.bike).toList();
-    List<BleDevice> airCubeDevices = devices.where((e) => e.model == LDDeviceModel.cube).toList();
-    List<BleDevice> airStationDevices =
-        devices.where((e) => e.model == LDDeviceModel.station).toList();
-    bool initiallyExpanded = devices.length <= 5;
-    return ListView(
-      children: [
-        ...<Widget>[
-          if (airARoundDevices.isNotEmpty)
-            Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                title: const Row(
-                  children: [
-                    Text(
-                      'Air aRound',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                    ),
-                  ],
+    final devices = getIt<DeviceManager>().devices;
+    final sections = <Widget>[];
+
+    void addSection(String title, List<BleDevice> group, {required bool isStation}) {
+      if (group.isEmpty) return;
+      sections.add(DashboardSectionHeading(title: title));
+      for (final device in group) {
+        sections.add(
+          DeviceListTile(
+            device: device,
+            isStation: isStation,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => DeviceDetailPage(device: device, isStation: isStation),
                 ),
-                initiallyExpanded: true,
-                children:
-                    airARoundDevices.map((e) => _buildPortableTile(e, initiallyExpanded)).toList(),
-              ),
-            ),
-          if (airBadgeDevices.isNotEmpty)
-            Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                title: const Row(
-                  children: [
-                    Text(
-                      'Air Badge',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                    ),
-                  ],
-                ),
-                initiallyExpanded: true,
-                children:
-                    airBadgeDevices.map((e) => _buildPortableTile(e, initiallyExpanded)).toList(),
-              ),
-            ),
-          if (airBikeDevices.isNotEmpty)
-            Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                title: const Row(
-                  children: [
-                    Text(
-                      'Air Bike',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                    ),
-                  ],
-                ),
-                initiallyExpanded: true,
-                children:
-                airBikeDevices.map((e) => _buildPortableTile(e, initiallyExpanded)).toList(),
-              ),
-            ),
-          if (airCubeDevices.isNotEmpty)
-            Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                title: const Row(
-                  children: [
-                    Text(
-                      'Air Cube',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                    ),
-                  ],
-                ),
-                initiallyExpanded: true,
-                children:
-                    airCubeDevices.map((e) => _buildPortableTile(e, initiallyExpanded)).toList(),
-              ),
-            ),
-          if (airStationDevices.isNotEmpty)
-            Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                title: const Row(
-                  children: [
-                    Text(
-                      'Air Station',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                    ),
-                  ],
-                ),
-                initiallyExpanded: true,
-                children: airStationDevices
-                    .map((e) => _buildAirStationTile(e, initiallyExpanded))
-                    .toList(),
-              ),
-            ),
-        ].spaceWithList([
-          const SizedBox(height: 30),
-          const Row(
-            children: [
-              SizedBox(width: 20),
-              Expanded(child: Divider(height: 1)),
-              SizedBox(width: 20),
-            ],
+              );
+            },
           ),
-          const SizedBox(height: 10),
-        ]),
-        const SizedBox(height: 40),
-      ],
+        );
+      }
+      sections.add(const SizedBox(height: 12));
+    }
+
+    addSection(
+      'Air aRound',
+      devices.where((e) => e.model == LDDeviceModel.aRound).toList(),
+      isStation: false,
     );
-  }
+    addSection(
+      'Air Badge',
+      devices.where((e) => e.model == LDDeviceModel.badge).toList(),
+      isStation: false,
+    );
+    addSection(
+      'Air Bike',
+      devices.where((e) => e.model == LDDeviceModel.bike).toList(),
+      isStation: false,
+    );
+    addSection(
+      'Air Cube',
+      devices.where((e) => e.model == LDDeviceModel.cube).toList(),
+      isStation: false,
+    );
+    addSection(
+      'Air Station',
+      devices.where((e) => e.model == LDDeviceModel.station).toList(),
+      isStation: true,
+    );
 
-  Widget _buildPortableTile(BleDevice device, bool initiallyExpanded) {
-    return ChangeNotifierBuilder(
-        notifier: device,
-        builder: (context, device) {
-          if (initiallyExpanded &&
-              !_deviceStatusPollTimersByBleName.containsKey(device.bleName)) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _onDeviceTileExpansionChanged(device, true);
-            });
-          }
-          String shortenedName = device.displayName.replaceAll('Air aRound ', '');
-          return ColoredBox(
-            color: device.state == BleDeviceState.connected
-                ? Colors.green.shade50
-                : Theme.of(context).scaffoldBackgroundColor,
-            child: Material(
-              child: ExpansionTile(
-                initiallyExpanded: initiallyExpanded,
-                onExpansionChanged: (expanded) => _onDeviceTileExpansionChanged(device, expanded),
-                title: Row(
-                  children: [
-                    const SizedBox(width: 5),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: devStateColors[device.state] ?? Colors.black,
-                        borderRadius: const BorderRadius.all(Radius.circular(6)),
-                      ),
-                      height: 12,
-                      width: 12,
-                    ),
-                    const SizedBox(width: 2),
-                    _getStatusBluetoothIcon(device.state),
-                    const SizedBox(width: 5),
-                    Text(shortenedName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 5),
-                    if (device.state == BleDeviceState.connected &&
-                        device.batteryDetails?.hasReportableBattery == true)
-                      ..._getBatteryIconAndText(device.batteryDetails!),
-                    const Spacer(flex: 1),
-                    DeviceConnectButton(device: device),
-                  ],
-                ),
-                children: [
-                  BleDeviceNoticesBanner(device: device),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                const SizedBox(width: 18),
-                                Text('Name: '.i18n),
-                                Text(device.displayName,
-                                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                            Row(
-                              children: [
-                                const SizedBox(width: 18),
-                                Text('Adresse: '.i18n),
-                                Text(device.bleMacAddress.asMac,
-                                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                            Row(
-                              children: [
-                                const SizedBox(width: 18),
-                                Text('Status: '.i18n),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: devStateColors[device.state] ?? Colors.black,
-                                    borderRadius: const BorderRadius.all(Radius.circular(4)),
-                                  ),
-                                  height: 8,
-                                  width: 8,
-                                ),
-                                Text(
-                                  ' ${(devStateStrings[device.state] ?? 'Error').i18n}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton.filled(
-                        onPressed: device.state == BleDeviceState.connected
-                            ? () {
-                                showLDDialog(
-                                  context,
-                                  content: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Column(
-                                        children: [
-                                          Row(mainAxisSize: MainAxisSize.min, children: [
-                                            Text('Firmware-Version: '.i18n),
-                                            Text(
-                                              device.firmwareVersion.toString(),
-                                              style: const TextStyle(fontWeight: FontWeight.bold),
-                                            ),
-                                          ]),
-                                          const SizedBox(height: 10),
-                                          const Divider(height: 1),
-                                          const SizedBox(height: 10),
-                                          Text('Sensoren:'.i18n),
-                                          if (device.availableSensors != null)
-                                            ...device.availableSensors!.map((details) => Row(
-                                                  children: [
-                                                    Expanded(
-                                                      child: Column(
-                                                          crossAxisAlignment:
-                                                              CrossAxisAlignment.start,
-                                                          children: [
-                                                            const SizedBox(height: 10),
-                                                            Text(
-                                                              details.model.longName.i18n,
-                                                              style: const TextStyle(
-                                                                fontWeight: FontWeight.bold,
-                                                              ),
-                                                            ),
-                                                            Text('Misst: %s'.i18n.fill([
-                                                              details.measuresQuantities
-                                                                  .map((e) => e.name)
-                                                                  .join(', ')
-                                                            ])),
-                                                            if (details.serialNumber != null)
-                                                              Text('Seriennummer: %s'
-                                                                  .i18n
-                                                                  .fill([details.serialNumber!])),
-                                                            if (details.firmwareVersion != null)
-                                                              Text('Sensor-Firmware: %s'.i18n.fill(
-                                                                  [details.firmwareVersion!])),
-                                                            if (details.hardwareVersion != null)
-                                                              Text('Hardware-Version: %s'.i18n.fill(
-                                                                  [details.hardwareVersion!])),
-                                                            if (details.protocolVersion != null)
-                                                              Text('Protokoll-Version: %s'
-                                                                  .i18n
-                                                                  .fill(
-                                                                      [details.protocolVersion!])),
-                                                          ]),
-                                                    ),
-                                                  ],
-                                                ))
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                  title: device.displayName,
-                                  icon: Icons.info_outline,
-                                );
-                              }
-                            : null,
-                        icon: Icon(
-                          Icons.info_outline,
-                          color: device.state == BleDeviceState.connected
-                              ? null
-                              : Colors.grey.shade400,
-                        ),
-                        style: ButtonStyle(
-                          backgroundColor: device.state == BleDeviceState.connected
-                              ? MaterialStateProperty.all(Theme.of(context).primaryColor)
-                              : MaterialStateProperty.all(Colors.grey.shade300),
-                        ),
-                        tooltip: 'Geräte-Info'.i18n,
-                      ),
-                      IconButton.filled(
-                        onPressed: () {
-                          if (device.portable) {
-                            showDialog(
-                                context: context,
-                                builder: (_) => DeviceConfigDialog(device: device));
-                            return;
-                          }
-                          final controller =
-                              AirStationConfigWizardController(device.bleName);
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) =>
-                                AirStationConfigWizardPage(controller: controller),
-                          ));
-                        },
-                        icon: const Icon(Icons.settings),
-                        style: ButtonStyle(
-                          backgroundColor:
-                              MaterialStateProperty.all(Theme.of(context).primaryColor),
-                        ),
-                        tooltip: 'Gerät konfigurieren'.i18n,
-                      ),
-                      IconButton.filled(
-                        onPressed: () {
-                          showLDDialog(
-                            context,
-                            text:
-                                '${'Gerät'.i18n} ${device.displayName} ${'aus der Geräteliste entfernen?'.i18n}',
-                            title: 'Gerät löschen?'.i18n,
-                            icon: Icons.delete,
-                            actions: [
-                              LDDialogAction(label: 'Behalten'.i18n, filled: false),
-                              LDDialogAction(
-                                label: 'Löschen'.i18n,
-                                filled: true,
-                                onTap: () {
-                                  getIt<DeviceManager>().deleteDevice(device);
-                                  setState(() {});
-                                },
-                              ),
-                            ],
-                            color: Colors.red,
-                          );
-                        },
-                        icon: const Icon(Icons.delete),
-                        style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all(Colors.red),
-                        ),
-                        tooltip: 'Gerät entfernen'.i18n,
-                      ),
-                      const SizedBox(width: 20),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        });
-  }
-
-  Widget _buildAirStationTile(BleDevice device, bool initiallyExpanded) {
-    return ChangeNotifierBuilder(
-        notifier: device,
-        builder: (context, device) {
-          String shortenedName = device.displayName;
-
-          if (initiallyExpanded &&
-              !_deviceStatusPollTimersByBleName.containsKey(device.bleName)) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _onDeviceTileExpansionChanged(device, true);
-            });
-          }
-
-          if (device.state == BleDeviceState.connected) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              unawaited(_peekSdBleExportAvailability(device));
-            });
-          }
-
-          List<int> macBytes = hex.decode(device.bleMacAddress);
-          macBytes[macBytes.length - 1] = macBytes[macBytes.length - 1] - 1;
-          List<int> chipIdBytes = macBytes.reversed.toList();
-          String chipId = hex.encode(chipIdBytes);
-
-          return ColoredBox(
-            color: device.state == BleDeviceState.connected
-                ? Colors.green.shade50
-                : Theme.of(context).scaffoldBackgroundColor,
-            child: Material(
-              child: ExpansionTile(
-                initiallyExpanded: initiallyExpanded,
-                onExpansionChanged: (expanded) {
-                  _onDeviceTileExpansionChanged(device, expanded);
-                  if (expanded && device.state == BleDeviceState.connected) {
-                    unawaited(_peekSdBleExportAvailability(device));
-                  }
-                },
-                title: Row(
-                  children: [
-                    const SizedBox(width: 5),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: devStateColors[device.state] ?? Colors.black,
-                        borderRadius: const BorderRadius.all(Radius.circular(6)),
-                      ),
-                      height: 12,
-                      width: 12,
-                    ),
-                    const SizedBox(width: 2),
-                    _getStatusBluetoothIcon(device.state),
-                    const SizedBox(width: 5),
-                    Flexible(
-                      child: Text(
-                        shortenedName,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        showDialog(
-                            context: context,
-                            builder: (_) => AirStationRenamingDialog(device: device));
-                      },
-                      icon: const Icon(Icons.draw),
-                      padding: const EdgeInsets.all(0),
-                      iconSize: 20,
-                      tooltip: 'Umbenennen'.i18n,
-                    ),
-                    if (device.state == BleDeviceState.connected &&
-                        device.batteryDetails?.hasReportableBattery == true)
-                      ..._getBatteryIconAndText(device.batteryDetails!),
-                    const Spacer(flex: 1),
-                    DeviceConnectButton(device: device),
-                  ],
-                ),
-                children: [
-                  BleDeviceNoticesBanner(device: device),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                const SizedBox(width: 18),
-                                Text('Gerät: '.i18n),
-                                Text(device.deviceOriginalDisplayName,
-                                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                            Row(
-                              children: [
-                                const SizedBox(width: 18),
-                                Text('Adresse: '.i18n),
-                                Text(device.bleMacAddress.asMac,
-                                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                            Row(
-                              children: [
-                                const SizedBox(width: 18),
-                                Text('Sensor-ID: '.i18n),
-                                Text(chipId, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                const SizedBox(width: 3),
-                                InkWell(
-                                  onTap: () {
-                                    FlutterClipboard.copy(chipId);
-                                    Fluttertoast.showToast(msg: 'Sensor-ID kopiert!'.i18n);
-                                  },
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(2),
-                                    child: Icon(
-                                      Icons.copy,
-                                      size: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 2),
-                                InkWell(
-                                  onTap: () {
-                                    showLDDialog(
-                                      context,
-                                      title: 'Sensor-ID'.i18n,
-                                      icon: Icons.help_outline_outlined,
-                                      text: 'Die Sensor-ID wird benötigt, um die Station in der '
-                                              'Sensor.Community einzutragen. Anweisungen hierzu findest '
-                                              'du auf unserer Webseite.'
-                                          .i18n,
-                                    );
-                                  },
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(1),
-                                    child: Icon(
-                                      Icons.help_outline,
-                                      size: 14,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton.filled(
-                        onPressed: () {
-                          if (device.portable) {
-                            showDialog(
-                                context: context,
-                                builder: (_) => DeviceConfigDialog(device: device));
-                            return;
-                          }
-                          final controller =
-                              AirStationConfigWizardController(device.bleName);
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) =>
-                                AirStationConfigWizardPage(controller: controller),
-                          ));
-                        },
-                        icon: const Icon(Icons.settings),
-                        style: ButtonStyle(
-                          backgroundColor:
-                              MaterialStateProperty.all(Theme.of(context).primaryColor),
-                        ),
-                        tooltip: 'Gerät konfigurieren'.i18n,
-                      ),
-                      ListenableBuilder(
-                        listenable: AppSettings.I,
-                        builder: (context, _) {
-                          if (!AppSettings.I.showAirStationStartupBleInDeviceOverview) {
-                            return const SizedBox.shrink();
-                          }
-                          return IconButton.filled(
-                            onPressed: device.state == BleDeviceState.connected
-                                ? () {
-                                    showAirStationStartupFlagsDialog(
-                                      context: context,
-                                      device: device,
-                                    );
-                                  }
-                                : null,
-                            icon: const Icon(Icons.restart_alt),
-                            style: ButtonStyle(
-                              backgroundColor: device.state == BleDeviceState.connected
-                                  ? MaterialStateProperty.all(Theme.of(context).primaryColorDark)
-                                  : MaterialStateProperty.all(Colors.grey.shade300),
-                            ),
-                            tooltip: 'Startup (BLE) …'.i18n,
-                          );
-                        },
-                      ),
-                      if (device.state == BleDeviceState.connected &&
-                          (_sdBleExportNonEmptyByBleName[device.bleName] == true))
-                        IconButton.filled(
-                          onPressed: () {
-                            showAirStationSdBleImportFlow(
-                              context: context,
-                              device: device,
-                            );
-                          },
-                          icon: const Icon(Icons.download_outlined),
-                          style: ButtonStyle(
-                            backgroundColor:
-                                MaterialStateProperty.all(Theme.of(context).primaryColorDark),
-                          ),
-                          tooltip: 'SD-Import (BLE)'.i18n,
-                        ),
-                      IconButton.filled(
-                        onPressed: () {
-                          showLDDialog(
-                            context,
-                            text:
-                                '${'Gerät'.i18n} ${device.displayName} ${'aus der Geräteliste entfernen?'.i18n}',
-                            title: 'Gerät löschen?'.i18n,
-                            icon: Icons.delete,
-                            actions: [
-                              LDDialogAction(label: 'Behalten'.i18n, filled: false),
-                              LDDialogAction(
-                                label: 'Löschen'.i18n,
-                                filled: true,
-                                onTap: () {
-                                  getIt<DeviceManager>().deleteDevice(device);
-                                  setState(() {});
-                                },
-                              ),
-                            ],
-                            color: Colors.red,
-                          );
-                        },
-                        icon: const Icon(Icons.delete),
-                        style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all(Colors.red),
-                        ),
-                        tooltip: 'Gerät entfernen'.i18n,
-                      ),
-                      const SizedBox(width: 20),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        });
-  }
-
-  Widget _getStatusBluetoothIcon(BleDeviceState state) {
-    switch (state) {
-      case BleDeviceState.discovered:
-      case BleDeviceState.disconnected:
-        return const Icon(Icons.bluetooth, color: Colors.blue);
-      case BleDeviceState.connecting:
-        return const Icon(Icons.bluetooth_searching, color: Colors.blue);
-      case BleDeviceState.connected:
-        return const Icon(Icons.bluetooth_connected, color: Colors.blue);
-      case BleDeviceState.error:
-      case BleDeviceState.notFound:
-      default:
-        return const Icon(Icons.bluetooth_disabled_outlined, color: Colors.grey);
-    }
-  }
-
-  List<Widget> _getBatteryIconAndText(BatteryDetails details) {
-    Widget batteryIcon;
-    Widget? batteryText;
-    switch (details.status) {
-      case BatteryStatus.unknown:
-        batteryIcon = const SizedBox();
-      case BatteryStatus.unsupported:
-      case BatteryStatus.faulty:
-        batteryIcon = const Icon(Icons.battery_unknown_outlined, color: Colors.grey);
-      case BatteryStatus.charging:
-        batteryIcon = const Icon(Icons.battery_charging_full_outlined, color: Colors.green);
-      case BatteryStatus.discharging:
-        // Depends on battery percentage
-        double percentage = details.percentage ?? 0;
-        if (percentage > 90) {
-          batteryIcon = const Icon(Icons.battery_full, color: Colors.green);
-          batteryText = Text('${details.percentage}%', style: const TextStyle(color: Colors.green));
-        } else if (percentage > 70) {
-          batteryIcon = const Icon(Icons.battery_5_bar, color: Colors.green);
-          batteryText = Text('${details.percentage}%',
-              style: const TextStyle(
-                color: Colors.green,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ));
-        } else if (percentage > 40) {
-          batteryIcon = const Icon(Icons.battery_4_bar, color: Colors.green);
-          batteryText = Text('${details.percentage}%',
-              style: const TextStyle(
-                color: Colors.green,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ));
-        } else if (percentage > 20) {
-          batteryIcon = const Icon(Icons.battery_2_bar, color: Colors.orange);
-          batteryText = Text('${details.percentage}%',
-              style: const TextStyle(
-                color: Colors.orange,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ));
-        } else {
-          batteryIcon = const Icon(Icons.battery_alert, color: Colors.red);
-          batteryText = Text('${details.percentage}%',
-              style: const TextStyle(
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ));
-        }
-    }
-    return [
-      batteryIcon,
-      if (batteryText != null) batteryText,
-    ];
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 88),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: sections,
+      ),
+    );
   }
 }
 
@@ -949,7 +359,6 @@ class QRCodePage extends StatefulWidget {
   @override
   State<QRCodePage> createState() => _QRCodePageState();
 }
-
 
 class _QRCodePageState extends State<QRCodePage> {
   bool missingCameraPermission = false;
@@ -1327,6 +736,15 @@ class _DeviceConfigDialogState extends State<DeviceConfigDialog> {
               if (nameController.text.isNotEmpty && editingName) {
                 widget.device.userAssignedName = nameController.text;
               }
+              await DeviceConfigStore.instance.writePortableConfig(
+                PortableDeviceConfig(
+                  bleName: widget.device.bleName,
+                  measurementInterval: measuringIntervalInternal,
+                  autoReconnect: widget.device.autoReconnect,
+                  userAssignedName: widget.device.userAssignedName,
+                  lastConfiguredAt: DateTime.now(),
+                ),
+              );
               if (!context.mounted) return;
               Navigator.pop(context);
               getIt<DeviceManager>().notifyListeners();

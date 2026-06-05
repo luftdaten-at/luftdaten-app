@@ -40,9 +40,23 @@ class BleJsonParser {
 
   /// Parses firmware version from station.firmware (e.g. "1.5" -> FirmwareVersion(1, 5, 0)).
   static FirmwareVersion? parseFirmwareFromStation(Map<String, dynamic>? station) {
-    if (station == null) return null;
-    final fw = station['firmware'];
+    return parseFirmwareFromMap(station);
+  }
+
+  /// Parses firmware version from device.firmware (portable get_info JSON).
+  static FirmwareVersion? parseFirmwareFromDevice(Map<String, dynamic>? device) {
+    return parseFirmwareFromMap(device);
+  }
+
+  /// Parses firmware from a map's `firmware` string field.
+  static FirmwareVersion? parseFirmwareFromMap(Map<String, dynamic>? map) {
+    if (map == null) return null;
+    final fw = map['firmware'];
     if (fw is! String) return null;
+    return parseFirmwareString(fw);
+  }
+
+  static FirmwareVersion? parseFirmwareString(String fw) {
     final parts = fw.split('.');
     if (parts.isEmpty) return null;
     final major = int.tryParse(parts[0]) ?? 0;

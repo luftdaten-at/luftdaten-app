@@ -42,6 +42,22 @@ Background measurement uses `flutter_background_service` with an iOS-specific im
 - Prefer the **iOS Simulator** for UI and map-only work.
 - Use a **real device** for BLE, push/notification nuances, and performance closer to production.
 
+## Mock BLE devices (debug builds only)
+
+The iOS Simulator has no real Bluetooth. In **debug** builds (`flutter run`), you can add **mock BLE devices** that simulate connect/disconnect, battery/status, and live PM readings for measurement trips.
+
+1. Run the app on the simulator (`flutter run`).
+2. Open **Einstellungen** → **Entwickleroptionen** → **Mock-BLE-Geräte (Simulator)**.
+3. Ensure **Mock-BLE aktiv** is on (enabled by default on first launch on simulator).
+4. Tap **Air aRound hinzufügen** or **Beide Presets**, then open the **Geräte** tab.
+5. Tap **Verbinden** on a mock device, then start a measurement as usual — the background loop uses fake sensor values.
+
+Shortcuts on the Geräte tab (simulator only): **Mock-Gerät hinzufügen** in the empty state, or the flask icon next to **Neues Gerät hinzufügen**.
+
+Manual QR-style entry without a camera: **Manuelle QR-Daten…** on the mock page (same format as a device QR code).
+
+Mock BLE is **not available in release/profile builds**. On a physical iPhone, mock mode stays off unless you explicitly enable it under Entwickleroptionen.
+
 ## Related docs
 
 - [bluetooth.md](bluetooth.md) — BLE stack and GATT overview  

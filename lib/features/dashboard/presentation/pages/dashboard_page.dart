@@ -12,6 +12,7 @@ import 'package:luftdaten.at/features/dashboard/presentation/pages/enter_worksho
 import 'package:luftdaten.at/features/dashboard/presentation/pages/favorites_page.dart';
 import 'package:luftdaten.at/features/dashboard/presentation/widgets/air_station_wizard_dashboard_tile.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
+import 'package:luftdaten.at/core/widgets/dashboard_list_tile.dart';
 import 'package:luftdaten.at/core/app/toaster.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'package:luftdaten.at/features/dashboard/presentation/widgets/dashboard_station_tile.dart';
@@ -360,66 +361,11 @@ class _DashboardPage extends State<DashboardPage> {
 
   Widget _buildTappableTile(
       {required String title, String? subtitle, required void Function() onTap}) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 10, left: 12, right: 12, bottom: 0),
-      child: Container(
-        height: 70,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.only(top: 10, bottom: 10, left: 15, right: 5),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        if (subtitle != null)
-                          Text(
-                            subtitle,
-                            softWrap: false,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: onTap,
-                    icon: const Icon(Icons.chevron_right),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    return DashboardListTile(title: title, subtitle: subtitle, onTap: onTap);
   }
 
   Widget _buildSectionHeading(String title, List<Widget> actions) {
-    return Row(
-      children: [
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-        ),
-        ...actions,
-        const SizedBox(width: 12),
-      ],
-    );
+    return DashboardSectionHeading(title: title, actions: actions, bottomSpacing: 0);
   }
 
   Widget _buildHideButton(void Function() onHideSelected) {

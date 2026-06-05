@@ -1,6 +1,9 @@
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:luftdaten.at/features/devices/logic/ble_controller_v1.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
+import 'package:luftdaten.at/features/devices/logic/mock_ble_devices.dart';
+import 'package:luftdaten.at/features/devices/logic/mock_ble_profile.dart';
+import 'package:luftdaten.at/features/devices/logic/mock_ble_telemetry.dart';
 import 'package:luftdaten.at/features/devices/logic/sd_ble_export.dart';
 
 import 'package:luftdaten.at/core/core.dart';
@@ -23,6 +26,10 @@ class BleController {
   }
 
   Future<int> getProtocolVersion(BleDevice device) async {
+    if (MockBleDevices.canUseMockBle(device)) {
+      device.protocolVersion = 2;
+      return 2;
+    }
     if(device.protocolVersion != null) return device.protocolVersion!;
     logger.d('Getting protocol version from device ${device.bleId}');
     List<int> config = await _ble.readCharacteristic(QualifiedCharacteristic(
@@ -46,34 +53,64 @@ class BleController {
   }
 
   Future<void> getDeviceDetailsAndCheckProtocol(BleDevice device) async {
+    if (MockBleDevices.canUseMockBle(device)) {
+      MockBleProfile.apply(device);
+      return;
+    }
     await getProtocolVersion(device);
     return BleControllerForProtocol(device.protocolVersion!).getDeviceDetails(device);
   }
 
   Future<List<dynamic>> readSensorValues(BleDevice device) async {
+    if (MockBleDevices.canUseMockBle(device)) {
+      return MockBleTelemetry.readSensorValues(device);
+    }
     await getProtocolVersion(device);
     return BleControllerForProtocol(device.protocolVersion!).readSensorValues(device);
   }
 
   Future<bool> sendAirStationConfig(BleDevice device, List<int> bytes) async {
+    if (MockBleDevices.canUseMockBle(device)) return false;
     await getProtocolVersion(device);
     return BleControllerForProtocol(device.protocolVersion!).sendAirStationConfig(device, bytes);
   }
 
   Future<List<int>?> readAirStationConfiguration(BleDevice device) async {
+    if (MockBleDevices.canUseMockBle(device)) return null;
     await getProtocolVersion(device);
     return BleControllerForProtocol(device.protocolVersion!).readAirStationConfiguration(device);
   }
 
   /// Idle peek: SD JSONL file on wifiless Air Station is non-empty (protocol v2 only).
   Future<SdBleExportIdleInfo?> peekSdBleExport(BleDevice device) async {
+    if (MockBleDevices.canUseMockBle(device)) return null;
     await getProtocolVersion(device);
     if (device.protocolVersion != 2) return null;
     return BleControllerV2().peekSdBleExportIdle(device);
   }
 
+  /// Re-read device details, sensors, and operational status over an existing connection.
+  Future<void> refreshDeviceInfo(BleDevice device) async {
+    if (device.state != BleDeviceState.connected || device.bleId == null) return;
+    if (MockBleDevices.canUseMockBle(device)) {
+      device.errors.clear();
+      MockBleProfile.apply(device);
+      MockBleProfile.refreshStatus(device);
+      device.notify();
+      return;
+    }
+    device.errors.clear();
+    await getDeviceDetailsAndCheckProtocol(device);
+    await refreshDeviceStatus(device);
+    device.notify();
+  }
+
   /// Poll `device_status` for battery and operational notices (protocol v2).
   Future<void> refreshDeviceStatus(BleDevice device) async {
+    if (MockBleDevices.canUseMockBle(device)) {
+      MockBleProfile.refreshStatus(device);
+      return;
+    }
     await getProtocolVersion(device);
     if (device.protocolVersion != 2) return;
     return BleControllerV2().refreshDeviceStatus(device);
@@ -84,6 +121,9 @@ class BleController {
     BleDevice device, {
     void Function(int lineIndex)? onProgress,
   }) async {
+    if (MockBleDevices.canUseMockBle(device)) {
+      return SdBleImportResult.error('SD-Import ist für Mock-Geräte nicht verfügbar.');
+    }
     await getProtocolVersion(device);
     if (device.protocolVersion != 2) {
       return SdBleImportResult.error('SD-Import benötigt Firmware-Protokoll 2.');

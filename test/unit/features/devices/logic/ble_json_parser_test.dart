@@ -146,4 +146,33 @@ void main() {
       expect(result.patch, 0);
     });
   });
+
+  group('BleJsonParser.parseFirmwareFromDevice', () {
+    test('returns null for null input', () {
+      expect(BleJsonParser.parseFirmwareFromDevice(null), isNull);
+    });
+
+    test('parses device.firmware string', () {
+      final result = BleJsonParser.parseFirmwareFromDevice({'firmware': '2.3.1'});
+      expect(result, isNotNull);
+      expect(result!.major, 2);
+      expect(result.minor, 3);
+      expect(result.patch, 1);
+    });
+
+    test('returns null when firmware is missing', () {
+      expect(BleJsonParser.parseFirmwareFromDevice({}), isNull);
+    });
+  });
+
+  group('BleJsonParser firmware precedence', () {
+    test('station firmware takes precedence over device firmware', () {
+      final station = BleJsonParser.parseFirmwareFromStation({'firmware': '1.0.0'});
+      final device = BleJsonParser.parseFirmwareFromDevice({'firmware': '2.0.0'});
+      expect(station, isNotNull);
+      expect(device, isNotNull);
+      expect(station!.major, 1);
+      expect(device!.major, 2);
+    });
+  });
 }

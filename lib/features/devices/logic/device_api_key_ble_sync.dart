@@ -45,7 +45,7 @@ class DeviceApiKeyBleSync {
     if (tlvBytes.isEmpty || tlvBytes.length == 1 && tlvBytes[0] == 0) {
       return false;
     }
-    final config = AirStationConfig.fromBytes(device.bleName, tlvBytes);
+    final config = AirStationConfig.parseFromBytes(device.bleName, tlvBytes);
     final key = config.pendingApiKeyForSecureStore;
     if (key == null || key.isEmpty) return false;
     return applyKey(device, key, logSource: 'air_station_configuration_tlv20');

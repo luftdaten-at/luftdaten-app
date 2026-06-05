@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
@@ -17,6 +18,7 @@ void main() {
   });
 
   setUp(() async {
+    FlutterSecureStorage.setMockInitialValues({});
     await GetStorage.init('devices');
     GetStorage('devices').remove('devices');
   });
@@ -34,7 +36,7 @@ void main() {
       expect(manager.devices, [device]);
     });
 
-    test('deleteDevice removes and saves', () {
+    test('deleteDevice removes and saves', () async {
       final manager = DeviceManager();
       final device = BleDevice(
         model: LDDeviceModel.aRound,
@@ -44,6 +46,7 @@ void main() {
       );
       manager.addDevice(device);
       manager.deleteDevice(device);
+      await Future<void>.delayed(Duration.zero);
       expect(manager.devices, isEmpty);
     });
 

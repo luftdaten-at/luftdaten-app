@@ -16,7 +16,9 @@
 */
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:luftdaten.at/core/app/device_info.dart';
 
 class AppSettings extends ChangeNotifier {
   static final AppSettings I = AppSettings._();
@@ -298,7 +300,30 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool _mockBleDevicesEnabled = false;
+  bool get mockBleDevicesEnabled => _mockBleDevicesEnabled;
+  set mockBleDevicesEnabled(bool val) {
+    _mockBleDevicesEnabled = val;
+    _box.write('mockBleDevicesEnabled', val);
+    notifyListeners();
+  }
+
+  /// In-memory only; avoids GetStorage lock contention in parallel widget tests.
+  @visibleForTesting
+  void setMockBleDevicesEnabledForTests(bool val) {
+    _mockBleDevicesEnabled = val;
+  }
+
+  /// Debug-only mock BLE (simulator/emulator). Off in release builds.
+  static bool get mockBleActive => kDebugMode && I.mockBleDevicesEnabled;
+
   final GetStorage _box = GetStorage('settings');
+
+  /// Call after [DeviceInfo.init] to default mock BLE on simulator (first install).
+  void applyMockBleDefaultIfUnset() {
+    if (_box.read('mockBleDevicesEnabled') != null) return;
+    mockBleDevicesEnabled = kDebugMode && DeviceInfo.isSimulator;
+  }
 
   Future<void> init() async {
     await GetStorage.init('settings');
@@ -338,6 +363,7 @@ class AppSettings extends ChangeNotifier {
     showBatteryGraph = _box.read('showBatteryGraph') ?? false;
     showAirStationStartupBleInDeviceOverview =
         _box.read('showAirStationStartupBleInDeviceOverview') ?? false;
+    mockBleDevicesEnabled = _box.read('mockBleDevicesEnabled') ?? false;
     _box.write('opened', true);
   }
 }

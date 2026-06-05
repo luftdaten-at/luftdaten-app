@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/logic/device_api_key_ble_sync.dart';
+import 'package:luftdaten.at/features/devices/logic/device_config_store.dart';
 import 'package:luftdaten.at/features/devices/logic/station_secrets_store.dart';
 
 BleDevice _testDevice() {
@@ -45,6 +46,17 @@ void main() {
         await StationSecretsStore.instance.readApiKey(device.bleName),
         'ble-station-key',
       );
+    });
+
+    test('parseFromBytes does not persist station config snapshot', () async {
+      final device = _testDevice();
+      await DeviceApiKeyBleSync.applyFromAirStationConfigBytes(
+        device,
+        _tlv20('only-api-key'),
+      );
+      final record =
+          await DeviceConfigStore.instance.readStationConfig(device.bleName);
+      expect(record, isNull);
     });
 
     test('returns false when TLV has no API key', () async {

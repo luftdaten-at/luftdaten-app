@@ -15,6 +15,8 @@ import 'package:luftdaten.at/features/devices/data/device_error.dart';
 import 'package:luftdaten.at/features/devices/data/sensor_details.dart';
 
 import 'package:luftdaten.at/core/widgets/ui.dart';
+import 'package:luftdaten.at/core/config/app_settings.dart';
+import 'package:luftdaten.at/features/devices/logic/mock_ble_profile.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/ble_device_notices_presenter.dart';
 
 class BleDevice extends ChangeNotifier {
@@ -55,6 +57,8 @@ class BleDevice extends ChangeNotifier {
   }
 
   String get displayName => _userAssignedName ?? deviceOriginalDisplayName;
+
+  String? get userAssignedName => _userAssignedName;
 
   set userAssignedName(String? name) {
     _userAssignedName = name;
@@ -139,6 +143,9 @@ class BleDevice extends ChangeNotifier {
   /// by comparing nearby devices' names with [bleName].
   String? bleId;
 
+  /// Debug-only device for simulator; never uses real GATT when [AppSettings.mockBleActive].
+  bool isMock;
+
   // Constructor
   BleDevice(
       {required this.model,
@@ -148,7 +155,8 @@ class BleDevice extends ChangeNotifier {
       bool autoReconnect = true,
       String? userAssignedName,
       int? measurementInterval,
-      this.bleId})
+      this.bleId,
+      this.isMock = false})
       : _autoReconnect = autoReconnect,
         _userAssignedName = userAssignedName,
         _measurementInterval = measurementInterval;
@@ -163,6 +171,7 @@ class BleDevice extends ChangeNotifier {
       'autoConnect': autoReconnect,
       if (_measurementInterval != null) 'measurementInterval': _measurementInterval,
       if (_userAssignedName != null) 'userAssignedName': _userAssignedName,
+      if (isMock) 'isMock': true,
     };
   }
 
@@ -177,13 +186,26 @@ class BleDevice extends ChangeNotifier {
       measurementInterval: json['measurementInterval'],
       userAssignedName: json['userAssignedName'],
       deviceOriginalDisplayName: json['deviceOriginalName'],
+      isMock: json['isMock'] == true,
+      bleId: json['isMock'] == true ? 'mock:${json['deviceBleName']}' : null,
     );
   }
 
-  Future<bool> connect() async {
+  Future<bool> connect({bool showNoticesOnConnect = true}) async {
     // Prevent concurrent connection attempts (causes iOS ConnectTaskController assertion)
     if (state == BleDeviceState.connecting) {
       return false;
+    }
+
+    if (isMock && AppSettings.mockBleActive) {
+      state = BleDeviceState.connecting;
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      MockBleProfile.apply(this);
+      state = BleDeviceState.connected;
+      if (showNoticesOnConnect) {
+        BleDeviceNoticesPresenter.showAfterConnectIfNeeded(this);
+      }
+      return true;
     }
 
     BleController ble = getIt<BleController>();
@@ -219,7 +241,9 @@ class BleDevice extends ChangeNotifier {
             await Future<void>.delayed(const Duration(milliseconds: 800));
             await ble.getDeviceDetailsAndCheckProtocol(this);
             state = BleDeviceState.connected;
-            BleDeviceNoticesPresenter.showAfterConnectIfNeeded(this);
+            if (showNoticesOnConnect) {
+              BleDeviceNoticesPresenter.showAfterConnectIfNeeded(this);
+            }
             if (!completer.isCompleted) completer.complete(true);
           } on IncompatibleFirmwareException catch (e) {
             state = BleDeviceState.error;
@@ -277,6 +301,12 @@ class BleDevice extends ChangeNotifier {
   }
 
   void disconnect() {
+    if (isMock && AppSettings.mockBleActive) {
+      _connection?.cancel();
+      _connection = null;
+      state = BleDeviceState.disconnected;
+      return;
+    }
     _connection?.cancel();
     _connection = null;
     state = BleDeviceState.disconnected;

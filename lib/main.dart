@@ -81,6 +81,7 @@ void main() async {
     await SdBleImportStorage.ensureInitialized();
     await AppSettings.I.init();
     await DeviceInfo.init();
+    AppSettings.I.applyMockBleDefaultIfUnset();
 
     SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
     locale = sharedPreferences.getString('locale');

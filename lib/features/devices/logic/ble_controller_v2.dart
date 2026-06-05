@@ -56,9 +56,15 @@ class BleControllerV2 implements BleControllerForProtocol {
           logSource: 'device_info_json',
         );
         final station = info['station'];
-        device.firmwareVersion = BleJsonParser.parseFirmwareFromStation(
-          station is Map ? Map<String, dynamic>.from(station) : null,
-        ) ?? const FirmwareVersion(0, 0, 0);
+        final deviceBlock = info['device'];
+        device.firmwareVersion =
+            BleJsonParser.parseFirmwareFromStation(
+              station is Map ? Map<String, dynamic>.from(station) : null,
+            ) ??
+            BleJsonParser.parseFirmwareFromDevice(
+              deviceBlock is Map ? Map<String, dynamic>.from(deviceBlock) : null,
+            ) ??
+            const FirmwareVersion(0, 0, 0);
         usedJsonFormat = true;
       } catch (e) {
         logger.d('getDeviceDetails: JSON parse failed: $e');

@@ -15,6 +15,7 @@ import 'package:geolocator/geolocator.dart'; // Import geolocator package for GP
 import 'ble_controller.dart';
 import 'device_api_key_ble_sync.dart';
 import 'air_station_setup_verification.dart';
+import 'station_secrets_store.dart';
 
 class AirStationConfigWizardController extends ChangeNotifier {
   static final MapChangeNotifier<String, AirStationConfigWizardController> _activeControllers = MapChangeNotifier();
@@ -354,7 +355,15 @@ class AirStationConfigWizardController extends ChangeNotifier {
       dev.disconnect();
       if (success) {
         try {
-          await config!.persist();
+          if (wifi?.valid ?? false) {
+            await StationSecretsStore.instance.writeWifiCredentials(
+              id,
+              ssid: wifi!.ssid,
+              password: wifi!.password,
+            );
+          }
+          await config!.persist(lastConfiguredAt: DateTime.now());
+          AirStationConfigManager.putInCache(config!);
         } catch (_) {
           /* best-effort; device already accepted config */
         }

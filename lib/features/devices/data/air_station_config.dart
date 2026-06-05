@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
 import 'package:i18n_extension/default.i18n.dart';
 import 'package:luftdaten.at/core/utils/util.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:luftdaten.at/features/devices/logic/device_config_store.dart';
 
 /// Firmware TLV string values ([`LOG_LEVEL`](https://github.com/luftdaten-at/firmware/blob/main/docs/settings.md)).
 abstract final class AirStationBleLogLevels {
@@ -117,6 +117,9 @@ class AirStationConfig {
   /// TLV `25` (`REFRESH_SENSORS`).
   bool refreshSensors;
 
+  /// When the app last successfully saved/applied this configuration.
+  DateTime? lastConfiguredAt;
+
   AirStationConfig({
     required this.id,
     required this.autoUpdateMode,
@@ -142,9 +145,8 @@ class AirStationConfig {
     this.uploadSdLogToDatahub = false,
     this.clearSdCard = false,
     this.refreshSensors = false,
-  }) {
-    _saveToStorage();
-  }
+    this.lastConfiguredAt,
+  });
 
   AirStationConfig.defaultConfig(this.id)
       : autoUpdateMode = AutoUpdateMode.on,
@@ -169,19 +171,20 @@ class AirStationConfig {
         detectModelFromSensors = false,
         uploadSdLogToDatahub = false,
         clearSdCard = false,
-        refreshSensors = false {
-    _saveToStorage();
-  }
+        refreshSensors = false,
+        lastConfiguredAt = null;
 
-  Future<void> _saveToStorage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final configJson = jsonEncode(toJson());
-    await prefs.setString('air_station_config_$id', configJson);
+  /// Persists non-secret config to secure storage (`api_key` is never stored here).
+  Future<void> persist({DateTime? lastConfiguredAt}) async {
+    if (lastConfiguredAt != null) {
+      this.lastConfiguredAt = lastConfiguredAt;
+    }
+    await DeviceConfigStore.instance.writeStationConfig(
+      this,
+      lastConfiguredAt: this.lastConfiguredAt,
+    );
     AirStationConfigManager._cache[id] = this;
   }
-
-  /// Persists prefs JSON (`api_key` is never stored here).
-  Future<void> persist() => _saveToStorage();
 
   /// Applies non-secret snapshot from BLE read (MQTT password / Wi‑Fi pass never arrive here).
   void applyNonSecretSnapshotFromBleRead(AirStationConfig snapshot) {
@@ -209,8 +212,42 @@ class AirStationConfig {
     refreshSensors = snapshot.refreshSensors;
   }
 
+  bool nonSecretFieldsEqual(AirStationConfig other) {
+    return autoUpdateMode == other.autoUpdateMode &&
+        batterySaverMode == other.batterySaverMode &&
+        measurementInterval == other.measurementInterval &&
+        longitude == other.longitude &&
+        latitude == other.latitude &&
+        height == other.height &&
+        deviceId == other.deviceId &&
+        tz == other.tz &&
+        logLevel == other.logLevel &&
+        mqttEnabled == other.mqttEnabled &&
+        mqttBroker == other.mqttBroker &&
+        mqttPort == other.mqttPort &&
+        mqttUseTls == other.mqttUseTls &&
+        mqttUsername == other.mqttUsername &&
+        mqttDiscoveryPrefix == other.mqttDiscoveryPrefix &&
+        mqttDeviceName == other.mqttDeviceName &&
+        mqttCertificatePath == other.mqttCertificatePath &&
+        syncRtcFromNtp == other.syncRtcFromNtp &&
+        detectModelFromSensors == other.detectModelFromSensors &&
+        uploadSdLogToDatahub == other.uploadSdLogToDatahub &&
+        clearSdCard == other.clearSdCard &&
+        refreshSensors == other.refreshSensors;
+  }
+
+  /// Parses TLV blob without persisting (for BLE sync compare / API key extraction).
+  static AirStationConfig parseFromBytes(String id, List<int> bytes) {
+    return _parseBytesImpl(id, bytes);
+  }
+
   /// Parses TLV blob from BLE `air_station_configuration` characteristic (without leading command byte).
   factory AirStationConfig.fromBytes(String id, List<int> bytes) {
+    return parseFromBytes(id, bytes);
+  }
+
+  static AirStationConfig _parseBytesImpl(String id, List<int> bytes) {
     AutoUpdateMode autoUpdateMode = AutoUpdateMode.on;
     BatterySaverMode batterySaverMode = BatterySaverMode.normal;
     AirStationMeasurementInterval measurementInterval = AirStationMeasurementInterval.min5;
@@ -542,6 +579,8 @@ class AirStationConfig {
       'uploadSdLogToDatahub': uploadSdLogToDatahub,
       'clearSdCard': clearSdCard,
       'refreshSensors': refreshSensors,
+      if (lastConfiguredAt != null)
+        'lastConfiguredAt': lastConfiguredAt!.toIso8601String(),
     };
   }
 
@@ -574,6 +613,9 @@ class AirStationConfig {
       uploadSdLogToDatahub: json['uploadSdLogToDatahub'] as bool? ?? false,
       clearSdCard: json['clearSdCard'] as bool? ?? false,
       refreshSensors: json['refreshSensors'] as bool? ?? false,
+      lastConfiguredAt: json['lastConfiguredAt'] != null
+          ? DateTime.parse(json['lastConfiguredAt'] as String)
+          : null,
     );
   }
 }
@@ -582,24 +624,25 @@ class AirStationConfigManager {
   static final Map<String, AirStationConfig> _cache = {};
 
   static Future<void> loadAllConfigs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final keys = prefs.getKeys().where((key) => key.startsWith('air_station_config_'));
-
-    for (final key in keys) {
-      final jsonString = prefs.getString(key);
-      if (jsonString != null) {
-        final Map<String, dynamic> json = jsonDecode(jsonString) as Map<String, dynamic>;
-        final config = AirStationConfig.fromJson(json);
-        _cache[config.id] = config;
-      }
+    await DeviceConfigStore.instance.migrateFromSharedPreferencesIfNeeded();
+    final ids = await DeviceConfigStore.instance.listStationConfigIds();
+    for (final id in ids) {
+      final record = await DeviceConfigStore.instance.readStationConfig(id);
+      if (record == null) continue;
+      record.config.lastConfiguredAt =
+          record.lastConfiguredAt ?? record.config.lastConfiguredAt;
+      _cache[id] = record.config;
     }
   }
 
   static AirStationConfig? getConfig(String id) => _cache[id];
 
+  static void putInCache(AirStationConfig config) {
+    _cache[config.id] = config;
+  }
+
   static Future<void> deleteConfig(String id) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('air_station_config_$id');
+    await DeviceConfigStore.instance.deleteStationConfig(id);
     _cache.remove(id);
   }
 }

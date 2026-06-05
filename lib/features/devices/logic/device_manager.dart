@@ -7,7 +7,12 @@ import 'package:get_storage/get_storage.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'package:luftdaten.at/core/config/app_settings.dart';
+import 'package:luftdaten.at/features/devices/logic/mock_ble_devices.dart';
+
+import '../data/air_station_config.dart';
 import '../data/ble_device.dart';
+import 'device_config_store.dart';
 
 class DeviceManager extends ChangeNotifier {
   final List<BleDevice> _devices = [];
@@ -87,6 +92,28 @@ class DeviceManager extends ChangeNotifier {
     saveDeviceList();
   }
 
+  /// Adds a debug mock device (simulator). Reuses existing mock of the same [model].
+  BleDevice? addMockDevice(LDDeviceModel model) {
+    if (!AppSettings.mockBleActive) return null;
+    for (final existing in devices) {
+      if (existing.isMock && existing.model == model) {
+        return existing;
+      }
+    }
+    final device = MockBleDevices.buildMockDevice(
+      model,
+      existingBleNames: devices.map((e) => e.bleName),
+    );
+    addDevice(device);
+    return device;
+  }
+
+  void addMockPresetBundle() {
+    if (!AppSettings.mockBleActive) return;
+    addMockDevice(LDDeviceModel.aRound);
+    addMockDevice(LDDeviceModel.station);
+  }
+
   BleDevice? addDeviceByCode(String? code) {
     if (code == null) return null;
     try {
@@ -112,6 +139,11 @@ class DeviceManager extends ChangeNotifier {
   void deleteDevice(BleDevice device) {
     devices.remove(device);
     saveDeviceList();
+    if (device.model == LDDeviceModel.station) {
+      unawaited(AirStationConfigManager.deleteConfig(device.bleName));
+    } else {
+      unawaited(DeviceConfigStore.instance.deletePortableConfig(device.bleName));
+    }
     notifyListeners();
   }
 

@@ -73,7 +73,7 @@ class _AirStationStartupFlagsDialogState extends State<_AirStationStartupFlagsDi
       }
       if (!mounted) return;
       if (raw != null && raw.isNotEmpty) {
-        final snapshot = AirStationConfig.fromBytes(widget.device.bleName, raw);
+        final snapshot = AirStationConfig.parseFromBytes(widget.device.bleName, raw);
         _cfg.applyNonSecretSnapshotFromBleRead(snapshot);
         setState(() {});
       }
@@ -188,14 +188,14 @@ class _AirStationStartupFlagsDialogState extends State<_AirStationStartupFlagsDi
         final raw =
             await getIt<BleController>().readAirStationConfiguration(widget.device);
         if (raw != null && raw.isNotEmpty) {
-          final snapshot = AirStationConfig.fromBytes(widget.device.bleName, raw);
+          final snapshot = AirStationConfig.parseFromBytes(widget.device.bleName, raw);
           _cfg.applyNonSecretSnapshotFromBleRead(snapshot);
         }
       } catch (e, st) {
         logger.d('Startup flags dialog: read-back failed: $e $st');
       }
 
-      await _cfg.persist();
+      await _cfg.persist(lastConfiguredAt: DateTime.now());
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Flag gesetzt — Station neu starten.'.i18n)),

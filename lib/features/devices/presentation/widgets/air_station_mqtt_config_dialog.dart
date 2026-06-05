@@ -118,7 +118,7 @@ class _AirStationMqttConfigDialogState extends State<_AirStationMqttConfigDialog
       if (!mounted) return;
 
       if (raw != null && raw.isNotEmpty) {
-        final snapshot = AirStationConfig.fromBytes(widget.device.bleName, raw);
+        final snapshot = AirStationConfig.parseFromBytes(widget.device.bleName, raw);
         _cfg.applyNonSecretSnapshotFromBleRead(snapshot);
         _brokerCtl.text = _cfg.mqttBroker ?? '';
         _portCtl.text = _cfg.mqttPort.toString();
@@ -219,7 +219,7 @@ class _AirStationMqttConfigDialogState extends State<_AirStationMqttConfigDialog
       try {
         final raw = await getIt<BleController>().readAirStationConfiguration(widget.device);
         if (raw != null && raw.isNotEmpty) {
-          final snapshot = AirStationConfig.fromBytes(widget.device.bleName, raw);
+          final snapshot = AirStationConfig.parseFromBytes(widget.device.bleName, raw);
           _cfg.applyNonSecretSnapshotFromBleRead(snapshot);
         }
       } catch (e, st) {
@@ -238,7 +238,7 @@ class _AirStationMqttConfigDialogState extends State<_AirStationMqttConfigDialog
         logger.d('MQTT dialog: secure store password persist failed: $e $st');
       }
 
-      await _cfg.persist();
+      await _cfg.persist(lastConfiguredAt: DateTime.now());
 
       final editedPw = _mqttPasswordEdited;
       if (editedPw) {

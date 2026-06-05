@@ -171,14 +171,14 @@ extension Localization on String {
         "en": "Serial BLE console",
       } +
       {
-        "de": "Startup (BLE) in Geräteübersicht",
-        "en": "Startup (BLE) in device overview",
+        "de": "Startup (BLE) in Gerätedetail",
+        "en": "Startup (BLE) in device detail",
       } +
       {
         "de":
-            "Zeigt die Schaltfläche „Startup (BLE) …“ bei Air Stations in der Geräteliste (Bluetooth).",
+            "Zeigt die Schaltfläche „Startup (BLE) …“ bei Air Stations auf der Gerätedetailseite.",
         "en":
-            "Shows the \"Startup (BLE)\" action for Air Stations in the Bluetooth device list.",
+            "Shows the \"Startup (BLE)\" action for Air Stations on the device detail page.",
       } +
       {
         "de": "Willkommensbildschirm öffnen",
@@ -363,6 +363,16 @@ extension Localization on String {
       {
         "de": "Package-Lizenzen",
         "en": "Package licenses",
+      } +
+      {
+        "de": "Mock-BLE-Geräte (Simulator)",
+        "en": "Mock BLE devices (simulator)",
+      } +
+      {
+        "de":
+            "Simuliert Verbindung und Messwerte ohne echtes Bluetooth (nur Debug-Build).",
+        "en":
+            "Simulates connection and readings without real Bluetooth (debug builds only).",
       } +
       {
         "de": "BLE-Geräte in der Nähe",
