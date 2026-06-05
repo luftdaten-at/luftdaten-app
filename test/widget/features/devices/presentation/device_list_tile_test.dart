@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:luftdaten.at/core/widgets/dashboard_list_tile.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device_status.dart';
 import 'package:luftdaten.at/features/devices/logic/mock_ble_devices.dart';
@@ -110,5 +111,59 @@ void main() {
     );
 
     expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+  });
+
+  testWidgets('notFound device uses grey list tile background', (tester) async {
+    final device = BleDevice(
+      model: LDDeviceModel.aRound,
+      bleName: 'Luftdaten.at-000000000099',
+      bleMacAddress: '000000000099',
+      deviceOriginalDisplayName: 'Air aRound 99',
+    );
+    device.state = BleDeviceState.notFound;
+
+    await pumpDeviceApp(
+      tester,
+      Scaffold(
+        body: DeviceListTile(
+          device: device,
+          isStation: false,
+          onTap: () {},
+        ),
+      ),
+    );
+
+    final scheme = Theme.of(tester.element(find.byType(DeviceListTile))).colorScheme;
+    final tile = tester.widget<DashboardListTile>(find.byType(DashboardListTile));
+
+    expect(find.text('Nicht in der Nähe'), findsOneWidget);
+    expect(tile.backgroundColor, scheme.surfaceContainerHighest);
+  });
+
+  testWidgets('disconnected device keeps primaryContainer background', (tester) async {
+    final device = BleDevice(
+      model: LDDeviceModel.aRound,
+      bleName: 'Luftdaten.at-000000000001',
+      bleMacAddress: '000000000001',
+      deviceOriginalDisplayName: 'Air aRound 1',
+    );
+    device.state = BleDeviceState.disconnected;
+
+    await pumpDeviceApp(
+      tester,
+      Scaffold(
+        body: DeviceListTile(
+          device: device,
+          isStation: false,
+          onTap: () {},
+        ),
+      ),
+    );
+
+    final scheme = Theme.of(tester.element(find.byType(DeviceListTile))).colorScheme;
+    final tile = tester.widget<DashboardListTile>(find.byType(DashboardListTile));
+
+    expect(find.text('Keine Verbindung'), findsOneWidget);
+    expect(tile.backgroundColor, scheme.primaryContainer);
   });
 }

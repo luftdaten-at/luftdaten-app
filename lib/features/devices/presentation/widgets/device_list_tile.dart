@@ -30,15 +30,11 @@ class DeviceListTile extends StatelessWidget {
       builder: (context, dev) {
         final connected = dev.state == BleDeviceState.connected;
         final statusColor = DeviceConnectionAppearance.statusColor(context, dev.state);
-        final scheme = Theme.of(context).colorScheme;
-        final background = connected
-            ? Color.alphaBlend(statusColor.withValues(alpha: 0.12), scheme.primaryContainer)
-            : scheme.primaryContainer;
 
         return DashboardListTile(
           title: dev.model.name,
           subtitle: _subtitle,
-          backgroundColor: background,
+          backgroundColor: DeviceConnectionAppearance.listTileBackgroundColor(context, dev.state),
           onTap: onTap,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
