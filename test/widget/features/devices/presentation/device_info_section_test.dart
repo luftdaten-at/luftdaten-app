@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
+import 'package:luftdaten.at/features/devices/data/ble_device_status.dart';
 import 'package:luftdaten.at/features/devices/logic/device_config_store.dart';
 import 'package:luftdaten.at/features/devices/logic/device_config_sync.dart';
 import 'package:luftdaten.at/features/devices/logic/mock_ble_devices.dart';
@@ -110,7 +111,7 @@ void main() {
     );
 
     expect(find.textContaining('Firmware-Version:'), findsOneWidget);
-    expect(find.textContaining('Gerät:'), findsOneWidget);
+    expect(find.text('Gerät: '), findsOneWidget);
     expect(find.textContaining('Sensor-ID:'), findsOneWidget);
   });
 
@@ -186,5 +187,85 @@ void main() {
 
     expect(find.textContaining('Nur App-Einstellung'), findsOneWidget);
     expect(find.textContaining('Messintervall (App)'), findsOneWidget);
+  });
+
+  testWidgets('station shows stored wifi ssid and password hint without password', (tester) async {
+    final device = MockBleDevices.buildMockDevice(
+      LDDeviceModel.station,
+      existingBleNames: const [],
+    );
+    MockBleProfile.apply(device);
+    device.state = BleDeviceState.connected;
+
+    await pumpDeviceApp(
+      tester,
+      Scaffold(
+        body: DeviceInfoSection(
+          device: device,
+          isStation: true,
+          isLoading: false,
+          wifiSsid: 'Mein-WLAN',
+          wifiPasswordStored: true,
+        ),
+      ),
+    );
+
+    expect(find.textContaining('WLAN SSID:'), findsOneWidget);
+    expect(find.textContaining('Mein-WLAN'), findsOneWidget);
+    expect(find.textContaining('WLAN Passwort:'), findsOneWidget);
+    expect(find.textContaining('Gespeichert'), findsOneWidget);
+    expect(find.textContaining('Mein-WLAN-Passwort'), findsNothing);
+  });
+
+  testWidgets('connected station shows live ssid configured on device', (tester) async {
+    final device = MockBleDevices.buildMockDevice(
+      LDDeviceModel.station,
+      existingBleNames: const [],
+    );
+    MockBleProfile.apply(device);
+    device.state = BleDeviceState.connected;
+    device.wifiSsidConfiguredOnDevice = true;
+
+    await pumpDeviceApp(
+      tester,
+      Scaffold(
+        body: DeviceInfoSection(
+          device: device,
+          isStation: true,
+          isLoading: false,
+          wifiSsid: 'Mein-WLAN',
+          wifiPasswordStored: true,
+        ),
+      ),
+    );
+
+    expect(find.textContaining('WLAN auf Gerät:'), findsOneWidget);
+    expect(find.textContaining('SSID konfiguriert'), findsOneWidget);
+  });
+
+  testWidgets('connected station shows live wifi error from operational notices', (tester) async {
+    final device = MockBleDevices.buildMockDevice(
+      LDDeviceModel.station,
+      existingBleNames: const [],
+    );
+    MockBleProfile.apply(device);
+    device.state = BleDeviceState.connected;
+    device.operationalNotices = const [
+      BleDeviceNotice(id: 'wifi_ssid_not_found', severity: BleNoticeSeverity.error),
+    ];
+
+    await pumpDeviceApp(
+      tester,
+      Scaffold(
+        body: DeviceInfoSection(
+          device: device,
+          isStation: true,
+          isLoading: false,
+        ),
+      ),
+    );
+
+    expect(find.textContaining('WLAN auf Gerät:'), findsOneWidget);
+    expect(find.textContaining('SSID nicht gefunden'), findsOneWidget);
   });
 }

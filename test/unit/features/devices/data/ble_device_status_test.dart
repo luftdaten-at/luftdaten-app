@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:luftdaten.at/features/devices/data/battery_details.dart';
+import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device_status.dart';
 import 'package:luftdaten.at/features/devices/logic/battery_info_aggregator.dart';
 
@@ -77,6 +78,34 @@ void main() {
     test('SSID_CONFIGURED alone produces no notices', () {
       final r = BleDeviceStatusParser.parse([1, 50, 38, 0, 0x08]);
       expect(r.notices, isEmpty);
+    });
+  });
+
+  group('applyDeviceStatusBytes', () {
+    test('sets wifiSsidConfiguredOnDevice and wifiDetailOnDevice', () {
+      final device = BleDevice(
+        model: LDDeviceModel.station,
+        bleName: 'Luftdaten.at-wifi-flags',
+        bleMacAddress: 'AABBCCDDEE01',
+        deviceOriginalDisplayName: 'Station',
+      );
+      applyDeviceStatusBytes(device, [1, 50, 38, 0x02, 0x08]);
+      expect(device.wifiSsidConfiguredOnDevice, isTrue);
+      expect(device.wifiDetailOnDevice, BleWifiDetailCode.ssidNotInScan);
+    });
+
+    test('short payload clears wifi fields', () {
+      final device = BleDevice(
+        model: LDDeviceModel.station,
+        bleName: 'Luftdaten.at-wifi-short',
+        bleMacAddress: 'AABBCCDDEE02',
+        deviceOriginalDisplayName: 'Station',
+      );
+      device.wifiSsidConfiguredOnDevice = true;
+      device.wifiDetailOnDevice = BleWifiDetailCode.connectionFailed;
+      applyDeviceStatusBytes(device, [1, 50, 38]);
+      expect(device.wifiSsidConfiguredOnDevice, isFalse);
+      expect(device.wifiDetailOnDevice, BleWifiDetailCode.ok);
     });
   });
 

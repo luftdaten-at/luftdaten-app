@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:luftdaten.at/core/config/app_settings.dart';
 import 'package:luftdaten.at/core/core.dart';
@@ -11,6 +12,7 @@ import 'package:luftdaten.at/features/devices/logic/ble_controller.dart';
 import 'package:luftdaten.at/features/devices/logic/device_config_store.dart';
 import 'package:luftdaten.at/features/devices/logic/device_config_sync.dart';
 import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
+import 'package:luftdaten.at/features/devices/logic/station_secrets_store.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/air_station_config_wizard_page.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_sd_ble_import.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_startup_flags_dialog.dart';
@@ -36,10 +38,10 @@ class DeviceDetailPage extends StatefulWidget {
   static const String route = 'device-detail';
 
   @override
-  State<DeviceDetailPage> createState() => _DeviceDetailPageState();
+  State<DeviceDetailPage> createState() => DeviceDetailPageState();
 }
 
-class _DeviceDetailPageState extends State<DeviceDetailPage> {
+class DeviceDetailPageState extends State<DeviceDetailPage> {
   Timer? _statusPollTimer;
   bool _sdBleExportNonEmpty = false;
   DateTime? _lastSdBleExportPeekAt;
@@ -49,6 +51,8 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
   bool _connectBootstrapCompleted = false;
   DeviceConfigSyncResult? _configSyncResult;
   bool _configSnapshotLoading = false;
+  String? _wifiSsid;
+  bool _wifiPasswordStored = false;
 
   @override
   void initState() {
@@ -106,20 +110,37 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
     setState(() => _configSnapshotLoading = true);
     try {
       if (widget.isStation) {
+        final wifiFuture = _loadStoredWifi(device.bleName);
         if (device.state == BleDeviceState.connected) {
-          final result = await DeviceConfigSyncChecker.checkStation(device);
+          final results = await Future.wait([
+            DeviceConfigSyncChecker.checkStation(device),
+            wifiFuture,
+          ]);
           if (!mounted) return;
-          setState(() => _configSyncResult = result);
+          final wifi = results[1] as ({String? ssid, bool passwordStored});
+          setState(() {
+            _configSyncResult = results[0] as DeviceConfigSyncResult;
+            _wifiSsid = wifi.ssid;
+            _wifiPasswordStored = wifi.passwordStored;
+          });
         } else {
-          final local =
-              await DeviceConfigStore.instance.readStationConfig(device.bleName);
+          final results = await Future.wait([
+            DeviceConfigStore.instance.readStationConfig(device.bleName),
+            wifiFuture,
+          ]);
           if (!mounted) return;
-          setState(() => _configSyncResult = DeviceConfigSyncResult(
-                status: local == null
-                    ? DeviceConfigSyncStatus.noLocalConfig
-                    : DeviceConfigSyncStatus.noLocalConfig,
-                localRecord: local,
-              ));
+          final local = results[0] as StationConfigRecord?;
+          final wifi = results[1] as ({String? ssid, bool passwordStored});
+          setState(() {
+            _configSyncResult = DeviceConfigSyncResult(
+              status: local == null
+                  ? DeviceConfigSyncStatus.noLocalConfig
+                  : DeviceConfigSyncStatus.noLocalConfig,
+              localRecord: local,
+            );
+            _wifiSsid = wifi.ssid;
+            _wifiPasswordStored = wifi.passwordStored;
+          });
         }
       } else {
         final portable =
@@ -130,6 +151,47 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
     } finally {
       if (mounted) setState(() => _configSnapshotLoading = false);
     }
+  }
+
+  Future<({String? ssid, bool passwordStored})> _loadStoredWifi(
+    String bleName,
+  ) async {
+    final ssid = await StationSecretsStore.instance.readWifiSsid(bleName);
+    final password =
+        await StationSecretsStore.instance.readWifiPassword(bleName);
+    return (
+      ssid: ssid,
+      passwordStored: password != null && password.isNotEmpty,
+    );
+  }
+
+  @visibleForTesting
+  Future<void> refreshAfterResumeForTest() => _refreshAfterResume();
+
+  Future<void> _refreshAfterResume() async {
+    final device = widget.device;
+    _statusPollTimer?.cancel();
+    _statusPollTimer = null;
+    _lastSdBleExportPeekAt = null;
+
+    await _refreshConfigSnapshot(device);
+
+    if (device.state == BleDeviceState.connected) {
+      await getIt<BleController>().refreshDeviceInfo(device);
+      await getIt<BleController>().refreshDeviceStatus(device);
+      if (!mounted) return;
+      _onBootstrapConnected();
+    } else {
+      final ok = await device.connect(showNoticesOnConnect: false);
+      if (!mounted) return;
+      if (ok && device.state == BleDeviceState.connected) {
+        await getIt<BleController>().refreshDeviceInfo(device);
+        await getIt<BleController>().refreshDeviceStatus(device);
+        if (!mounted) return;
+        _onBootstrapConnected();
+      }
+    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _completeBootstrapAfterConnect() async {
@@ -326,6 +388,9 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
                   isLoading: _isBleLoading(device),
                   configSyncResult: _configSyncResult,
                   configLoading: _configSnapshotLoading,
+                  wifiSsid: widget.isStation ? _wifiSsid : null,
+                  wifiPasswordStored:
+                      widget.isStation ? _wifiPasswordStored : false,
                 ),
                 if (widget.isStation)
                   _buildStationActions(context, device)
@@ -369,11 +434,13 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
           context,
           icon: Icons.settings,
           label: 'Gerät konfigurieren'.i18n,
-          onPressed: () {
-            showDialog(
+          onPressed: () async {
+            await showDialog<void>(
               context: context,
               builder: (_) => DeviceConfigDialog(device: device),
             );
+            if (!context.mounted) return;
+            await _refreshAfterResume();
           },
         ),
         _deviceActionButton(
@@ -396,13 +463,16 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
             context,
             icon: Icons.settings,
             label: 'Gerät konfigurieren'.i18n,
-            onPressed: () {
+            onPressed: () async {
               final controller = AirStationConfigWizardController(device.bleName);
-              Navigator.of(context).push(
+              await Navigator.of(context).push<void>(
                 MaterialPageRoute(
                   builder: (_) => AirStationConfigWizardPage(controller: controller),
                 ),
               );
+              AirStationConfigWizardController.removeController(device.bleName);
+              if (!context.mounted) return;
+              await _refreshAfterResume();
             },
           ),
           if (AppSettings.I.showAirStationStartupBleInDeviceOverview)

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luftdaten.at/core/config/app_settings.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
@@ -9,11 +10,14 @@ import 'package:luftdaten.at/features/devices/presentation/pages/device_detail_p
 import '../../../../test_helpers/device_widget_test_harness.dart';
 
 void main() {
-  setUp(() async => setUpDeviceWidgetTests(
-        storageBucket: 'device_detail_page_tests',
-        registerBleController: true,
-        mockBleEnabled: true,
-      ));
+  setUp(() async {
+    FlutterSecureStorage.setMockInitialValues({});
+    await setUpDeviceWidgetTests(
+      storageBucket: 'device_detail_page_tests',
+      registerBleController: true,
+      mockBleEnabled: true,
+    );
+  });
 
   tearDown(tearDownDeviceWidgetTests);
 
@@ -91,6 +95,47 @@ void main() {
     await tester.pump();
 
     expect(find.textContaining('Startup (BLE)'), findsOneWidget);
+  });
+
+  testWidgets('refreshAfterResume keeps connected mock station data', (tester) async {
+    final device = MockBleDevices.buildMockDevice(
+      LDDeviceModel.station,
+      existingBleNames: const [],
+    );
+    MockBleProfile.apply(device);
+    device.state = BleDeviceState.connected;
+
+    await pumpDeviceApp(tester, DeviceDetailPage(device: device, isStation: true));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final state = tester.state<DeviceDetailPageState>(find.byType(DeviceDetailPage));
+    await state.refreshAfterResumeForTest();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(device.state, BleDeviceState.connected);
+    expect(find.textContaining('MOCK-SEN5X'), findsOneWidget);
+    expect(find.textContaining('Verbunden'), findsWidgets);
+  });
+
+  testWidgets('refreshAfterResume auto-reconnects disconnected mock portable', (tester) async {
+    final device = MockBleDevices.buildMockDevice(
+      LDDeviceModel.aRound,
+      existingBleNames: const [],
+    );
+    device.state = BleDeviceState.disconnected;
+
+    await pumpDeviceApp(tester, DeviceDetailPage(device: device, isStation: false));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final state = tester.state<DeviceDetailPageState>(find.byType(DeviceDetailPage));
+    await state.refreshAfterResumeForTest();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(device.state, BleDeviceState.connected);
+    expect(find.textContaining('Verbunden'), findsWidgets);
+    expect(find.textContaining('MOCK-SEN5X'), findsOneWidget);
   });
 
   testWidgets('auto-connects mock portable device on open', (tester) async {
