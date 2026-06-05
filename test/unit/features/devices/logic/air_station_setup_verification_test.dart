@@ -61,6 +61,20 @@ void main() {
     });
   });
 
+  group('AirStationSetupVerification.historicalQueryUri', () {
+    test('builds documented historical endpoint query', () {
+      final start = DateTime.utc(2026, 5, 31, 10, 0);
+      final uri = AirStationSetupVerification.historicalQueryUri('ABC123SC', start);
+
+      expect(uri.path, '/v1/station/historical');
+      expect(uri.queryParameters['station_ids'], 'ABC123SC');
+      expect(uri.queryParameters['start'], start.toIso8601String());
+      expect(uri.queryParameters['end'], 'current');
+      expect(uri.queryParameters['precision'], 'all');
+      expect(uri.queryParameters['output_format'], 'csv');
+    });
+  });
+
   group('geo tolerance', () {
     test('~90m offset is within default max', () {
       final d = AirStationSetupVerification.distanceMeters(48.2, 16.37, 48.2008, 16.37);

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
@@ -206,19 +207,25 @@ class AirStationSetupVerification {
     return null;
   }
 
+  @visibleForTesting
+  static Uri historicalQueryUri(String deviceId, DateTime start) {
+    return Uri.parse('$_apiBase/v1/station/historical').replace(
+      queryParameters: {
+        'station_ids': deviceId,
+        'start': start.toIso8601String(),
+        'end': 'current',
+        'precision': 'all',
+        'output_format': 'csv',
+      },
+    );
+  }
+
   static Future<DateTime?> _fetchLatestMeasurementTime(
     String deviceId,
     Map<String, String> headers,
   ) async {
     final start = DateTime.now().toUtc().subtract(historicalLookback);
-    final uri = Uri.parse('$_apiBase/v1/station/historical/').replace(
-      queryParameters: {
-        'station_ids': deviceId,
-        'precision': 'all',
-        'output_format': 'csv',
-        'start': start.toIso8601String(),
-      },
-    );
+    final uri = historicalQueryUri(deviceId, start);
 
     final response = await http.get(uri, headers: headers).timeout(const Duration(seconds: 25));
     if (response.statusCode != 200) {
