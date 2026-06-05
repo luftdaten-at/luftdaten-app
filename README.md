@@ -91,13 +91,23 @@ Create a release build of the app:
   For an App Bundle (recommended for Google Play Store):
 
   ```bash
-  flutter build appbundle
+  ./scripts/build_appbundle.sh
   ```
+
+  Output: `dist/luftdaten-<buildNumber>.aab` (build number from `pubspec.yaml`, e.g. `dist/luftdaten-84.aab`).
 
 - **iOS**:
 
   ```bash
-  flutter build ipa
+  ./scripts/build_ipa.sh
+  ```
+
+  Output: `dist/luftdaten-<buildNumber>.ipa` (build number from `pubspec.yaml`, e.g. `dist/luftdaten-84.ipa`).
+
+  For App Store signing, pass export options:
+
+  ```bash
+  ./scripts/build_ipa.sh --export-options-plist=ios/ExportOptions.plist
   ```
 
   Note that building for iOS only works on macOS.
