@@ -18,6 +18,18 @@ class DeviceConnectionAppearance {
     };
   }
 
+  static Color listTileBackgroundColor(BuildContext context, BleDeviceState state) {
+    final scheme = Theme.of(context).colorScheme;
+    return switch (state) {
+      BleDeviceState.connected => Color.alphaBlend(
+        statusColor(context, state).withValues(alpha: 0.12),
+        scheme.primaryContainer,
+      ),
+      BleDeviceState.notFound || BleDeviceState.unknown => scheme.surfaceContainerHighest,
+      _ => scheme.primaryContainer,
+    };
+  }
+
   static IconData bluetoothIcon(BleDeviceState state) {
     return switch (state) {
       BleDeviceState.discovered || BleDeviceState.disconnected => Icons.bluetooth,
