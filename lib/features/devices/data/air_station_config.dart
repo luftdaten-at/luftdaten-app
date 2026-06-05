@@ -214,7 +214,6 @@ class AirStationConfig {
 
   bool nonSecretFieldsEqual(AirStationConfig other) {
     return autoUpdateMode == other.autoUpdateMode &&
-        batterySaverMode == other.batterySaverMode &&
         measurementInterval == other.measurementInterval &&
         longitude == other.longitude &&
         latitude == other.latitude &&

@@ -9,7 +9,6 @@ import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/logic/ble_controller.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_mqtt_config_dialog.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/ble_device_notices_banner.dart';
-import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_startup_flags_dialog.dart';
 import 'package:luftdaten.at/core/utils/list_extensions.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
@@ -930,27 +929,6 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
             },
             child: Text('MQTT / Home Assistant (BLE)'.i18n),
           ),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: () async {
-              try {
-                final dev =
-                    getIt<DeviceManager>().devices.where((e) => e.bleName == widget.controller.id).first;
-                await showAirStationStartupFlagsDialog(
-                  context: context,
-                  device: dev,
-                  preferExistingMutableConfig: widget.controller.config,
-                );
-              } catch (_) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Air Station konnte nicht ermittelt werden.'.i18n)),
-                );
-              }
-              if (mounted) setState(() {});
-            },
-            child: Text('Startup (BLE) …'.i18n),
-          ),
           const SizedBox(height: 12),
           FilledButton(
             onPressed: () {
@@ -1149,14 +1127,6 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
               ),
             ),
             const SizedBox(height: 10),
-            Text(
-              'Du kannst den Bluetooth-Modus an der Air Station nun durch drücken des BT-Buttons '
-              'ausschalten. Die Status-LED sollte erlischen.'
-                  .i18n,
-              style: const TextStyle(fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
             Text(
               'Während wir auf die ersten Daten deiner Air Station warten, kannst du bereits '
                       'andere Teile der App erkunden. Den Status deiner Air Station kannst du im '

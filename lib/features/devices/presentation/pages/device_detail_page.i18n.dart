@@ -202,10 +202,6 @@ extension Localization on String {
         "en": "Auto-update: ",
       } +
       {
-        "de": "Batteriesparmodus: ",
-        "en": "Battery saver: ",
-      } +
-      {
         "de": "Standort: ",
         "en": "Location: ",
       } +
@@ -264,6 +260,46 @@ extension Localization on String {
       {
         "de": "Nur App-Einstellung",
         "en": "App setting only",
+      } +
+      {
+        "de": "WLAN: ",
+        "en": "Wi-Fi: ",
+      } +
+      {
+        "de": "Nicht konfiguriert",
+        "en": "Not configured",
+      } +
+      {
+        "de": "WLAN SSID: ",
+        "en": "Wi-Fi SSID: ",
+      } +
+      {
+        "de": "WLAN Passwort: ",
+        "en": "Wi-Fi password: ",
+      } +
+      {
+        "de": "Gespeichert",
+        "en": "Stored",
+      } +
+      {
+        "de": "Nicht gespeichert",
+        "en": "Not stored",
+      } +
+      {
+        "de": "WLAN auf Gerät: ",
+        "en": "Wi-Fi on device: ",
+      } +
+      {
+        "de": "SSID konfiguriert",
+        "en": "SSID configured",
+      } +
+      {
+        "de": "SSID nicht konfiguriert",
+        "en": "SSID not configured",
+      } +
+      {
+        "de": "WLAN-Gerätestatus nach Verbindung verfügbar",
+        "en": "Wi-Fi device status available after connecting",
       };
 
   String get i18n => localize(this, _t);

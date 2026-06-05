@@ -133,4 +133,12 @@ void applyDeviceStatusBytes(BleDevice device, List<int> raw) {
     parsed.notices,
     device.errors,
   );
+  if (raw.length >= 5) {
+    device.wifiDetailOnDevice = BleWifiDetailCode.fromByte(raw[3]);
+    device.wifiSsidConfiguredOnDevice =
+        BleOperationalStatusFlags.fromByte(raw[4]).hasSsidConfigured;
+  } else {
+    device.wifiDetailOnDevice = BleWifiDetailCode.ok;
+    device.wifiSsidConfiguredOnDevice = false;
+  }
 }

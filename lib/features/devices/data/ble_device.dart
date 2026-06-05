@@ -29,6 +29,8 @@ class BleDevice extends ChangeNotifier {
     _state = state;
     if (state != BleDeviceState.connected) {
       _operationalNotices = [];
+      wifiSsidConfiguredOnDevice = false;
+      wifiDetailOnDevice = BleWifiDetailCode.ok;
     }
     notifyListeners();
     getIt<BatteryInfoAggregator>().onConnectionStatusUpdated();
@@ -130,6 +132,12 @@ class BleDevice extends ChangeNotifier {
   List<DeviceError> errors = [];
 
   List<BleDeviceNotice> _operationalNotices = [];
+
+  /// From BLE `device_status` flags byte (`ssidConfigured`).
+  bool wifiSsidConfiguredOnDevice = false;
+
+  /// From BLE `device_status` Wi‑Fi detail byte (index 3).
+  BleWifiDetailCode wifiDetailOnDevice = BleWifiDetailCode.ok;
 
   List<BleDeviceNotice> get operationalNotices => _operationalNotices;
 

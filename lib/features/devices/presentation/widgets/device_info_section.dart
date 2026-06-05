@@ -6,7 +6,9 @@ import 'package:intl/intl.dart';
 import 'package:luftdaten.at/core/widgets/dashboard_list_tile.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
+import 'package:luftdaten.at/features/devices/data/ble_device_status.dart';
 import 'package:luftdaten.at/features/devices/logic/device_config_sync.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/ble_device_notices_banner.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/device_connection_appearance.dart';
 
 import '../pages/device_detail_page.i18n.dart';
@@ -20,6 +22,8 @@ class DeviceInfoSection extends StatelessWidget {
     required this.isLoading,
     this.configSyncResult,
     this.configLoading = false,
+    this.wifiSsid,
+    this.wifiPasswordStored = false,
   });
 
   final BleDevice device;
@@ -27,6 +31,8 @@ class DeviceInfoSection extends StatelessWidget {
   final bool isLoading;
   final DeviceConfigSyncResult? configSyncResult;
   final bool configLoading;
+  final String? wifiSsid;
+  final bool wifiPasswordStored;
 
   @override
   Widget build(BuildContext context) {
@@ -191,50 +197,140 @@ class DeviceInfoSection extends StatelessWidget {
 
   Widget _buildStationConfigContent(BuildContext context) {
     final record = configSyncResult?.localRecord;
+    final children = <Widget>[];
+
     if (record == null) {
-      return Text(
-        'Keine gespeicherte Konfiguration'.i18n,
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-          fontStyle: FontStyle.italic,
-          fontSize: 13,
+      children.add(
+        Text(
+          'Keine gespeicherte Konfiguration'.i18n,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+            fontStyle: FontStyle.italic,
+            fontSize: 13,
+          ),
         ),
       );
-    }
+    } else {
+      final cfg = record.config;
+      final lastAt = record.lastConfiguredAt ?? cfg.lastConfiguredAt;
 
-    final cfg = record.config;
-    final lastAt = record.lastConfiguredAt ?? cfg.lastConfiguredAt;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (device.state == BleDeviceState.connected) _syncBadge(context),
-        if (lastAt != null)
+      if (device.state == BleDeviceState.connected) {
+        children.add(_syncBadge(context));
+      }
+      if (lastAt != null) {
+        children.add(
           _metadataRow(
             'Zuletzt konfiguriert: '.i18n,
             DateFormat('dd.MM.yyyy HH:mm').format(lastAt),
           ),
-        if (cfg.deviceId != null && cfg.deviceId!.isNotEmpty)
-          _metadataRow('Device-ID: '.i18n, cfg.deviceId!),
+        );
+      }
+      if (cfg.deviceId != null && cfg.deviceId!.isNotEmpty) {
+        children.add(_metadataRow('Device-ID: '.i18n, cfg.deviceId!));
+      }
+      children.addAll([
         _metadataRow('Messintervall: '.i18n, cfg.measurementInterval.toString()),
         _metadataRow('Auto-Update: '.i18n, cfg.autoUpdateMode.toString()),
-        _metadataRow('Batteriesparmodus: '.i18n, cfg.batterySaverMode.toString()),
-        if (cfg.latitude != null && cfg.longitude != null)
+      ]);
+      if (cfg.latitude != null && cfg.longitude != null) {
+        children.add(
           _metadataRow(
             'Standort: '.i18n,
             '${cfg.latitude!.toStringAsFixed(5)}, ${cfg.longitude!.toStringAsFixed(5)}'
             '${cfg.height != null ? ' (${cfg.height!.toStringAsFixed(0)} m)' : ''}',
           ),
-        if (cfg.tz != null && cfg.tz!.isNotEmpty)
-          _metadataRow('Zeitzone: '.i18n, cfg.tz!),
+        );
+      }
+      if (cfg.tz != null && cfg.tz!.isNotEmpty) {
+        children.add(_metadataRow('Zeitzone: '.i18n, cfg.tz!));
+      }
+      children.add(
         _metadataRow(
           'MQTT: '.i18n,
           cfg.mqttEnabled
               ? (cfg.mqttBroker?.isNotEmpty == true ? cfg.mqttBroker! : 'Aktiv'.i18n)
               : 'Aus'.i18n,
         ),
-      ],
+      );
+    }
+
+    if (children.isNotEmpty) {
+      children.add(const SizedBox(height: 8));
+    }
+    children.addAll(_buildWifiConfigurationRows(context));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children,
     );
+  }
+
+  List<Widget> _buildWifiConfigurationRows(BuildContext context) {
+    final rows = <Widget>[];
+    final hasStoredSsid = wifiSsid != null && wifiSsid!.isNotEmpty;
+    final hasStoredWifi = hasStoredSsid || wifiPasswordStored;
+
+    if (!hasStoredWifi) {
+      rows.add(_metadataRow('WLAN: '.i18n, 'Nicht konfiguriert'.i18n));
+    } else {
+      if (hasStoredSsid) {
+        rows.add(_metadataRow('WLAN SSID: '.i18n, wifiSsid!));
+      }
+      rows.add(
+        _metadataRow(
+          'WLAN Passwort: '.i18n,
+          wifiPasswordStored ? 'Gespeichert'.i18n : 'Nicht gespeichert'.i18n,
+        ),
+      );
+    }
+
+    if (device.state == BleDeviceState.connected) {
+      BleDeviceNotice? wifiNotice;
+      for (final notice in device.operationalNotices) {
+        if (notice.id.startsWith('wifi_')) {
+          wifiNotice = notice;
+          break;
+        }
+      }
+      if (wifiNotice != null) {
+        rows.add(
+          _metadataRow(
+            'WLAN auf Gerät: '.i18n,
+            BleDeviceNoticesBanner.messageForNotice(wifiNotice),
+          ),
+        );
+      } else if (device.wifiSsidConfiguredOnDevice) {
+        rows.add(
+          _metadataRow(
+            'WLAN auf Gerät: '.i18n,
+            'SSID konfiguriert'.i18n,
+          ),
+        );
+      } else {
+        rows.add(
+          _metadataRow(
+            'WLAN auf Gerät: '.i18n,
+            'SSID nicht konfiguriert'.i18n,
+          ),
+        );
+      }
+    } else {
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            'WLAN-Gerätestatus nach Verbindung verfügbar'.i18n,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              fontStyle: FontStyle.italic,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return rows;
   }
 
   Widget _buildPortableConfigContent(BuildContext context) {
