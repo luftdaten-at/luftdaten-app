@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bluetooth_enable/bluetooth_enable.dart';
 import 'package:collection_providers/collection_providers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:get_storage/get_storage.dart';
@@ -22,6 +23,14 @@ class AirStationConfigWizardController extends ChangeNotifier {
   static final GetStorage _box = GetStorage('air-station-wizard');
 
   static MapChangeNotifier<String, AirStationConfigWizardController> get activeControllers => _activeControllers;
+
+  @visibleForTesting
+  static BleStatus? debugBleStatus;
+
+  @visibleForTesting
+  static void resetForTests() {
+    debugBleStatus = null;
+  }
 
   Position current_position = Position(
     latitude: 0.0,
@@ -78,6 +87,34 @@ class AirStationConfigWizardController extends ChangeNotifier {
     ctrl?.wifi?.dispose();
     _activeControllers.remove(id);
     saveAll();
+  }
+
+  @visibleForTesting
+  static AirStationConfigWizardController createForTest(String id) {
+    removeController(id);
+    final ctrl = AirStationConfigWizardController._(id);
+    _activeControllers[id] = ctrl;
+    return ctrl;
+  }
+
+  @visibleForTesting
+  Future<void> hydrateFromSavedConfigForTest() =>
+      _hydrateFromSavedConfigIfNeeded();
+
+  @visibleForTesting
+  void armConfigTransmitForTest() {
+    _pendingConfigTransmit = true;
+  }
+
+  @visibleForTesting
+  Future<void> onConnectedForTest() async {
+    if (_pendingConfigTransmit && config != null) {
+      _pendingConfigTransmit = false;
+      await _transmitConfiguration();
+    } else if (config != null) {
+      stage = AirStationConfigWizardStage.editSettings;
+      await prepareBleStationFormControllers();
+    }
   }
 
   static void saveAll() {
@@ -152,6 +189,11 @@ class AirStationConfigWizardController extends ChangeNotifier {
 
   AirStationWifiConfig? wifi;
 
+  bool _pendingConfigTransmit = false;
+
+  /// True when Wi‑Fi password exists in secure storage (not shown in the form).
+  bool hasStoredWifiPassword = false;
+
   /// TLV 18 (`TZ`) editing — IANA name, e.g. `Europe/Vienna`.
   TextEditingController? tzBleController;
 
@@ -199,9 +241,29 @@ class AirStationConfigWizardController extends ChangeNotifier {
     tzBleController = null;
   }
 
+  Future<void> _hydrateFromSavedConfigIfNeeded() async {
+    if (config != null) return;
+    if (configLoadedAt != null || configSentAt != null) return;
+
+    final saved = await AirStationConfigManager.loadSavedForEdit(id);
+    if (saved == null) return;
+
+    config = saved;
+    final ssid = await StationSecretsStore.instance.readWifiSsid(id);
+    if (ssid != null && ssid.isNotEmpty) {
+      wifi = AirStationWifiConfig(ssid: ssid);
+    }
+    final storedPw = await StationSecretsStore.instance.readWifiPassword(id);
+    hasStoredWifiPassword = storedPw != null && storedPw.isNotEmpty;
+    await prepareBleStationFormControllers();
+    stage = AirStationConfigWizardStage.editSettings;
+    saveAll();
+  }
+
   void verifyDeviceState() async {
+    await _hydrateFromSavedConfigIfNeeded();
     // update position
-    switch (FlutterReactiveBle().status) {
+    switch (debugBleStatus ?? FlutterReactiveBle().status) {
       case BleStatus.unknown:
         logger.e('BleStatus unknown (this should not happen)');
       case BleStatus.unsupported:
@@ -264,8 +326,12 @@ class AirStationConfigWizardController extends ChangeNotifier {
   Future<void> checkDeviceConnection() async {
     BleDevice dev = getIt<DeviceManager>().devices.where((e) => e.bleName == id).first;
     if (dev.state == BleDeviceState.connected) {
-      if(config != null) {
+      if (_pendingConfigTransmit && config != null) {
+        _pendingConfigTransmit = false;
         _transmitConfiguration();
+      } else if (config != null) {
+        stage = AirStationConfigWizardStage.editSettings;
+        await prepareBleStationFormControllers();
       } else {
         _moveOnToLoadingConfig();
       }
@@ -294,8 +360,12 @@ class AirStationConfigWizardController extends ChangeNotifier {
       }
       await Future.delayed(const Duration(milliseconds: 2000));
       if (dev.state == BleDeviceState.connected) {
-        if(config != null) {
+        if (_pendingConfigTransmit && config != null) {
+          _pendingConfigTransmit = false;
           _transmitConfiguration();
+        } else if (config != null) {
+          stage = AirStationConfigWizardStage.editSettings;
+          await prepareBleStationFormControllers();
         } else {
           _moveOnToLoadingConfig();
         }
@@ -334,6 +404,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
   }
 
   Future<void> sendConfiguration() async {
+    _pendingConfigTransmit = true;
     saveAll();
     verifyDeviceState();
   }

@@ -55,6 +55,28 @@ void main() {
     expect(read.lastConfiguredAt, DateTime(2026, 1, 1));
   });
 
+  test('loadSavedForEdit returns independent clone from secure store', () async {
+    final config = AirStationConfig(
+      id: 'Luftdaten.at-edit01',
+      autoUpdateMode: AutoUpdateMode.on,
+      batterySaverMode: BatterySaverMode.normal,
+      measurementInterval: AirStationMeasurementInterval.min5,
+      longitude: null,
+      latitude: null,
+      height: null,
+      deviceId: 'saved-device-id',
+    );
+    await DeviceConfigStore.instance.writeStationConfig(config);
+
+    final clone = await AirStationConfigManager.loadSavedForEdit('Luftdaten.at-edit01');
+    expect(clone, isNotNull);
+    expect(clone!.deviceId, 'saved-device-id');
+
+    clone.measurementInterval = AirStationMeasurementInterval.min10;
+    final again = await DeviceConfigStore.instance.readStationConfig('Luftdaten.at-edit01');
+    expect(again!.config.measurementInterval, AirStationMeasurementInterval.min5);
+  });
+
   test('migrateFromSharedPreferencesIfNeeded moves legacy prefs to secure store', () async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(

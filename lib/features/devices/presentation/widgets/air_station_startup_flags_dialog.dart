@@ -65,6 +65,16 @@ class _AirStationStartupFlagsDialogState extends State<_AirStationStartupFlagsDi
 
   Future<void> _bootstrapFromBle() async {
     try {
+      if (widget.preferExistingMutableConfig == null &&
+          AirStationConfigManager.getConfig(widget.device.bleName) == null) {
+        final saved =
+            await AirStationConfigManager.loadSavedForEdit(widget.device.bleName);
+        if (saved != null && mounted) {
+          _cfg = saved;
+          setState(() {});
+        }
+      }
+
       List<int>? raw;
       try {
         raw = await getIt<BleController>().readAirStationConfiguration(widget.device);

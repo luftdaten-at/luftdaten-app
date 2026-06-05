@@ -637,6 +637,17 @@ class AirStationConfigManager {
 
   static AirStationConfig? getConfig(String id) => _cache[id];
 
+  /// Mutable clone for editing; does not persist.
+  static Future<AirStationConfig?> loadSavedForEdit(String bleName) async {
+    final cached = getConfig(bleName);
+    if (cached != null) {
+      return AirStationConfig.fromJson(cached.toJson());
+    }
+    final record = await DeviceConfigStore.instance.readStationConfig(bleName);
+    if (record == null) return null;
+    return AirStationConfig.fromJson(record.config.toJson());
+  }
+
   static void putInCache(AirStationConfig config) {
     _cache[config.id] = config;
   }

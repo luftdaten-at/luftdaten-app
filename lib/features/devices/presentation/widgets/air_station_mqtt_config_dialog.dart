@@ -103,8 +103,31 @@ class _AirStationMqttConfigDialogState extends State<_AirStationMqttConfigDialog
     unawaited(_bootstrapFromBleAndSecrets());
   }
 
+  void _syncControllersFromCfg() {
+    _brokerCtl.text = _cfg.mqttBroker ?? '';
+    _portCtl.text = _cfg.mqttPort.toString();
+    _userCtl.text = _cfg.mqttUsername ?? '';
+    final d = (_cfg.mqttDiscoveryPrefix?.trim().isNotEmpty ?? false)
+        ? _cfg.mqttDiscoveryPrefix!.trim()
+        : AirStationBleHomeAssistantDefaults.mqttDiscoveryPrefix;
+    _discoveryCtl.text = d;
+    _deviceNameCtl.text = _cfg.mqttDeviceName ?? '';
+    _certPathCtl.text = _cfg.mqttCertificatePath ?? '';
+  }
+
   Future<void> _bootstrapFromBleAndSecrets() async {
     try {
+      if (widget.preferExistingMutableConfig == null &&
+          AirStationConfigManager.getConfig(widget.device.bleName) == null) {
+        final saved =
+            await AirStationConfigManager.loadSavedForEdit(widget.device.bleName);
+        if (saved != null && mounted) {
+          _cfg = saved;
+          _syncControllersFromCfg();
+          setState(() {});
+        }
+      }
+
       final stored = await StationSecretsStore.instance.readMqttPassword(widget.device.bleName);
       final hasPw = stored != null && stored.isNotEmpty;
       if (!mounted) return;
@@ -120,15 +143,7 @@ class _AirStationMqttConfigDialogState extends State<_AirStationMqttConfigDialog
       if (raw != null && raw.isNotEmpty) {
         final snapshot = AirStationConfig.parseFromBytes(widget.device.bleName, raw);
         _cfg.applyNonSecretSnapshotFromBleRead(snapshot);
-        _brokerCtl.text = _cfg.mqttBroker ?? '';
-        _portCtl.text = _cfg.mqttPort.toString();
-        _userCtl.text = _cfg.mqttUsername ?? '';
-        final d = (_cfg.mqttDiscoveryPrefix?.trim().isNotEmpty ?? false)
-            ? _cfg.mqttDiscoveryPrefix!.trim()
-            : AirStationBleHomeAssistantDefaults.mqttDiscoveryPrefix;
-        _discoveryCtl.text = d;
-        _deviceNameCtl.text = _cfg.mqttDeviceName ?? '';
-        _certPathCtl.text = _cfg.mqttCertificatePath ?? '';
+        _syncControllersFromCfg();
         _pwCtl.clear();
       }
 

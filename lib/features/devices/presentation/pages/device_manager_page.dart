@@ -613,14 +613,30 @@ class DeviceConfigDialog extends StatefulWidget {
 
 class _DeviceConfigDialogState extends State<DeviceConfigDialog> {
   int measuringIntervalInternal = 10;
+  bool autoReconnectInternal = true;
   bool editingName = false;
   TextEditingController nameController = TextEditingController();
 
   @override
   void initState() {
-    measuringIntervalInternal = widget.device.measurementInterval;
-    nameController.text = widget.device.displayName;
     super.initState();
+    measuringIntervalInternal = widget.device.measurementInterval;
+    autoReconnectInternal = widget.device.autoReconnect;
+    nameController.text = widget.device.displayName;
+    unawaited(_loadPortableSnapshot());
+  }
+
+  Future<void> _loadPortableSnapshot() async {
+    final snapshot =
+        await DeviceConfigStore.instance.readPortableConfig(widget.device.bleName);
+    if (snapshot == null || !mounted) return;
+    setState(() {
+      measuringIntervalInternal = snapshot.measurementInterval;
+      autoReconnectInternal = snapshot.autoReconnect;
+      if (snapshot.userAssignedName != null && snapshot.userAssignedName!.isNotEmpty) {
+        nameController.text = snapshot.userAssignedName!;
+      }
+    });
   }
 
   @override
@@ -708,11 +724,11 @@ class _DeviceConfigDialogState extends State<DeviceConfigDialog> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Checkbox(
-                  value: widget.device.autoReconnect,
+                  value: autoReconnectInternal,
                   onChanged: (val) {
                     if (val != null) {
                       setState(() {
-                        widget.device.autoReconnect = val;
+                        autoReconnectInternal = val;
                       });
                     }
                   },
@@ -733,6 +749,7 @@ class _DeviceConfigDialogState extends State<DeviceConfigDialog> {
           TextButton(
             onPressed: () async {
               widget.device.measurementInterval = measuringIntervalInternal;
+              widget.device.autoReconnect = autoReconnectInternal;
               if (nameController.text.isNotEmpty && editingName) {
                 widget.device.userAssignedName = nameController.text;
               }
@@ -740,7 +757,7 @@ class _DeviceConfigDialogState extends State<DeviceConfigDialog> {
                 PortableDeviceConfig(
                   bleName: widget.device.bleName,
                   measurementInterval: measuringIntervalInternal,
-                  autoReconnect: widget.device.autoReconnect,
+                  autoReconnect: autoReconnectInternal,
                   userAssignedName: widget.device.userAssignedName,
                   lastConfiguredAt: DateTime.now(),
                 ),
