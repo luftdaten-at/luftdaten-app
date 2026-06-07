@@ -11,7 +11,7 @@ class StationSecretsStore {
   static final StationSecretsStore instance = StationSecretsStore._();
 
   static const FlutterSecureStorage _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    aOptions: AndroidOptions(),
   );
 
   String _apiKeyLookupKey(String stationId) => 'station_api_key_$stationId';

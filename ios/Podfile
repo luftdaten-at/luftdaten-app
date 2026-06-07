@@ -34,6 +34,9 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
+  # reactive_ble_mobile 5.5.x protobuf codegen requires SwiftProtobuf >= 1.30 (bytecode _NameMap).
+  pod 'SwiftProtobuf', '~> 1.30'
+
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do
     inherit! :search_paths
@@ -58,7 +61,7 @@ post_install do |installer|
   end
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
     end
   end
 end
