@@ -130,6 +130,22 @@ extension Localization on String {
       {
         "de": "%s °C oder mehr",
         "en": "%s °C or higher",
+      } +
+      {
+        "de": "Farblegende einblenden",
+        "en": "Show colour legend",
+      } +
+      {
+        "de": "Farblegende ausblenden",
+        "en": "Hide colour legend",
+      } +
+      {
+        "de": "Gut",
+        "en": "Good",
+      } +
+      {
+        "de": "Schlecht",
+        "en": "Bad",
       };
 
   String get i18n => localize(this, _t);

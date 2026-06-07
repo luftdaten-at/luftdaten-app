@@ -44,6 +44,7 @@ import 'package:luftdaten.at/features/map/presentation/pages/station_details_pag
 import 'package:luftdaten.at/core/utils/gradient_color.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 import 'package:luftdaten.at/core/widgets/start_button.dart';
+import 'package:luftdaten.at/features/map/presentation/widgets/map_collapsible_legend.dart';
 import 'package:luftdaten.at/features/map/presentation/widgets/map_dimension_legend.dart';
 import 'package:luftdaten.at/features/map/presentation/widgets/marker_dialog.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -56,9 +57,6 @@ import 'package:luftdaten.at/features/measurements/data/value_marker.dart';
 import 'package:luftdaten.at/core/widgets/progress.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'package:luftdaten.at/core/domain/dimensions.dart' as enums;
-
-/// Returned by the map dimension menu when only the legend is tapped: close popup, keep dimension.
-const _kMapLegendDismissMenuValue = -1;
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -89,6 +87,7 @@ class _MapPageState extends State<MapPage>
   bool autoCenter = true;
 
   int mapDisplayType = enums.Dimension.PM2_5;
+  double _legendPanelHeight = 0;
 
   final CompassController _compassController = CompassController();
   late final WorkshopController _workshopController;
@@ -667,18 +666,7 @@ class _MapPageState extends State<MapPage>
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: PopupMenuButton<int>(
-                    constraints: const BoxConstraints(minWidth: 288),
                     itemBuilder: (context) => [
-                      PopupMenuItem<int>(
-                        enabled: false,
-                        value: _kMapLegendDismissMenuValue,
-                        padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 320),
-                          child: MapDimensionLegend(dimensionId: mapDisplayType),
-                        ),
-                      ),
-                      const PopupMenuDivider(),
                       const PopupMenuItem<int>(
                         value: enums.Dimension.PM1_0,
                         child: Text('PM1.0'),
@@ -698,9 +686,6 @@ class _MapPageState extends State<MapPage>
                         ),
                     ],
                     onSelected: (value) async {
-                      if (value == _kMapLegendDismissMenuValue) {
-                        return;
-                      }
                       // Wait for the popup menu closing animation to finish to avoid perception of lag
                       await Future.delayed(const Duration(milliseconds: 330));
                       setState(() {
@@ -714,7 +699,7 @@ class _MapPageState extends State<MapPage>
                         elevation: WidgetStateProperty.all(2),
                         shadowColor: WidgetStateProperty.all(Colors.black),
                       ),
-                      tooltip: 'Dimension und Farblegende'.i18n,
+                      tooltip: 'Angezeigte Feinstaubgröße auswählen'.i18n,
                       color: Colors.black,
                       onPressed: null,
                       icon: SizedBox(
@@ -741,8 +726,30 @@ class _MapPageState extends State<MapPage>
           ),
           Align(
             alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 15),
+            child: SafeArea(
+              top: false,
+              child: MapCollapsibleLegend(
+                dimensionId: mapDisplayType,
+                onHeightChanged: (height) {
+                  if (_legendPanelHeight == height) return;
+                  setState(() => _legendPanelHeight = height);
+                },
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              padding: EdgeInsets.only(
+                bottom: MapDimensionLegendData.hasLegend(mapDisplayType)
+                    ? (_legendPanelHeight > 0
+                        ? _legendPanelHeight
+                        : MapCollapsibleLegend.collapsedHeight) +
+                        8
+                    : 15,
+              ),
               child: StartButton(page: 'map', updateGPSCallback: () => updateGPS(newZoom: 17)),
             ),
           ),

@@ -3,16 +3,14 @@ import 'package:luftdaten.at/core/domain/dimensions.dart' as enums;
 import 'package:luftdaten.at/core/utils/gradient_color.dart';
 import 'package:luftdaten.at/features/map/presentation/pages/map_page.i18n.dart';
 
-/// Colour scale descriptions for the Luftkarte dimension chip menu.
+/// Shared colour-band data for the Luftkarte legend (collapsed strip + expanded rows).
 ///
 /// PM1/PM2.5/PM10 follow the Eu‑AQI µg/m³ hourly bands implemented in [enums.Dimension.getColor].
 /// Temperature follows the gradient used for measurement trail markers ([GradientColor.temperature]).
-class MapDimensionLegend extends StatelessWidget {
-  const MapDimensionLegend({super.key, required this.dimensionId});
+class MapDimensionLegendData {
+  MapDimensionLegendData._();
 
-  final int dimensionId;
-
-  static String _formatNum(num n) {
+  static String formatNum(num n) {
     final d = n.toDouble();
     if (d % 1 == 0) {
       return d.toInt().toString();
@@ -20,7 +18,36 @@ class MapDimensionLegend extends StatelessWidget {
     return n.toString();
   }
 
-  List<Widget> _euPmRows(BuildContext context) {
+  static bool hasLegend(int dimensionId) {
+    if (dimensionId == enums.Dimension.TEMPERATURE) {
+      return true;
+    }
+    final uppers = enums.Dimension.europeanEuPmInclusiveUpperMicrograms(dimensionId);
+    return uppers != null && uppers.length == 5;
+  }
+
+  static List<Color> bandColors(int dimensionId) {
+    if (_hasPmLegend(dimensionId)) {
+      return enums.Dimension.europeanEuPmBandColors();
+    }
+    if (dimensionId == enums.Dimension.TEMPERATURE) {
+      final g = GradientColor.temperature();
+      return [
+        for (final sample in [14.0, 17.5, 22.5, 27.5, 32.5, 36.0]) g.getColor(sample),
+      ];
+    }
+    return const [];
+  }
+
+  static bool _hasPmLegend(int dimensionId) {
+    final uppers = enums.Dimension.europeanEuPmInclusiveUpperMicrograms(dimensionId);
+    return uppers != null && uppers.length == 5;
+  }
+
+  static List<(Color color, String label)> pmBandLabels(
+    BuildContext context,
+    int dimensionId,
+  ) {
     final uppers = enums.Dimension.europeanEuPmInclusiveUpperMicrograms(dimensionId);
     if (uppers == null || uppers.length != 5) {
       return [];
@@ -30,29 +57,28 @@ class MapDimensionLegend extends StatelessWidget {
       return [];
     }
 
-    final List<(Color color, String label)> rows = [
+    return [
       (
         colors[0],
-        '≤ %s µg/m³'.i18n.fill([_formatNum(uppers[0])]),
+        '≤ %s µg/m³'.i18n.fill([formatNum(uppers[0])]),
       ),
       for (var i = 1; i < 5; i++)
         (
           colors[i],
-          '> %s – ≤ %s µg/m³'.i18n.fill([_formatNum(uppers[i - 1]), _formatNum(uppers[i])]),
+          '> %s – ≤ %s µg/m³'
+              .i18n
+              .fill([formatNum(uppers[i - 1]), formatNum(uppers[i])]),
         ),
       (
         colors[5],
-        '> %s µg/m³'.i18n.fill([_formatNum(uppers[4])]),
+        '> %s µg/m³'.i18n.fill([formatNum(uppers[4])]),
       ),
     ];
-
-    return rows.map((e) => _LegendRow(color: e.$1, label: e.$2)).toList(growable: false);
   }
 
-  List<Widget> _temperatureRows() {
+  static List<(Color color, String label)> temperatureBandLabels() {
     final g = GradientColor.temperature();
-
-    List<(double sampleMid, String label)> temperatureBands = [
+    final bands = <(double sampleMid, String label)>[
       (14.0, '< %s °C'.i18n.fill(['15'])),
       (17.5, '%s °C bis < %s °C'.i18n.fill(['15', '20'])),
       (22.5, '%s °C bis < %s °C'.i18n.fill(['20', '25'])),
@@ -60,45 +86,135 @@ class MapDimensionLegend extends StatelessWidget {
       (32.5, '%s °C bis < %s °C'.i18n.fill(['30', '35'])),
       (36.0, '%s °C oder mehr'.i18n.fill(['35'])),
     ];
-
-    return temperatureBands
-        .map((e) => _LegendRow(color: g.getColor(e.$1), label: e.$2))
-        .toList(growable: false);
+    return [
+      for (final band in bands) (g.getColor(band.$1), band.$2),
+    ];
   }
+}
+
+/// Horizontal full-width colour strip for the collapsed map legend.
+class MapDimensionLegendStrip extends StatelessWidget {
+  const MapDimensionLegendStrip({
+    super.key,
+    required this.dimensionId,
+    this.height = 20,
+    this.expanded = false,
+  });
+
+  final int dimensionId;
+  final double height;
+  final bool expanded;
 
   @override
   Widget build(BuildContext context) {
-    final pmRows = _euPmRows(context);
-    if (pmRows.isNotEmpty) {
-      return _legendPanel(
-        context,
-        [
-          Text(
-            'Farben (Eu‑Luftqualitätsindex für Feinstaub, µg/m³ · stündliche Schwellen)'.i18n,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+    final colors = MapDimensionLegendData.bandColors(dimensionId);
+    if (colors.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final labelStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+        );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: height,
+          width: double.infinity,
+          child: Row(
+            children: [
+              for (final color in colors)
+                Expanded(
+                  child: Container(
+                    key: const Key('map-legend-color-segment'),
+                    color: color,
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 8),
-          ...pmRows,
-          const SizedBox(height: 8),
-          Text(
-            'Orientiert sich an den Farbstufen der Europäischen Umweltagentur.'.i18n,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 2, 10, 0),
+          child: Row(
+            children: [
+              Text('Gut'.i18n, style: labelStyle),
+              Expanded(
+                child: Center(
+                  child: Icon(
+                    expanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              Text('Schlecht'.i18n, style: labelStyle),
+            ],
           ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Expanded legend body (title, labelled rows, footnote).
+class MapDimensionLegendContent extends StatelessWidget {
+  const MapDimensionLegendContent({super.key, required this.dimensionId});
+
+  final int dimensionId;
+
+  @override
+  Widget build(BuildContext context) {
+    final pmLabels = MapDimensionLegendData.pmBandLabels(context, dimensionId);
+    if (pmLabels.isNotEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Farben (Eu‑Luftqualitätsindex für Feinstaub, µg/m³ · stündliche Schwellen)'
+                  .i18n,
+              style: Theme.of(context)
+                  .textTheme
+                  .labelSmall
+                  ?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            for (final row in pmLabels) _LegendRow(color: row.$1, label: row.$2),
+            const SizedBox(height: 8),
+            Text(
+              'Orientiert sich an den Farbstufen der Europäischen Umweltagentur.'.i18n,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: Theme.of(context).hintColor),
+            ),
+          ],
+        ),
       );
     }
 
     if (dimensionId == enums.Dimension.TEMPERATURE) {
-      return _legendPanel(
-        context,
-        [
-          Text(
-            'Farben (Temperatur · Messverlauf)'.i18n,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-          ..._temperatureRows(),
-        ],
+      final tempLabels = MapDimensionLegendData.temperatureBandLabels();
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Farben (Temperatur · Messverlauf)'.i18n,
+              style: Theme.of(context)
+                  .textTheme
+                  .labelSmall
+                  ?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            for (final row in tempLabels) _LegendRow(color: row.$1, label: row.$2),
+          ],
+        ),
       );
     }
 
@@ -106,28 +222,16 @@ class MapDimensionLegend extends StatelessWidget {
   }
 }
 
-Widget _legendPanel(BuildContext context, List<Widget> body) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 4),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: IconButton(
-            icon: const Icon(Icons.close, size: 20),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Schließen'.i18n,
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-        ...body,
-      ],
-    ),
-  );
+/// Backwards-compatible wrapper around [MapDimensionLegendContent].
+class MapDimensionLegend extends StatelessWidget {
+  const MapDimensionLegend({super.key, required this.dimensionId});
+
+  final int dimensionId;
+
+  @override
+  Widget build(BuildContext context) {
+    return MapDimensionLegendContent(dimensionId: dimensionId);
+  }
 }
 
 class _LegendRow extends StatelessWidget {
