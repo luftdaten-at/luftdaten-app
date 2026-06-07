@@ -75,7 +75,7 @@ class DeviceConfigStore {
   static final DeviceConfigStore instance = DeviceConfigStore._();
 
   static const FlutterSecureStorage _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    aOptions: AndroidOptions(),
   );
 
   static const _legacyPrefsPrefix = 'air_station_config_';
