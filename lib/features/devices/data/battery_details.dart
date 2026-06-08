@@ -11,7 +11,9 @@ class BatteryDetails {
       status == BatteryStatus.charging || status == BatteryStatus.discharging;
 
   BatteryDetails({required this.status, this.percentage, this.voltage, this.timestamp}) {
-    getIt<BatteryInfoAggregator>().add(this);
+    if (getIt.isRegistered<BatteryInfoAggregator>()) {
+      getIt<BatteryInfoAggregator>().add(this);
+    }
   }
 
   /// Bytes should be bytes 0-2 from the protocol v2 specification:

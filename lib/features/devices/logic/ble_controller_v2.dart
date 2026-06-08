@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:convert/convert.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:luftdaten.at/features/devices/logic/ble_controller.dart';
+import 'package:luftdaten.at/features/devices/logic/ble_gatt_transport.dart';
+import 'package:luftdaten.at/features/devices/logic/flutter_reactive_ble_transport.dart';
 import 'package:luftdaten.at/features/devices/data/device_error.dart';
 import 'package:luftdaten.at/features/devices/data/sensor_details.dart';
 
@@ -18,32 +20,28 @@ import 'package:luftdaten.at/features/devices/logic/device_api_key_ble_sync.dart
 import 'package:luftdaten.at/features/devices/logic/device_api_key_resolver.dart';
 
 class BleControllerV2 implements BleControllerForProtocol {
-  // Singleton
-  BleControllerV2._();
+  BleControllerV2._(this._transport);
 
-  static final BleControllerV2 _instance = BleControllerV2._();
+  static final BleControllerV2 _instance =
+      BleControllerV2._(FlutterReactiveBleTransport.instance);
 
-  factory BleControllerV2() => _instance;
+  factory BleControllerV2({BleGattTransport? transport}) {
+    if (transport == null) return _instance;
+    return BleControllerV2._(transport);
+  }
 
-  final _ble = FlutterReactiveBle();
-
-  // UUIDs
-  final Uuid _serviceId = Uuid.parse("0931b4b5-2917-4a8d-9e72-23103c09ac29");
-  final Uuid _sensorDataId = Uuid.parse("4b439140-73cb-4776-b1f2-8f3711b3bb4f");
-  final Uuid _commandId = Uuid.parse("030ff8b1-1e45-4ae6-bf36-3bca4c38cdba");
-  final Uuid _deviceDetailsId = Uuid.parse("8d473240-13cb-1776-b1f2-823711b3ffff");
-  final Uuid _sensorDetailsId = Uuid.parse("13fa8751-57af-4597-a0bb-b202f6111ae6");
-  final Uuid _deviceStatusId = Uuid.parse("77db81d9-9773-49b4-aa17-16a2f93e95f2");
-  final Uuid _airStationConfigId = Uuid.parse("b47b0cdf-0ced-49a9-86a5-d78a03ea7674");
-  final Uuid _sdLogExportId = Uuid.parse("51d2f8a4-91c6-53b2-a6e5-71829304a505");
+  final BleGattTransport _transport;
 
   static const int _bleCmdSdLogExport = 0x08;
   static const Duration _sdBleIoDelay = Duration(milliseconds: 220);
 
   @override
   Future<void> getDeviceDetails(BleDevice device) async {
-    List<int> rawDeviceDetails =
-        await _ble.readCharacteristic(_characteristic(_deviceDetailsId, device));
+    List<int> rawDeviceDetails = await _transport.readCharacteristic(
+      deviceId: device.bleId!,
+      serviceId: BleGattUuids.service,
+      characteristicId: BleGattUuids.deviceInfo,
+    );
     logger.d('getDeviceDetails: rawDeviceDetails len=${rawDeviceDetails.length}, hex=${rawDeviceDetails.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}, raw=$rawDeviceDetails');
     bool usedJsonFormat = false;
     if (rawDeviceDetails.isNotEmpty && rawDeviceDetails[0] == 0x7B) {
@@ -121,8 +119,11 @@ class BleControllerV2 implements BleControllerForProtocol {
       logger.d('getDeviceDetails: apiKey loaded (hydrated from secure storage or BLE)');
     }
     try {
-      List<int> rawSensorDetails =
-          await _ble.readCharacteristic(_characteristic(_sensorDetailsId, device));
+      List<int> rawSensorDetails = await _transport.readCharacteristic(
+        deviceId: device.bleId!,
+        serviceId: BleGattUuids.service,
+        characteristicId: BleGattUuids.sensorInfo,
+      );
       List<List<int>> sensorDetailsParts = rawSensorDetails.split(0xff);
       device.availableSensors = [];
       for (int i = 0; i < sensorDetailsParts.length / 2; i++) {
@@ -153,8 +154,11 @@ class BleControllerV2 implements BleControllerForProtocol {
     }
     // Get battery status. This does not trigger a new battery readout!
     // Ideally, turn BLE device off & on again before connecting to get up-to-date battery status
-    List<int> rawBatteryData =
-        await _ble.readCharacteristic(_characteristic(_deviceStatusId, device));
+    List<int> rawBatteryData = await _transport.readCharacteristic(
+      deviceId: device.bleId!,
+      serviceId: BleGattUuids.service,
+      characteristicId: BleGattUuids.deviceStatus,
+    );
     logger.d('getDeviceDetails: rawBatteryData len=${rawBatteryData.length}, hex=${rawBatteryData.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}, raw=$rawBatteryData');
     applyDeviceStatusBytes(device, rawBatteryData);
     logger.d(
@@ -168,7 +172,11 @@ class BleControllerV2 implements BleControllerForProtocol {
   Future<void> refreshDeviceStatus(BleDevice device) async {
     if (device.state != BleDeviceState.connected || device.bleId == null) return;
     try {
-      final raw = await _ble.readCharacteristic(_characteristic(_deviceStatusId, device));
+      final raw = await _transport.readCharacteristic(
+        deviceId: device.bleId!,
+        serviceId: BleGattUuids.service,
+        characteristicId: BleGattUuids.deviceStatus,
+      );
       applyDeviceStatusBytes(device, raw);
       logger.d(
         'refreshDeviceStatus: notices=${device.operationalNotices.map((n) => n.id).join(",")}',
@@ -178,13 +186,24 @@ class BleControllerV2 implements BleControllerForProtocol {
     }
   }
 
-  Future<List<int>> _readWithRetry(QualifiedCharacteristic qc) async {
+  Future<List<int>> _readWithRetry({
+    required String deviceId,
+    required Uuid characteristicId,
+  }) async {
     try {
-      return await _ble.readCharacteristic(qc);
+      return await _transport.readCharacteristic(
+        deviceId: deviceId,
+        serviceId: BleGattUuids.service,
+        characteristicId: characteristicId,
+      );
     } catch (e) {
       logger.d('BLE read failed ($e), retrying after delay');
       await Future.delayed(const Duration(milliseconds: 500));
-      return await _ble.readCharacteristic(qc);
+      return await _transport.readCharacteristic(
+        deviceId: deviceId,
+        serviceId: BleGattUuids.service,
+        characteristicId: characteristicId,
+      );
     }
   }
 
@@ -202,25 +221,35 @@ class BleControllerV2 implements BleControllerForProtocol {
       measureBattery = true;
       device.batteryReadoutCounter = 0;
     }
-    await _ble.writeCharacteristicWithoutResponse(
-      _characteristic(_commandId, device),
+    await _transport.writeCharacteristicWithoutResponse(
+      deviceId: device.bleId!,
+      serviceId: BleGattUuids.service,
+      characteristicId: BleGattUuids.command,
       value: [measureBattery ? 0x02 : 0x01],
     );
     logger.d('Wrote to command characteristic');
     await Future.delayed(const Duration(milliseconds: 2500));
-    List<int> rawBatteryData =
-        await _readWithRetry(_characteristic(_deviceStatusId, device));
+    List<int> rawBatteryData = await _readWithRetry(
+      deviceId: device.bleId!,
+      characteristicId: BleGattUuids.deviceStatus,
+    );
     applyDeviceStatusBytes(device, rawBatteryData);
     logger.d(
       'Battery/status: ${device.batteryDetails}, '
       'notices=${device.operationalNotices.map((n) => n.id).join(",")}',
     );
     if(measureBattery) logger.d('(Newly requested)');
-    List<int> rawSensorData = await _readWithRetry(_characteristic(_sensorDataId, device));
+    List<int> rawSensorData = await _readWithRetry(
+      deviceId: device.bleId!,
+      characteristicId: BleGattUuids.sensorValues,
+    );
     if (rawSensorData.length < 2) {
       logger.d('BLE sensor data too short (len=${rawSensorData.length}), retrying');
       await Future.delayed(const Duration(milliseconds: 1000));
-      rawSensorData = await _readWithRetry(_characteristic(_sensorDataId, device));
+      rawSensorData = await _readWithRetry(
+        deviceId: device.bleId!,
+        characteristicId: BleGattUuids.sensorValues,
+      );
     }
 
     // Debug: log first bytes to distinguish JSON (0x5B='[') vs binary format
@@ -271,19 +300,19 @@ class BleControllerV2 implements BleControllerForProtocol {
 
   @override
   Future<bool> sendAirStationConfig(BleDevice device, List<int> bytes) async {
-    if(device.state != BleDeviceState.connected){
+    if (device.state != BleDeviceState.connected) {
       return false;
     }
-    QualifiedCharacteristic qc = QualifiedCharacteristic(
-      serviceId: _serviceId,
-      characteristicId: _commandId,
-      deviceId: device.bleId!
-    );
     try {
       final chunks =
           AirStationBleHomeAssistantDefaults.chunkSetAirStationConfiguration(bytes);
       for (var i = 0; i < chunks.length; i++) {
-        await _ble.writeCharacteristicWithoutResponse(qc, value: chunks[i]);
+        await _transport.writeCharacteristicWithoutResponse(
+          deviceId: device.bleId!,
+          serviceId: BleGattUuids.service,
+          characteristicId: BleGattUuids.command,
+          value: chunks[i],
+        );
         logger.d(
             'sendAirStationConfig fragment ${i + 1}/${chunks.length}, len=${chunks[i].length}');
         if (i + 1 < chunks.length) {
@@ -301,11 +330,11 @@ class BleControllerV2 implements BleControllerForProtocol {
   Future<List<int>?> readAirStationConfiguration(BleDevice device) async {
     logger.d('Reading AirStation Configuration Start');
 
-    List<int> rawData = await _ble.readCharacteristic(QualifiedCharacteristic(
-      serviceId: _serviceId,
-      characteristicId: _airStationConfigId,
+    List<int> rawData = await _transport.readCharacteristic(
       deviceId: device.bleId!,
-    ));
+      serviceId: BleGattUuids.service,
+      characteristicId: BleGattUuids.airStationConfiguration,
+    );
 
     logger.d('Reading AirStation Configuration Done');
 
@@ -318,12 +347,10 @@ class BleControllerV2 implements BleControllerForProtocol {
       return null;
     }
     try {
-      final raw = await _ble.readCharacteristic(
-        QualifiedCharacteristic(
-          serviceId: _serviceId,
-          characteristicId: _sdLogExportId,
-          deviceId: device.bleId!,
-        ),
+      final raw = await _transport.readCharacteristic(
+        deviceId: device.bleId!,
+        serviceId: BleGattUuids.service,
+        characteristicId: BleGattUuids.sdLogExport,
       );
       final frame = SdBleExportFrame.parse(raw);
       if (!frame.isIdle) return null;
@@ -346,22 +373,13 @@ class BleControllerV2 implements BleControllerForProtocol {
       return SdBleImportResult.error('Bluetooth nicht verbunden.');
     }
 
-    final cmd = QualifiedCharacteristic(
-      serviceId: _serviceId,
-      characteristicId: _commandId,
-      deviceId: device.bleId!,
-    );
-    final sdRead = QualifiedCharacteristic(
-      serviceId: _serviceId,
-      characteristicId: _sdLogExportId,
-      deviceId: device.bleId!,
-    );
-
     Future<void> delayIo() => Future<void>.delayed(_sdBleIoDelay);
 
     try {
-      await _ble.writeCharacteristicWithoutResponse(
-        cmd,
+      await _transport.writeCharacteristicWithoutResponse(
+        deviceId: device.bleId!,
+        serviceId: BleGattUuids.service,
+        characteristicId: BleGattUuids.command,
         value: <int>[_bleCmdSdLogExport, 0],
       );
       await delayIo();
@@ -377,15 +395,20 @@ class BleControllerV2 implements BleControllerForProtocol {
 
     for (var n = 0; n < maxFrames; n++) {
       try {
-        await _ble.writeCharacteristicWithoutResponse(
-          cmd,
+        await _transport.writeCharacteristicWithoutResponse(
+          deviceId: device.bleId!,
+          serviceId: BleGattUuids.service,
+          characteristicId: BleGattUuids.command,
           value: <int>[_bleCmdSdLogExport, 1],
         );
         await delayIo();
 
         List<int> raw;
         try {
-          raw = await _readWithRetry(sdRead);
+          raw = await _readWithRetry(
+            deviceId: device.bleId!,
+            characteristicId: BleGattUuids.sdLogExport,
+          );
         } catch (e, st) {
           logger.d('SD export READ failed: $e $st');
           return SdBleImportResult.error('SD-Export: Lesen fehlgeschlagen.');
@@ -434,14 +457,6 @@ class BleControllerV2 implements BleControllerForProtocol {
     }
 
     return SdBleImportResult.error('SD-Export: zu viele Pakete (Abbruch).');
-  }
-
-  QualifiedCharacteristic _characteristic(Uuid characteristicId, BleDevice device) {
-    return QualifiedCharacteristic(
-      serviceId: _serviceId,
-      characteristicId: characteristicId,
-      deviceId: device.bleId!,
-    );
   }
 }
 

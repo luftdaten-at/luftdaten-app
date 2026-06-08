@@ -1,22 +1,24 @@
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:luftdaten.at/features/devices/logic/ble_controller_v1.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
+import 'package:luftdaten.at/features/devices/logic/ble_controller_v1.dart';
+import 'package:luftdaten.at/features/devices/logic/ble_controller_v2.dart';
 import 'package:luftdaten.at/features/devices/logic/mock_ble_devices.dart';
-import 'package:luftdaten.at/features/devices/logic/mock_ble_profile.dart';
-import 'package:luftdaten.at/features/devices/logic/mock_ble_telemetry.dart';
+import 'package:luftdaten.at/features/devices/logic/mock_ble_gatt.dart';
+import 'package:luftdaten.at/features/devices/logic/sd_ble_export.dart';
 import 'package:luftdaten.at/features/measurements/logic/mock_measurement_devices.dart';
 import 'package:luftdaten.at/features/measurements/logic/mock_measurement_telemetry.dart';
-import 'package:luftdaten.at/features/devices/logic/sd_ble_export.dart';
 
 import 'package:luftdaten.at/core/core.dart';
-import 'ble_controller_v2.dart';
 
 class BleController {
   final Uuid serviceId = Uuid.parse("0931b4b5-2917-4a8d-9e72-23103c09ac29");
   final Uuid _bleConfigId = Uuid.parse("8d473240-13cb-1776-b1f2-823711b3ffff");
 
   final _ble = FlutterReactiveBle();
+
+  BleControllerV2 get _mockV2 =>
+      BleControllerV2(transport: MockBleGattTransport.instance);
 
   Stream<ConnectionStateUpdate> connectTo(BleDevice device) {
     logger.d('Connecting to device ${device.bleId}');
@@ -57,7 +59,9 @@ class BleController {
 
   Future<void> getDeviceDetailsAndCheckProtocol(BleDevice device) async {
     if (MockBleDevices.canUseMockBle(device)) {
-      MockBleProfile.apply(device);
+      MockBleGatt.initForDevice(device);
+      device.protocolVersion = 2;
+      await _mockV2.getDeviceDetails(device);
       return;
     }
     await getProtocolVersion(device);
@@ -72,20 +76,27 @@ class BleController {
       return MockMeasurementTelemetry.readSensorValues(device, position: position);
     }
     if (MockBleDevices.canUseMockBle(device)) {
-      return MockBleTelemetry.readSensorValues(device);
+      device.protocolVersion = 2;
+      return _mockV2.readSensorValues(device);
     }
     await getProtocolVersion(device);
     return BleControllerForProtocol(device.protocolVersion!).readSensorValues(device);
   }
 
   Future<bool> sendAirStationConfig(BleDevice device, List<int> bytes) async {
-    if (MockBleDevices.canUseMockBle(device)) return false;
+    if (MockBleDevices.canUseMockBle(device)) {
+      device.protocolVersion = 2;
+      return _mockV2.sendAirStationConfig(device, bytes);
+    }
     await getProtocolVersion(device);
     return BleControllerForProtocol(device.protocolVersion!).sendAirStationConfig(device, bytes);
   }
 
   Future<List<int>?> readAirStationConfiguration(BleDevice device) async {
-    if (MockBleDevices.canUseMockBle(device)) return null;
+    if (MockBleDevices.canUseMockBle(device)) {
+      device.protocolVersion = 2;
+      return _mockV2.readAirStationConfiguration(device);
+    }
     await getProtocolVersion(device);
     return BleControllerForProtocol(device.protocolVersion!).readAirStationConfiguration(device);
   }
@@ -103,8 +114,9 @@ class BleController {
     if (device.state != BleDeviceState.connected || device.bleId == null) return;
     if (MockBleDevices.canUseMockBle(device)) {
       device.errors.clear();
-      MockBleProfile.apply(device);
-      MockBleProfile.refreshStatus(device);
+      device.protocolVersion = 2;
+      await _mockV2.getDeviceDetails(device);
+      await _mockV2.refreshDeviceStatus(device);
       device.notify();
       return;
     }
@@ -117,8 +129,8 @@ class BleController {
   /// Poll `device_status` for battery and operational notices (protocol v2).
   Future<void> refreshDeviceStatus(BleDevice device) async {
     if (MockBleDevices.canUseMockBle(device)) {
-      MockBleProfile.refreshStatus(device);
-      return;
+      device.protocolVersion = 2;
+      return _mockV2.refreshDeviceStatus(device);
     }
     await getProtocolVersion(device);
     if (device.protocolVersion != 2) return;

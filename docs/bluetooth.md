@@ -124,6 +124,17 @@ Characteristic `77db81d9-9773-49b4-aa17-16a2f93e95f2` — see firmware [`ble-cha
 
 Parsed by [`BleDeviceStatusParser`](lib/features/devices/data/ble_device_status.dart); shown in the app via [`BleDeviceNoticesBanner`](lib/features/devices/presentation/widgets/ble_device_notices_banner.dart) on Geräte, Dashboard (compact), and Air Station wizard. Legacy firmware with only 3 bytes still works (battery only). While a Geräte tile is expanded, status is polled every 2 s.
 
+## Mock GATT transport (debug)
+
+In **debug** builds with **Mock-BLE aktiv**, mock devices do not use `FlutterReactiveBle`. Instead, [`MockBleGattTransport`](lib/features/devices/logic/mock_ble_gatt.dart) serves the same v2 characteristic UUIDs (`BleGattUuids` in [`ble_gatt_transport.dart`](lib/features/devices/logic/ble_gatt_transport.dart)) with firmware-shaped payloads from [`MockBleGattCodec`](lib/features/devices/logic/mock_ble_gatt_codec.dart).
+
+- **Reads:** `device_info` (JSON), `sensor_info`, `device_status`, `sensor_values`, `air_station_configuration` (Air Station only).
+- **Writes (command char):** `0x01` / `0x02` refresh telemetry (+ battery on `0x02`); `0x06` merges Air Station TLV into read-back state.
+- **Parsing:** [`BleController`](lib/features/devices/logic/ble_controller.dart) delegates mock paths to [`BleControllerV2`](lib/features/devices/logic/ble_controller_v2.dart) with the mock transport, so connect and measurement loops exercise the same parsers as real devices.
+- **Not mocked:** SD log export (`0x08` / `51d2f8a4-…`); protocol v1 mock path.
+
+See also [DEBUGGING_IOS.md](DEBUGGING_IOS.md#mock-ble-devices-debug-builds-only).
+
 ## Errors and debugging
 
 - **`IncompatibleFirmwareException`:** protocol byte &gt; 2 or unknown branch in `BleControllerForProtocol`.

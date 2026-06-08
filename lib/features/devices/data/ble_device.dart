@@ -16,7 +16,7 @@ import 'package:luftdaten.at/features/devices/data/sensor_details.dart';
 
 import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'package:luftdaten.at/core/config/app_settings.dart';
-import 'package:luftdaten.at/features/devices/logic/mock_ble_profile.dart';
+import 'package:luftdaten.at/features/devices/logic/mock_ble_gatt.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/ble_device_notices_presenter.dart';
 
 class BleDevice extends ChangeNotifier {
@@ -126,7 +126,9 @@ class BleDevice extends ChangeNotifier {
   set batteryDetails(BatteryDetails? details) {
     _batteryDetails = details;
     notifyListeners();
-    getIt<BatteryInfoAggregator>().syncFromConnectedDevices();
+    if (getIt.isRegistered<BatteryInfoAggregator>()) {
+      getIt<BatteryInfoAggregator>().syncFromConnectedDevices();
+    }
   }
 
   List<DeviceError> errors = [];
@@ -208,12 +210,17 @@ class BleDevice extends ChangeNotifier {
     if (isMock && AppSettings.mockBleActive) {
       state = BleDeviceState.connecting;
       await Future<void>.delayed(const Duration(milliseconds: 400));
-      MockBleProfile.apply(this);
-      state = BleDeviceState.connected;
-      if (showNoticesOnConnect) {
-        BleDeviceNoticesPresenter.showAfterConnectIfNeeded(this);
+      try {
+        await getIt<BleController>().getDeviceDetailsAndCheckProtocol(this);
+        state = BleDeviceState.connected;
+        if (showNoticesOnConnect) {
+          BleDeviceNoticesPresenter.showAfterConnectIfNeeded(this);
+        }
+        return true;
+      } catch (_) {
+        state = BleDeviceState.disconnected;
+        return false;
       }
-      return true;
     }
 
     BleController ble = getIt<BleController>();
@@ -312,6 +319,7 @@ class BleDevice extends ChangeNotifier {
     if (isMock && AppSettings.mockBleActive) {
       _connection?.cancel();
       _connection = null;
+      MockBleGatt.removeDevice(this);
       state = BleDeviceState.disconnected;
       return;
     }
