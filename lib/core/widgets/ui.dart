@@ -16,10 +16,11 @@
   
  */
 
-import 'package:app_settings/app_settings.dart';
+import 'package:app_settings/app_settings.dart' as system_settings;
 import 'package:bluetooth_enable/bluetooth_enable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'package:luftdaten.at/core/config/app_settings.dart';
 import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/device_connect_button.dart';
@@ -57,6 +58,8 @@ Widget getBLEStatus(BuildContext context, BleDevice dev) {
 Future<BleDevice?> showDeviceSelectDialog(BuildContext context, Function stopCB,
     {bool portable = true}) async {
   BleDevice? device;
+  // Simulator / debug mock devices use in-memory GATT — no real Bluetooth radio.
+  if (!AppSettings.mockBleActive) {
   // Check bluetooth (permissions & availability) and location (permissions only)
   // Check bluetooth
   if (FlutterReactiveBle().status == BleStatus.unauthorized) {
@@ -139,7 +142,9 @@ Future<BleDevice?> showDeviceSelectDialog(BuildContext context, Function stopCB,
             LDDialogAction(
               label: 'Einstellungen öffnen'.i18n,
               filled: true,
-              onTap: () => AppSettings.openAppSettings(type: AppSettingsType.bluetooth),
+              onTap: () => system_settings.AppSettings.openAppSettings(
+                type: system_settings.AppSettingsType.bluetooth,
+              ),
             ),
           ],
         );
@@ -147,10 +152,12 @@ Future<BleDevice?> showDeviceSelectDialog(BuildContext context, Function stopCB,
       return null;
     }
   }
+  }
 
   List<BleDevice> devices = getIt<DeviceManager>().devices;
-  List<BleDevice> connectedDevices =
-      devices.where((e) => e.state == BleDeviceState.connected).toList();
+  List<BleDevice> connectedDevices = devices
+      .where((e) => e.state == BleDeviceState.connected && (!portable || e.portable))
+      .toList();
   if (connectedDevices.length == 1) {
     device = connectedDevices.first;
   } else {
@@ -163,8 +170,10 @@ Future<BleDevice?> showDeviceSelectDialog(BuildContext context, Function stopCB,
         content: SingleChildScrollView(
           child: Consumer<DeviceManager>(
             builder: (context, devs, __) {
-              Future.delayed(const Duration(milliseconds: 100))
-                  .then((_) => devs.scanForDevices(1000));
+              if (!AppSettings.mockBleActive) {
+                Future.delayed(const Duration(milliseconds: 100))
+                    .then((_) => devs.scanForDevices(1000));
+              }
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[

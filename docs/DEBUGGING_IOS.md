@@ -52,6 +52,8 @@ The iOS Simulator has no real Bluetooth. In **debug** builds (`flutter run`), yo
 4. Tap **Air aRound hinzufügen** or **Beide Presets**, then open the **Geräte** tab.
 5. Tap **Verbinden** on a mock device, then start a measurement as usual — the background loop uses fake sensor values.
 
+Mock devices simulate **firmware protocol v2 GATT** characteristics in memory (`device_info`, `sensor_info`, `device_status`, `sensor_values`, `air_station_configuration`, command writes `0x01`/`0x02`/`0x06`). Connect and measurement parsing use the same `BleControllerV2` path as real hardware; see [firmware `ble-characteristics.md`](https://github.com/luftdaten-at/firmware/blob/main/docs/ble-characteristics.md) and [bluetooth.md](bluetooth.md#mock-gatt-transport-debug).
+
 Shortcuts on the Geräte tab (simulator only): **Mock-Gerät hinzufügen** in the empty state, or the flask icon next to **Neues Gerät hinzufügen**.
 
 Manual QR-style entry without a camera: **Manuelle QR-Daten…** on the mock page (same format as a device QR code).

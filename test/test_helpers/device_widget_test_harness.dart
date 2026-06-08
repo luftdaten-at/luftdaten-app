@@ -54,6 +54,22 @@ void initDeviceWidgetTestHarness() {
     }
   });
 
+  const secureStorageChannel =
+      MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(secureStorageChannel, (MethodCall methodCall) async {
+    switch (methodCall.method) {
+      case 'read':
+        return null;
+      case 'write':
+      case 'delete':
+      case 'deleteAll':
+        return null;
+      default:
+        return null;
+    }
+  });
+
   Translations.missingKeyCallback = (_, __) {};
   Translations.missingTranslationCallback = ({
     required key,

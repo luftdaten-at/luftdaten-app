@@ -1,55 +1,25 @@
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get_it/get_it.dart';
-import 'package:get_storage/get_storage.dart';
-import 'package:luftdaten.at/core/config/app_settings.dart';
-import 'package:luftdaten.at/core/di/di.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
-import 'package:luftdaten.at/features/devices/logic/battery_info_aggregator.dart';
-import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
+import 'package:luftdaten.at/features/devices/logic/ble_gatt_transport.dart';
 import 'package:luftdaten.at/features/devices/logic/mock_ble_devices.dart';
-import 'package:luftdaten.at/features/devices/logic/mock_ble_telemetry.dart';
+import 'package:luftdaten.at/features/devices/logic/mock_ble_gatt.dart';
+import 'package:luftdaten.at/features/devices/logic/mock_ble_gatt_codec.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 
 void main() {
-  setUpAll(() {
-    TestWidgetsFlutterBinding.ensureInitialized();
-    const channel = MethodChannel('plugins.flutter.io/path_provider');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-      if (methodCall.method == 'getApplicationDocumentsDirectory') return '/tmp';
-      if (methodCall.method == 'getTemporaryDirectory') return '/tmp';
-      return null;
-    });
-  });
-
-  setUp(() async {
-    await GetStorage.init('settings');
-    GetIt.instance.reset();
-    getIt.registerSingleton<DeviceManager>(DeviceManager());
-    getIt.registerSingleton<BatteryInfoAggregator>(BatteryInfoAggregator());
-    AppSettings.I.mockBleDevicesEnabled = true;
-  });
-
-  tearDown(() {
-    GetIt.instance.reset();
-  });
-
-  test('readSensorValues returns sensor points and metadata', () {
+  test('mock GATT command path yields PM readings', () {
     final device = MockBleDevices.buildMockDevice(
       LDDeviceModel.aRound,
       existingBleNames: const [],
     );
+    MockBleGatt.initForDevice(device);
 
-    final result = MockBleTelemetry.readSensorValues(device);
-    expect(result.length, 2);
+    MockBleGatt.writeCommand(device, [MockBleGattCodec.cmdReadSensorData]);
+    final values = MockBleGattCodec.decodeSensorValuesBinary(
+      MockBleGatt.readCharacteristic(device, BleGattUuids.sensorValues),
+    );
 
-    final points = result[0] as List<SensorDataPoint>;
-    expect(points, isNotEmpty);
-    expect(points.first.values[MeasurableQuantity.pm25], isNotNull);
-
-    final metadata = result[1] as Map<String, dynamic>;
-    expect(metadata['mock'], isTrue);
-    expect(metadata['chip_id'], device.chipIdForApi);
+    expect(values[MeasurableQuantity.pm25], isNotNull);
+    expect(values[MeasurableQuantity.temperature], isNotNull);
   });
 }
