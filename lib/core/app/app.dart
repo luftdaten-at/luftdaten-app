@@ -42,6 +42,7 @@ import 'package:luftdaten.at/core/app/presentation/licenses_page.dart';
 import 'package:luftdaten.at/features/measurements/presentation/pages/logging_page.dart';
 import 'package:luftdaten.at/features/map/presentation/pages/map_page.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/mock_ble_devices_page.dart';
+import 'package:luftdaten.at/features/measurements/presentation/pages/mock_measurement_data_page.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/nearby_devices_debug_page.dart';
 import 'package:luftdaten.at/core/app/presentation/settings_page.dart';
 import 'package:luftdaten.at/core/app/presentation/welcome_page.dart';
@@ -116,6 +117,7 @@ class _LDAppState extends State<LDApp> with WidgetsBindingObserver {
             LicensesPage.route: (ctx) => const LicensesPage(),
             NearbyDevicesDebugPage.route: (ctx) => const NearbyDevicesDebugPage(),
             MockBleDevicesPage.route: (ctx) => const MockBleDevicesPage(),
+            MockMeasurementDataPage.route: (ctx) => const MockMeasurementDataPage(),
             EnterWorkshopPage.route: (ctx) => const EnterWorkshopPage(),
             'ak-ws': (ctx) => const EnterWorkshopPage(ak: true),
             'wizard-air-cube': (ctx) => const WizardAirCubePage(),

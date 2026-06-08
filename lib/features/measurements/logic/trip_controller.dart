@@ -5,6 +5,9 @@ import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/data/chip_id.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/measurements/data/trip.dart';
+import 'package:luftdaten.at/features/measurements/logic/mock_measurement_devices.dart';
+import 'package:luftdaten.at/features/measurements/logic/mock_measurement_factory.dart';
+import 'package:luftdaten.at/features/measurements/logic/mock_measurement_telemetry.dart';
 
 class TripController extends ChangeNotifier {
   TripController();
@@ -28,6 +31,19 @@ class TripController extends ChangeNotifier {
 
   bool isOngoing = false;
   DateTime? currentTripStartedAt;
+
+  bool get isMockLiveActive =>
+      ongoingTrips.keys.any(MockMeasurementDevices.isLiveMeasurementDevice);
+
+  bool get hasMockTrips =>
+      loadedTrips.any(_isMockTrip) ||
+      ongoingTrips.values.any(_isMockTrip);
+
+  int get mockLoadedTripCount =>
+      loadedTrips.where(_isMockTrip).length;
+
+  static bool _isMockTrip(Trip trip) =>
+      MockMeasurementDevices.isMockTripDevice(trip.deviceFourLetterCode);
 
   Future<void> init() async {
     // TODO what do we actually need to initialise?
@@ -69,7 +85,7 @@ class TripController extends ChangeNotifier {
 
   void stopTrip() {
     getIt<BackgroundService>().stopTrip();
-    for(Trip trip in ongoingTrips.values) {
+    for (Trip trip in ongoingTrips.values) {
       trip.save();
     }
     isOngoing = false;
@@ -83,6 +99,50 @@ class TripController extends ChangeNotifier {
     ongoingTrips.forEach((key, value) => value.save());
     ongoingTrips = {};
     loadedTrips = [];
+    notifyListeners();
+  }
+
+  void addMockLoadedTrip(Trip trip) {
+    loadedTrips.add(trip);
+    notifyListeners();
+  }
+
+  void clearMockTrips() {
+    if (isMockLiveActive) {
+      stopMockLiveMeasurement();
+    }
+    loadedTrips.removeWhere(_isMockTrip);
+    notifyListeners();
+  }
+
+  void startMockLiveMeasurement() {
+    if (isOngoing) {
+      logger.d('Mock live measurement: trip already ongoing');
+      return;
+    }
+    MockMeasurementTelemetry.resetLivePath();
+    final device = MockMeasurementDevices.liveMeasurement;
+    ongoingTrips = {
+      device: MockMeasurementFactory.buildLiveTripShell()
+        ..addListener(() => notifyListeners()),
+    };
+    isOngoing = true;
+    currentTripStartedAt = DateTime.now();
+    _mobilityMode = MobilityModes.walking;
+    notifyListeners();
+    getIt<BackgroundService>().startTrip(device.measurementInterval);
+  }
+
+  void stopMockLiveMeasurement() {
+    if (!isMockLiveActive) return;
+    getIt<BackgroundService>().stopTrip();
+    ongoingTrips.removeWhere(
+      (device, _) => MockMeasurementDevices.isLiveMeasurementDevice(device),
+    );
+    if (ongoingTrips.isEmpty) {
+      isOngoing = false;
+      currentTripStartedAt = null;
+    }
     notifyListeners();
   }
 

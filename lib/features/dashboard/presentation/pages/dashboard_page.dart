@@ -183,11 +183,13 @@ class _DashboardPage extends State<DashboardPage> {
             const SizedBox(width: 17),
           ],
         ),
-        _buildTappableTile(
-            title: 'Zur Luftkarte',
-            onTap: () {
-              getIt<PageController>().jumpToPage(1);
-            }),
+        _buildNavigationButton(
+          title: 'Zur Luftkarte'.i18n,
+          icon: Icons.map_outlined,
+          onTap: () {
+            getIt<PageController>().jumpToPage(1);
+          },
+        ),
       ],
       if (hasFavorites)
         SizedBox(
@@ -278,11 +280,13 @@ class _DashboardPage extends State<DashboardPage> {
             const SizedBox(width: 12),
           ],
         ),
-        _buildTappableTile(
-            title: 'Zur Messwerte-Seite'.i18n,
-            onTap: () {
-              getIt<PageController>().jumpToPage(2);
-            }),
+        _buildNavigationButton(
+          title: 'Zur Messwerte-Seite'.i18n,
+          icon: Icons.query_stats_outlined,
+          onTap: () {
+            getIt<PageController>().jumpToPage(2);
+          },
+        ),
       ],
       ChangeNotifierBuilder(
         notifier: getIt<WorkshopController>(),
@@ -300,11 +304,14 @@ class _DashboardPage extends State<DashboardPage> {
             });
           }
           if(workshopController.currentWorkshop == null) {
-            return _buildTappableTile(
+            return _buildNavigationButton(
               title: 'An Workshop teilnehmen'.i18n,
+              icon: Icons.groups_outlined,
+              emphasized: true,
               onTap: () {
                 Navigator.of(context).pushNamed(EnterWorkshopPage.route);
-              });
+              },
+            );
           } else {
             return _buildTappableTile(
                 title: 'Workshop-Details'.i18n,
@@ -362,6 +369,20 @@ class _DashboardPage extends State<DashboardPage> {
   Widget _buildTappableTile(
       {required String title, String? subtitle, required void Function() onTap}) {
     return DashboardListTile(title: title, subtitle: subtitle, onTap: onTap);
+  }
+
+  Widget _buildNavigationButton({
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+    bool emphasized = false,
+  }) {
+    return DashboardNavigationButton(
+      label: title,
+      icon: icon,
+      onPressed: onTap,
+      emphasized: emphasized,
+    );
   }
 
   Widget _buildSectionHeading(String title, List<Widget> actions) {

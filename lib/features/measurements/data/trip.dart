@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:luftdaten.at/core/app/device_info.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
+import 'package:luftdaten.at/features/measurements/logic/mock_measurement_devices.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/data/chip_id.dart';
 import 'package:luftdaten.at/features/devices/data/sensor_details.dart';
@@ -98,6 +99,7 @@ class Trip extends ChangeNotifier {
 
   Future<void> save() async {
     if (data.isEmpty) return;
+    if (MockMeasurementDevices.isMockTripDevice(deviceFourLetterCode)) return;
     Directory directory = await getApplicationDocumentsDirectory();
     Directory tripsDirectory = await Directory('${directory.path}/trips').create(recursive: true);
     File file = File('${tripsDirectory.path}/$fileName');

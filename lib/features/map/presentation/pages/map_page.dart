@@ -38,7 +38,6 @@ import 'package:luftdaten.at/features/measurements/logic/workshop_controller.dar
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/measurements/data/measurement.dart';
-import 'package:luftdaten.at/features/measurements/presentation/pages/annotated_picture_page.dart';
 import 'package:luftdaten.at/features/map/presentation/pages/map_page.i18n.dart';
 import 'package:luftdaten.at/features/map/presentation/pages/station_details_page.dart';
 import 'package:luftdaten.at/core/utils/gradient_color.dart';
@@ -47,14 +46,13 @@ import 'package:luftdaten.at/core/widgets/start_button.dart';
 import 'package:luftdaten.at/features/map/presentation/widgets/map_collapsible_legend.dart';
 import 'package:luftdaten.at/features/map/presentation/widgets/map_dimension_legend.dart';
 import 'package:luftdaten.at/features/map/presentation/widgets/marker_dialog.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 import 'package:luftdaten.at/features/map/logic/http_provider.dart';
 import 'package:luftdaten.at/features/measurements/data/trip.dart';
 import 'package:luftdaten.at/features/measurements/data/value_marker.dart';
-import 'package:luftdaten.at/core/widgets/progress.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'package:luftdaten.at/core/domain/dimensions.dart' as enums;
 
@@ -88,6 +86,16 @@ class _MapPageState extends State<MapPage>
 
   int mapDisplayType = enums.Dimension.PM2_5;
   double _legendPanelHeight = 0;
+
+  double _bottomOffsetAboveLegend({double whenNoLegend = 15}) {
+    if (!MapDimensionLegendData.hasLegend(mapDisplayType)) {
+      return whenNoLegend;
+    }
+    final inset = _legendPanelHeight > 0
+        ? _legendPanelHeight
+        : MapCollapsibleLegend.collapsedHeight;
+    return inset + 8;
+  }
 
   final CompassController _compassController = CompassController();
   late final WorkshopController _workshopController;
@@ -215,40 +223,49 @@ class _MapPageState extends State<MapPage>
           child: ChangeNotifierBuilder(
             notifier: provider,
             builder: (ctx, provider) {
-              if (!provider.finished) {
+              if (!provider.hourly24hReady) {
                 return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [const ProgressWaiter(), Text("Lade Daten von Server".i18n)]);
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SpinKitDualRing(
+                      color: Theme.of(context).primaryColor,
+                      size: 40,
+                      lineWidth: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    Text("Lade Daten von Server".i18n),
+                  ],
+                );
               }
-              if (provider.items.isEmpty) {
-                return Text("Keine Daten verfügbar".i18n);
+              const chartDimension = enums.Dimension.PM2_5;
+              final chartData = provider.hourly24h
+                  .where((item) {
+                    final value = item.valueForDimension(chartDimension);
+                    return value != null && !value.isNaN;
+                  })
+                  .toList();
+              if (chartData.isEmpty) {
+                return Center(child: Text("Keine Daten verfügbar".i18n));
               }
               return SfCartesianChart(
-                primaryXAxis: DateTimeAxis(dateFormat: DateFormat('MMM d\nHH:mm')),
-                title: ChartTitle(text: 'Feinstaubbelastung (μg/m³)'.i18n),
-                legend: const Legend(isVisible: true),
+                primaryXAxis: DateTimeAxis(dateFormat: DateFormat('HH:mm')),
+                title: ChartTitle(text: 'Letzte 24 Stunden (Stundenmittel)'.i18n),
+                primaryYAxis: NumericAxis(
+                  title: AxisTitle(text: 'Feinstaubbelastung (μg/m³)'.i18n),
+                ),
                 tooltipBehavior: TooltipBehavior(enable: true),
                 series: <CartesianSeries<DataItem, DateTime>>[
-                  if (provider.items[1][0].pm1 != null)
-                    LineSeries<DataItem, DateTime>(
-                      dataSource: provider.items[1],
-                      xValueMapper: (DataItem item, _) => item.timestamp,
-                      yValueMapper: (DataItem item, _) => item.pm1,
-                      name: 'PM1.0',
-                      dataLabelSettings: const DataLabelSettings(isVisible: false),
-                    ),
-                  LineSeries<DataItem, DateTime>(
-                    dataSource: provider.items[1],
-                    xValueMapper: (DataItem item, _) => item.timestamp,
-                    yValueMapper: (DataItem item, _) => item.pm25,
-                    name: 'PM2.5',
-                    dataLabelSettings: const DataLabelSettings(isVisible: false),
-                  ),
-                  LineSeries<DataItem, DateTime>(
-                    dataSource: provider.items[1],
-                    xValueMapper: (DataItem item, _) => item.timestamp,
-                    yValueMapper: (DataItem item, _) => item.pm10,
-                    name: 'PM10.0',
+                  ColumnSeries<DataItem, DateTime>(
+                    dataSource: chartData,
+                    xValueMapper: (DataItem item, _) => item.timestamp!,
+                    yValueMapper: (DataItem item, _) =>
+                        item.valueForDimension(chartDimension)!,
+                    name: enums.Dimension.get_name(chartDimension),
+                    pointColorMapper: (DataItem item, _) =>
+                        enums.Dimension.getColor(
+                          chartDimension,
+                          item.valueForDimension(chartDimension)!,
+                        ) as Color,
                     dataLabelSettings: const DataLabelSettings(isVisible: false),
                   ),
                 ],
@@ -339,8 +356,13 @@ class _MapPageState extends State<MapPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final mapProvider = context.watch<MapHttpProvider>();
+    final showMapLoading = mapProvider.isLoading && mapProvider.allItems.isEmpty;
+
     return Scaffold(
-      body: FlutterMap(
+      body: Stack(
+        children: [
+          FlutterMap(
         mapController: _controller.mapController,
         options: MapOptions(
           initialCenter: const LatLng(48.21919466912646, 16.383482313924404),
@@ -486,8 +508,15 @@ class _MapPageState extends State<MapPage>
           ),
           Align(
             alignment: Alignment.bottomRight,
-            child: Padding(
-              padding: const EdgeInsets.all(20),
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: _bottomOffsetAboveLegend(whenNoLegend: 20),
+              ),
               child: ChangeNotifierBuilder(
                   notifier: AppSettings.I,
                   builder: (context, settings) {
@@ -551,53 +580,6 @@ class _MapPageState extends State<MapPage>
                             tooltip: 'Notiz hinzufügen'.i18n,
                           ),
                         if (settings.showNotesButton) const SizedBox(height: 5),
-                        if (settings.showCameraButton)
-                          IconButton.filled(
-                            style: ButtonStyle(
-                              backgroundColor: WidgetStateProperty.all(Colors.white),
-                              elevation: WidgetStateProperty.all(2),
-                              shadowColor: WidgetStateProperty.all(Colors.black),
-                            ),
-                            tooltip: 'Foto hinzufügen'.i18n,
-                            color: Colors.black,
-                            onPressed: () async {
-                              Permission cameraPermission = Permission.camera;
-                              if (await cameraPermission.isGranted) {
-                                if (!context.mounted) return;
-                                Navigator.of(context).pushNamed(AnnotatedPicturePage.route);
-                              } else {
-                                if (!context.mounted) return;
-                                showLDDialog(
-                                  context,
-                                  content: Text(
-                                    'Um Fotos aufzunehmen, ist die Kamera-Berechtigung benötigt.'
-                                        .i18n,
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  title: 'Kamera-Berechtigung'.i18n,
-                                  icon: Icons.camera_alt,
-                                  actions: [
-                                    LDDialogAction(label: 'Abbrechen'.i18n, filled: false),
-                                    LDDialogAction(
-                                      label: 'Anfragen'.i18n,
-                                      filled: true,
-                                      onTap: () {
-                                        cameraPermission.request().then((status) {
-                                          if (status == PermissionStatus.granted) {
-                                            Navigator.of(context)
-                                                .pushNamed(AnnotatedPicturePage.route);
-                                          }
-                                        });
-                                      },
-                                    ),
-                                  ],
-                                );
-                              }
-                            },
-                            icon: const Icon(Icons.camera_alt_outlined),
-                            padding: const EdgeInsets.all(10),
-                          ),
-                        if (settings.showCameraButton) const SizedBox(height: 5),
                         IconButton.filled(
                           style: ButtonStyle(
                             backgroundColor: WidgetStateProperty.all(Colors.white),
@@ -743,12 +725,7 @@ class _MapPageState extends State<MapPage>
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
               padding: EdgeInsets.only(
-                bottom: MapDimensionLegendData.hasLegend(mapDisplayType)
-                    ? (_legendPanelHeight > 0
-                        ? _legendPanelHeight
-                        : MapCollapsibleLegend.collapsedHeight) +
-                        8
-                    : 15,
+                bottom: _bottomOffsetAboveLegend(),
               ),
               child: StartButton(page: 'map', updateGPSCallback: () => updateGPS(newZoom: 17)),
             ),
@@ -779,6 +756,26 @@ class _MapPageState extends State<MapPage>
               ),
             ),
           ),
+        ],
+      ),
+          if (showMapLoading)
+            ColoredBox(
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.72),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SpinKitDualRing(
+                      color: Theme.of(context).primaryColor,
+                      size: 40,
+                      lineWidth: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    Text("Lade Daten von Server".i18n),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );

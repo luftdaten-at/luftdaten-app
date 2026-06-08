@@ -73,6 +73,55 @@ class DashboardListTile extends StatelessWidget {
   }
 }
 
+/// Full-width tonal button for dashboard tab navigation (distinct from [DashboardListTile]).
+class DashboardNavigationButton extends StatelessWidget {
+  const DashboardNavigationButton({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+    this.emphasized = false,
+    this.padding = const EdgeInsets.only(top: 10, left: 12, right: 12, bottom: 0),
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onPressed;
+  final bool emphasized;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final style = FilledButton.styleFrom(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      alignment: Alignment.centerLeft,
+      backgroundColor: emphasized ? scheme.primary : null,
+      foregroundColor: emphasized ? scheme.onPrimary : null,
+    );
+
+    return Padding(
+      padding: padding,
+      child: SizedBox(
+        width: double.infinity,
+        child: emphasized
+            ? FilledButton.icon(
+                onPressed: onPressed,
+                icon: Icon(icon),
+                label: Text(label),
+                style: style,
+              )
+            : FilledButton.tonalIcon(
+                onPressed: onPressed,
+                icon: Icon(icon),
+                label: Text(label),
+                style: style,
+              ),
+      ),
+    );
+  }
+}
+
 /// Bold section heading aligned with the Dashboard layout.
 class DashboardSectionHeading extends StatelessWidget {
   const DashboardSectionHeading({
