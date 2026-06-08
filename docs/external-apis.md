@@ -17,7 +17,7 @@ The app uses the [`http`](https://pub.dev/packages/http) package for most progra
   - `calibration_data=false` — omit calibration layers from the payload
 - **Response:** GeoJSON **FeatureCollection** with **`features[]`**. Each **Point** feature’s **`geometry.coordinates`** are **`[longitude, latitude]`** (GeoJSON order). **`properties.device`** is the station id; optional **`height`** and **`time`** map to `Location` height and `Measurement.time` when present. PM1 / PM2.5 / PM10 are merged from **`properties.sensors[*].values`** (`dimension` + numeric `value`; later values overwrite when the same dimension repeats). Parsing lives in **`MapHttpProvider.measurementFromStationCurrentGeoFeature`** (`http_provider.dart`); `Values` use dimensions from `lib/core/domain/dimensions.dart`.
 - **Why not `/v1/station/historical`?** That endpoint expects **`station_ids`** (validated by the API; missing ids → HTTP **422**). There is no app-side list of every id at fetch time for the Luftkarte, so the map uses **`/v1/station/current`** with **`last_active`** instead. Structured JSON shapes for stations are documented in the [Luftdaten.at API Swagger](https://api.luftdaten.at/docs) (e.g. `/v1/station/all` for station metadata).
-- **Caching / throttle:** `fetch()` only triggers a network call if the last **successful** load is older than 5 minutes (or 30 seconds if the list is still empty). After HTTP 200, parsed rows populate `allItems` and `_lastfetch` is updated (`http_provider.dart`).
+- **Caching / throttle:** `fetch()` only triggers a network call if the last **successful** load is older than 5 minutes (or 30 seconds if the list is still empty). After HTTP 200, parsed rows populate `allItems` and `_lastfetch` is updated (`http_provider.dart`). While a fetch is in progress, `MapHttpProvider.isLoading` is `true`; the map page shows a **SpinKitDualRing** overlay until the first successful load completes (`isLoading && allItems.isEmpty`).
 - **Consumers:** Map page markers when **“Stationäre Messstationen”** overlay is enabled (`AppSettings.showOverlay`), via `ChangeNotifierProvider` + `context.watch<MapHttpProvider>()`. Startup also registers `MapHttpProvider()..fetch()` in `main.dart`.
 - **Colours:** Points and numeric labels follow the [**European Air Quality Index**](https://airindex.eea.europa.eu/) µg/m³ bands (hourly classes), matching the overlays described on [Luftdaten.at Datahub](https://datahub.luftdaten.at). See `Dimension.getColor` in [`lib/core/domain/dimensions.dart`](../lib/core/domain/dimensions.dart) (PM4 uses the PM2.5‑sized bins).
 
@@ -30,7 +30,24 @@ The app uses the [`http`](https://pub.dev/packages/http) package for most progra
   - `output_format=csv`
   - `start=<ISO8601 UTC>`
 - **Response:** CSV with header **`device,time_measured,dimension,dimension_name,value`** (5 columns). `SingleStationHttpProvider` reads **`dimension` from column 3 (0-based index 2)** and the **numeric measurement from the last column**, which also matches legacy **4-column** CSV without `dimension_name` as long as `dimension_name` does not contain commas. Dimension IDs map to `Dimension` in `lib/core/domain/dimensions.dart`; charts aggregate timestamps into `DataItem` rows (PM1/PM2.5/PM10 when those dimensions exist for that time).
-- **Consumers:** Dashboard station tiles, station detail / chart flows (`dashboard_station_tile.dart`, `station_details_page.dart`, `map_page.dart`).
+- **Consumers:** Dashboard station tiles, station detail / chart flows (`dashboard_station_tile.dart`, `station_details_page.dart`).
+
+### Per-station history (JSON, hourly — map station dialog)
+
+Aligned with [Luftdaten.at Datahub](https://datahub.luftdaten.at) station detail hourly charts.
+
+- **Class:** `SingleStationHttpProvider._fetchHourly24hJson` / `parseHistoricalHourlyJson`
+- **Request:** `GET` `https://api.luftdaten.at/v1/station/historical` with query params:
+  - `station_ids=<device_id>`
+  - `output_format=json`
+  - `precision=hour`
+  - `start=<UTC ISO8601, floor to hour, now − 23 h>` (minute precision, e.g. `2024-06-07T10:00`)
+  - `end=<UTC ISO8601, current hour>`
+- **Response:** JSON **array** of hourly rows. Each element has:
+  - `time_measured` — ISO8601 timestamp for the hour bucket
+  - `values` — array of `{ "dimension": <int>, "value": <number> }` (PM1 / PM2.5 / PM10 use dimension ids **2**, **3**, **5** per `dimensions.dart`)
+- **Parsing:** `parseHistoricalHourlyJson` merges rows by `time_measured` into `DataItem` instances stored in `SingleStationHttpProvider.hourly24h`. `hourly24hReady` becomes `true` when the request finishes (success or failure).
+- **Consumers:** Map page station tap dialog (`map_page.dart`) — **24 h** hourly **bar** chart for the currently selected PM dimension (`mapDisplayType`), with Eu‑AQI bar colours via `Dimension.getColor`. Fetched **in parallel** with the CSV slices used by `station_details_page.dart`.
 
 ### Air Station wizard — setup verification (first data online)
 

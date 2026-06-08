@@ -146,6 +146,10 @@ extension Localization on String {
       {
         "de": "Schlecht",
         "en": "Bad",
+      } +
+      {
+        "de": "Letzte 24 Stunden (Stundenmittel)",
+        "en": "Last 24 hours (hourly mean)",
       };
 
   String get i18n => localize(this, _t);

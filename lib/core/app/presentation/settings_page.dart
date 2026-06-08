@@ -9,6 +9,7 @@ import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/features/dashboard/presentation/pages/get_app_page.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/mock_ble_devices_page.dart';
+import 'package:luftdaten.at/features/measurements/presentation/pages/mock_measurement_data_page.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/nearby_devices_debug_page.dart';
 import 'package:luftdaten.at/core/app/presentation/settings_page.i18n.dart';
 import 'package:luftdaten.at/core/app/presentation/welcome_page.dart';
@@ -123,13 +124,6 @@ class _SettingsPageState extends State<SettingsPage> {
                         desc: 'Zoom-Icons auf der Karte anzeigen.'.i18n,
                         value: AppSettings.I.showZoomButtons,
                         onChanged: (val) => setState(() => AppSettings.I.showZoomButtons = val)),
-                    _spacer(),
-                    _settingsSwitchRow(
-                        title: 'Kamera-Icon'.i18n,
-                        desc: 'Kamera-Icon auf der Karte anzeigen.'.i18n,
-                        value: AppSettings.I.showCameraButton,
-                        onChanged: (val) => setState(() => AppSettings.I.showCameraButton = val),
-                        beta: true),
                     _spacer(),
                     _settingsSwitchRow(
                         title: 'Notiz-Icon'.i18n,
@@ -487,6 +481,18 @@ class _SettingsPageState extends State<SettingsPage> {
                                 .i18n,
                         onTap: () {
                           Navigator.of(context).pushNamed(MockBleDevicesPage.route);
+                        },
+                      ),
+                    if (kDebugMode) _spacer(),
+                    if (kDebugMode)
+                      _settingsButtonRow(
+                        title: 'Mock-Messdaten'.i18n,
+                        desc:
+                            'Test-Messpfade und Live-Mock-Messung für Karte und Messwerte (nur Debug-Build).'
+                                .i18n,
+                        onTap: () {
+                          Navigator.of(context)
+                              .pushNamed(MockMeasurementDataPage.route);
                         },
                       ),
                     if (kDebugMode) _spacer(),

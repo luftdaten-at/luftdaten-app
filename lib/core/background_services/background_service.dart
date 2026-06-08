@@ -27,6 +27,7 @@ import 'background_service.i18n.dart';
 import 'package:luftdaten.at/core/di/di.dart';
 import 'package:luftdaten.at/core/app/logging.dart';
 import 'package:luftdaten.at/features/devices/logic/ble_controller.dart';
+import 'package:luftdaten.at/features/measurements/logic/mock_measurement_telemetry.dart';
 import 'package:luftdaten.at/features/measurements/logic/workshop_controller.dart';
 import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
 import 'package:luftdaten.at/features/measurements/data/latlng_with_precision.dart';
@@ -103,7 +104,7 @@ abstract class BackgroundService {
     logger.d('About to read data points');
     List<dynamic> tup;
     try {
-      tup = await getIt<BleController>().readSensorValues(device);
+      tup = await getIt<BleController>().readSensorValues(device, position: position);
     } catch (e, stackTrace) {
       logger.e('Failed to read sensor values from device ${device.bleId}: $e');
       logger.d(stackTrace.toString());
@@ -118,7 +119,7 @@ abstract class BackgroundService {
     LatLngWithPrecision? location = position != null
         ? LatLngWithPrecision(position.latitude, position.longitude,
             position.accuracy > 0 ? position.accuracy : null)
-        : null;
+        : MockMeasurementTelemetry.locationFromMetadata(j);
     logger.d('Converted Position to LatLng');
     trip.addDataPoint(MeasuredDataPoint(
       timestamp: timestamp,

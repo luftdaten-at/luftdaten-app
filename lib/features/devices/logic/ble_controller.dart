@@ -1,9 +1,12 @@
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:luftdaten.at/features/devices/logic/ble_controller_v1.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/logic/mock_ble_devices.dart';
 import 'package:luftdaten.at/features/devices/logic/mock_ble_profile.dart';
 import 'package:luftdaten.at/features/devices/logic/mock_ble_telemetry.dart';
+import 'package:luftdaten.at/features/measurements/logic/mock_measurement_devices.dart';
+import 'package:luftdaten.at/features/measurements/logic/mock_measurement_telemetry.dart';
 import 'package:luftdaten.at/features/devices/logic/sd_ble_export.dart';
 
 import 'package:luftdaten.at/core/core.dart';
@@ -61,7 +64,13 @@ class BleController {
     return BleControllerForProtocol(device.protocolVersion!).getDeviceDetails(device);
   }
 
-  Future<List<dynamic>> readSensorValues(BleDevice device) async {
+  Future<List<dynamic>> readSensorValues(
+    BleDevice device, {
+    Position? position,
+  }) async {
+    if (MockMeasurementDevices.isLiveMeasurementDevice(device)) {
+      return MockMeasurementTelemetry.readSensorValues(device, position: position);
+    }
     if (MockBleDevices.canUseMockBle(device)) {
       return MockBleTelemetry.readSensorValues(device);
     }

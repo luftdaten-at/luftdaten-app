@@ -91,14 +91,6 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool _showCameraButton = true;
-  bool get showCameraButton => _showCameraButton;
-  set showCameraButton(bool val) {
-    _showCameraButton = val;
-    _box.write('showCameraButton', val);
-    notifyListeners();
-  }
-
   bool _measurePM1 = true;
   bool get measurePM1 => _measurePM1;
   set measurePM1(bool val) {
@@ -336,7 +328,6 @@ class AppSettings extends ChangeNotifier {
     useLog = _box.read('useLog') ?? false;
     showSerialMonitor = _box.read('showSerialMonitor') ?? false;
     defaultToAutoconnect = _box.read('defaultToAutoconnect') ?? true;
-    showCameraButton = _box.read('showCameraButton') ?? true;
     measurePM1 = _box.read('measurePM1') ?? true;
     measurePM25 = _box.read('measurePM25') ?? true;
     measurePM4 = _box.read('measurePM4') ?? true;

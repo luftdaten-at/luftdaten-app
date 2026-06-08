@@ -51,6 +51,19 @@ class DataItem {
   double? pm25;
   double? pm10;
 
+  double? valueForDimension(int dimensionId) {
+    switch (dimensionId) {
+      case Dimension.PM1_0:
+        return pm1;
+      case Dimension.PM2_5:
+        return pm25;
+      case Dimension.PM10_0:
+        return pm10;
+      default:
+        return null;
+    }
+  }
+
   @override
   String toString() {
     return 'LDItem($timestamp, $pm1, $pm25, $pm10)';
@@ -82,6 +95,8 @@ class MapHttpProvider extends HttpProvider {
 
   List<Measurement> allItems = [];
   DateTime? _lastfetch;
+  bool isLoading = false;
+  bool hasLoadedOnce = false;
 
   void fetch() async {
     if (_lastfetch == null ||
@@ -93,36 +108,44 @@ class MapHttpProvider extends HttpProvider {
   }
 
   Future<void> _fetch() async {
-    allItems = [];
-    final Response resp = await http.get(_mapStationsGeoJsonUri, headers: httpHeaders);
-    if (resp.statusCode != 200) {
-      logger.d('MapHttpProvider fetch failed with status code: ${resp.statusCode}');
-      return;
-    }
-
-    final dynamic decoded;
+    isLoading = true;
+    notifyListeners();
     try {
-      decoded = jsonDecode(resp.body);
-    } catch (e, st) {
-      logger.d('MapHttpProvider: JSON decode failed: $e $st');
-      return;
-    }
+      allItems = [];
+      final Response resp = await http.get(_mapStationsGeoJsonUri, headers: httpHeaders);
+      if (resp.statusCode != 200) {
+        logger.d('MapHttpProvider fetch failed with status code: ${resp.statusCode}');
+        return;
+      }
 
-    final features = (decoded is Map<String, dynamic>) ? decoded['features'] : null;
-    if (features is! List) {
-      logger.d('MapHttpProvider: missing or invalid features array');
-      return;
-    }
+      final dynamic decoded;
+      try {
+        decoded = jsonDecode(resp.body);
+      } catch (e, st) {
+        logger.d('MapHttpProvider: JSON decode failed: $e $st');
+        return;
+      }
 
-    for (final Object? rawFeature in features) {
-      if (rawFeature is! Map) continue;
-      final feature = Map<String, dynamic>.from(rawFeature);
-      final m = measurementFromStationCurrentGeoFeature(feature);
-      if (m != null) allItems.add(m);
-    }
+      final features = (decoded is Map<String, dynamic>) ? decoded['features'] : null;
+      if (features is! List) {
+        logger.d('MapHttpProvider: missing or invalid features array');
+        return;
+      }
 
-    _lastfetch = DateTime.now();
-    logger.d('MapHttpProvider: loaded ${allItems.length} stations from GeoJSON');
+      for (final Object? rawFeature in features) {
+        if (rawFeature is! Map) continue;
+        final feature = Map<String, dynamic>.from(rawFeature);
+        final m = measurementFromStationCurrentGeoFeature(feature);
+        if (m != null) allItems.add(m);
+      }
+
+      _lastfetch = DateTime.now();
+      hasLoadedOnce = true;
+      logger.d('MapHttpProvider: loaded ${allItems.length} stations from GeoJSON');
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
 
   /// Parses one GeoJSON Feature from `/v1/station/current` (see API `output_format=geojson`).
@@ -209,9 +232,13 @@ class SingleStationHttpProvider extends HttpProvider {
   /// ([Data last day], [last week], [last month]):
   List<List<DataItem>> items = [[], [], []];
 
+  /// Hourly means for the last 24 hours (map station dialog).
+  List<DataItem> hourly24h = [];
+
   /// True once the CSV request for slice [index] has finished (success with rows, success empty, or HTTP/parse failure).
   final List<bool> sliceReady = [false, false, false];
 
+  bool hourly24hReady = false;
   bool finished = false;
   bool error = false;
 
@@ -248,10 +275,13 @@ class SingleStationHttpProvider extends HttpProvider {
      */
     finished = false;
     error = false;
+    hourly24hReady = false;
+    hourly24h = [];
     _resetSliceState();
     notifyListeners();
     logger.d('SingleStationHttpProvider: Fetching data for $device_id');
     await Future.wait([
+      _fetchHourly24hJson(),
       _runSlice(0, "all"),
       _runSlice(1, "hour"),
       _runSlice(2, "hour"),
@@ -260,6 +290,78 @@ class SingleStationHttpProvider extends HttpProvider {
     finished = true;
     logger.d('Fetch done for $device_id.');
     notifyListeners();
+  }
+
+  Future<void> _fetchHourly24hJson() async {
+    try {
+      final now = DateTime.now().toUtc();
+      final endHour = DateTime.utc(now.year, now.month, now.day, now.hour);
+      final startHour = endHour.subtract(const Duration(hours: 23));
+      final startIso = startHour.toIso8601String().substring(0, 16);
+      final endIso = endHour.toIso8601String().substring(0, 16);
+      final uri = Uri.parse(
+        '$API_URL/?station_ids=$device_id&output_format=json&precision=hour&start=$startIso&end=$endIso',
+      );
+      final response = await http.get(uri, headers: httpHeaders);
+      if (response.statusCode == 200) {
+        hourly24h = parseHistoricalHourlyJson(response.body);
+        logger.d('SingleStationHttpProvider: loaded ${hourly24h.length} hourly rows for $device_id');
+      } else {
+        logger.d('SingleStationHttpProvider: hourly24h failed for $device_id: ${response.statusCode}');
+        error = true;
+      }
+    } catch (e, st) {
+      logger.d('SingleStationHttpProvider: hourly24h error for $device_id: $e $st');
+      error = true;
+    } finally {
+      hourly24hReady = true;
+      notifyListeners();
+    }
+  }
+
+  /// Parses JSON array from `/v1/station/historical` with `output_format=json&precision=hour`.
+  static List<DataItem> parseHistoricalHourlyJson(String body) {
+    final dynamic decoded;
+    try {
+      decoded = jsonDecode(body);
+    } catch (_) {
+      return [];
+    }
+    if (decoded is! List) return [];
+
+    final SplayTreeMap<DateTime, Map<int, double>> data = SplayTreeMap();
+    for (final rawEntry in decoded) {
+      if (rawEntry is! Map) continue;
+      final entry = Map<String, dynamic>.from(rawEntry);
+      final timeRaw = entry['time_measured']?.toString();
+      if (timeRaw == null || timeRaw.isEmpty) continue;
+      final timeMeasured = DateTime.tryParse(timeRaw);
+      if (timeMeasured == null) continue;
+
+      final values = entry['values'];
+      if (values is! List) continue;
+      for (final rawValue in values) {
+        if (rawValue is! Map) continue;
+        final valueEntry = Map<String, dynamic>.from(rawValue);
+        final dimRaw = valueEntry['dimension'];
+        final valRaw = valueEntry['value'];
+        if (dimRaw == null || valRaw == null || valRaw is! num) continue;
+        final dimension = dimRaw is int ? dimRaw : int.tryParse(dimRaw.toString());
+        if (dimension == null) continue;
+        data.putIfAbsent(timeMeasured, () => <int, double>{})[dimension] = valRaw.toDouble();
+      }
+    }
+
+    return data.entries
+        .map(
+          (entry) => DataItem(
+            entry.value[Dimension.PM1_0],
+            entry.value[Dimension.PM2_5],
+            entry.value[Dimension.PM10_0],
+            entry.key,
+          ),
+        )
+        .toList();
   }
 
   Future<void> _runSlice(int index, String precision) async {

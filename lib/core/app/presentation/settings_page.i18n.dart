@@ -51,14 +51,6 @@ extension Localization on String {
         "en": "Show zoom icons on the map.",
       } +
       {
-        "de": "Kamera-Icon",
-        "en": "Camera icon",
-      } +
-      {
-        "de": "Kamera-Icon auf der Karte anzeigen.",
-        "en": "Show camera icon on the map.",
-      } +
-      {
         "de": "Notiz-Icon",
         "en": "Quick notes icon",
       } +
@@ -373,6 +365,16 @@ extension Localization on String {
             "Simuliert Verbindung und Messwerte ohne echtes Bluetooth (nur Debug-Build).",
         "en":
             "Simulates connection and readings without real Bluetooth (debug builds only).",
+      } +
+      {
+        "de": "Mock-Messdaten",
+        "en": "Mock measurement data",
+      } +
+      {
+        "de":
+            "Test-Messpfade und Live-Mock-Messung für Karte und Messwerte (nur Debug-Build).",
+        "en":
+            "Test measurement trails and live mock readings for map and charts (debug builds only).",
       } +
       {
         "de": "BLE-Geräte in der Nähe",
