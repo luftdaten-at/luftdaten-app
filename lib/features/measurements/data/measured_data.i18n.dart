@@ -93,6 +93,91 @@ extension Localization on String {
         "en-US": "SGP40 Gas Index (adjusted)",
       } +
       {
+        "de": "Temperatur Air Cube (adjustiert)",
+        "en": "Adjusted Air Cube temperature",
+        "en-US": "Adjusted Air Cube temperature",
+      } +
+      {
+        "de": "UVS",
+        "en": "UVS",
+        "en-US": "UVS",
+      } +
+      {
+        "de": "Licht",
+        "en": "Light",
+        "en-US": "Light",
+      } +
+      {
+        "de": "Höhe",
+        "en": "Altitude",
+        "en-US": "Altitude",
+      } +
+      {
+        "de": "UV-Index",
+        "en": "UV Index",
+        "en-US": "UV Index",
+      } +
+      {
+        "de": "Beleuchtungsstärke",
+        "en": "Illuminance",
+        "en-US": "Illuminance",
+      } +
+      {
+        "de": "Beschleunigung X",
+        "en": "Acceleration X",
+        "en-US": "Acceleration X",
+      } +
+      {
+        "de": "Beschleunigung Y",
+        "en": "Acceleration Y",
+        "en-US": "Acceleration Y",
+      } +
+      {
+        "de": "Beschleunigung Z",
+        "en": "Acceleration Z",
+        "en-US": "Acceleration Z",
+      } +
+      {
+        "de": "Gyroskop X",
+        "en": "Gyro X",
+        "en-US": "Gyro X",
+      } +
+      {
+        "de": "Gyroskop Y",
+        "en": "Gyro Y",
+        "en-US": "Gyro Y",
+      } +
+      {
+        "de": "Gyroskop Z",
+        "en": "Gyro Z",
+        "en-US": "Gyro Z",
+      } +
+      {
+        "de": "Thermalbild",
+        "en": "Thermal array",
+        "en-US": "Thermal array",
+      } +
+      {
+        "de": "Sichtbares Licht",
+        "en": "Visible light",
+        "en-US": "Visible light",
+      } +
+      {
+        "de": "Infrarot",
+        "en": "Infrared",
+        "en-US": "Infrared",
+      } +
+      {
+        "de": "Vollspektrum",
+        "en": "Full spectrum",
+        "en-US": "Full spectrum",
+      } +
+      {
+        "de": "Roh-Luminanz",
+        "en": "Raw luminosity",
+        "en-US": "Raw luminosity",
+      } +
+      {
         "de": "Unbekannt",
         "en": "Unknown",
         "en-US": "Unknown",

@@ -131,7 +131,7 @@ class BleControllerV2 implements BleControllerForProtocol {
         List<int> sensorDetails = sensorDetailsParts[i * 2 + 1];
         if (sensorSpec.isEmpty) continue;
         LDSensor model = LDSensor.fromId(sensorSpec[0]);
-        if (model == LDSensor.sen5x && sensorDetails.length >= 6) {
+        if ((model == LDSensor.sen5x || model == LDSensor.sen66) && sensorDetails.length >= 6) {
           device.availableSensors!.add(SensorDetails(
             model,
             firmwareVersion: '${sensorDetails[0]}.${sensorDetails[1]}',

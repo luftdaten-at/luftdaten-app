@@ -99,6 +99,44 @@ Writes use `writeCharacteristicWithResponse` for Air Station config.
 
 Binary sensor payloads are interpreted into `SensorDataPoint` / `MeasurableQuantity` values. `AppSettings` toggles (which PM sizes, humidity, VOC, etc. to show) filter parsed quantities in `_SensorDataParser.filterUsingSettings` so disabled dimensions are dropped client-side.
 
+### Sensor model IDs (`LDSensor`)
+
+Aligned with firmware [`enums.py` SensorModel](https://github.com/luftdaten-at/firmware/blob/main/firmware/enums.py). **Note:** SHT4x is ID **10** and SGP40 is ID **11** (older app builds incorrectly used 9/10).
+
+| ID | App enum | Name |
+|----|----------|------|
+| 1 | `sen5x` | Sensirion Sen5x |
+| 2 | `bmp280` | Bosch Sensortec BMP280 |
+| 3 | `bme280` | Bosch Sensortec BME280 |
+| 4 | `bme680` | Bosch Sensortec BME680 |
+| 5 | `scd4x` | Sensirion SCD4x |
+| 6 | `aht20` | Aosong AHT20 |
+| 7 | `sht30` | Sensirion SHT30 |
+| 8 | `sht31` | Sensirion SHT31 |
+| 9 | `ags02ma` | Aosong AGS02MA |
+| 10 | `sht4x` | Sensirion SHT4x |
+| 11 | `sgp40` | Sensirion SGP40 |
+| 12 | `dht22` | ASAIR DHT22 |
+| 13 | `sds011` | Nova Fitness SDS011 |
+| 14 | `sht35` | Sensirion SHT35 |
+| 15 | `sps30` | Sensirion SPS30 |
+| 16 | `pms5003` | Plantower PMS5003 |
+| 17 | `pms7003` | Plantower PMS7003 |
+| 18 | `virtualSensor` | Luftdaten.at Virtual Sensor |
+| 19 | `ltr390` | ams OSRAM LTR390 |
+| 20 | `bmp388` | Bosch Sensortec BMP388 |
+| 21 | `bmp390` | Bosch Sensortec BMP390 |
+| 22 | `lsm6ds` | STMicroelectronics LSM6DS |
+| 23 | `sen66` | Sensirion SEN66 |
+| 24 | `mlx90640` | Melexis MLX90640 |
+| 25 | `tsl2591` | ams OSRAM TSL2591 |
+| 26 | `sen63c` | Sensirion SEN63C |
+| 27 | `sen62` | Sensirion SEN62 |
+| 28 | `bmp581` | Bosch Sensortec BMP581 |
+| 29 | `shtc3` | Sensirion SHTC3 |
+
+Dimension IDs 1–35 map to `MeasurableQuantity` (same numbering as firmware `Dimension`).
+
 ---
 
 ## Features that depend on BLE

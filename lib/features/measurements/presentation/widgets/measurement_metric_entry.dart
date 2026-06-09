@@ -39,7 +39,11 @@ class MeasurementMetricEntry {
           MeasurementValueCategory.particulate,
         MeasurableQuantity.temperature ||
         MeasurableQuantity.humidity ||
-        MeasurableQuantity.pressure =>
+        MeasurableQuantity.pressure ||
+        MeasurableQuantity.altitude ||
+        MeasurableQuantity.adjustedTempCube ||
+        MeasurableQuantity.lux ||
+        MeasurableQuantity.uvi =>
           MeasurementValueCategory.climate,
         _ => MeasurementValueCategory.gases,
       };
@@ -94,6 +98,7 @@ class MeasurementMetricParser {
   }
 
   static const _displayOrder = [
+    MeasurableQuantity.pm01,
     MeasurableQuantity.pm1,
     MeasurableQuantity.pm25,
     MeasurableQuantity.pm4,
@@ -104,10 +109,29 @@ class MeasurementMetricParser {
     MeasurableQuantity.temperature,
     MeasurableQuantity.humidity,
     MeasurableQuantity.pressure,
+    MeasurableQuantity.adjustedTempCube,
+    MeasurableQuantity.altitude,
+    MeasurableQuantity.uvi,
+    MeasurableQuantity.lux,
+    MeasurableQuantity.uvs,
+    MeasurableQuantity.light,
+    MeasurableQuantity.visible,
+    MeasurableQuantity.infrared,
+    MeasurableQuantity.fullSpectrum,
+    MeasurableQuantity.rawLuminosity,
+    MeasurableQuantity.accelerationX,
+    MeasurableQuantity.accelerationY,
+    MeasurableQuantity.accelerationZ,
+    MeasurableQuantity.gyroX,
+    MeasurableQuantity.gyroY,
+    MeasurableQuantity.gyroZ,
     MeasurableQuantity.co2,
     MeasurableQuantity.o3,
     MeasurableQuantity.aqi,
+    MeasurableQuantity.no2,
     MeasurableQuantity.gasResistance,
+    MeasurableQuantity.sgp40RawGasIndex,
+    MeasurableQuantity.sgp40AdjustedGasIndex,
   ];
 
   static String _formatValue(MeasurableQuantity quantity, double value) {
@@ -147,6 +171,11 @@ class MeasurementMetricParser {
         return GradientColor.aqi().getColor(value);
       case MeasurableQuantity.gasResistance:
         return GradientColor.gasResistance().getColor(value);
+      case MeasurableQuantity.uvi:
+        return dim.Dimension.getColor(dim.Dimension.UVI, value) as Color? ?? Colors.grey.shade700;
+      case MeasurableQuantity.adjustedTempCube:
+        return dim.Dimension.getColor(dim.Dimension.ADJUSTED_TEMP_CUBE, value) as Color? ??
+            Colors.grey.shade700;
       default:
         return Colors.grey.shade700;
     }
