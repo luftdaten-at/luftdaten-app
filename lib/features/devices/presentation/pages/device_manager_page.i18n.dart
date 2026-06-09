@@ -353,6 +353,110 @@ extension Localization on String {
       {
         "de": "Sensirion Scd4x",
         "en": "Sensirion Scd4x",
+      } +
+      {
+        "de": "Sensirion SCD4x",
+        "en": "Sensirion SCD4x",
+      } +
+      {
+        "de": "Bosch Sensortec BME280",
+        "en": "Bosch Sensortec BME280",
+      } +
+      {
+        "de": "Aosong AHT20",
+        "en": "Aosong AHT20",
+      } +
+      {
+        "de": "Sensirion SHT30",
+        "en": "Sensirion SHT30",
+      } +
+      {
+        "de": "Sensirion SHT31",
+        "en": "Sensirion SHT31",
+      } +
+      {
+        "de": "Aosong AGS02MA",
+        "en": "Aosong AGS02MA",
+      } +
+      {
+        "de": "Sensirion SHT4x",
+        "en": "Sensirion SHT4x",
+      } +
+      {
+        "de": "Sensirion SGP40",
+        "en": "Sensirion SGP40",
+      } +
+      {
+        "de": "ASAIR DHT22",
+        "en": "ASAIR DHT22",
+      } +
+      {
+        "de": "Nova Fitness SDS011",
+        "en": "Nova Fitness SDS011",
+      } +
+      {
+        "de": "Sensirion SHT35",
+        "en": "Sensirion SHT35",
+      } +
+      {
+        "de": "Sensirion SPS30",
+        "en": "Sensirion SPS30",
+      } +
+      {
+        "de": "Plantower PMS5003",
+        "en": "Plantower PMS5003",
+      } +
+      {
+        "de": "Plantower PMS7003",
+        "en": "Plantower PMS7003",
+      } +
+      {
+        "de": "Luftdaten.at Virtual Sensor",
+        "en": "Luftdaten.at Virtual Sensor",
+      } +
+      {
+        "de": "ams OSRAM LTR390",
+        "en": "ams OSRAM LTR390",
+      } +
+      {
+        "de": "Bosch Sensortec BMP388",
+        "en": "Bosch Sensortec BMP388",
+      } +
+      {
+        "de": "Bosch Sensortec BMP390",
+        "en": "Bosch Sensortec BMP390",
+      } +
+      {
+        "de": "STMicroelectronics LSM6DS",
+        "en": "STMicroelectronics LSM6DS",
+      } +
+      {
+        "de": "Sensirion SEN66",
+        "en": "Sensirion SEN66",
+      } +
+      {
+        "de": "Melexis MLX90640",
+        "en": "Melexis MLX90640",
+      } +
+      {
+        "de": "ams OSRAM TSL2591",
+        "en": "ams OSRAM TSL2591",
+      } +
+      {
+        "de": "Sensirion SEN63C",
+        "en": "Sensirion SEN63C",
+      } +
+      {
+        "de": "Sensirion SEN62",
+        "en": "Sensirion SEN62",
+      } +
+      {
+        "de": "Bosch Sensortec BMP581",
+        "en": "Bosch Sensortec BMP581",
+      } +
+      {
+        "de": "Sensirion SHTC3",
+        "en": "Sensirion SHTC3",
       };
 
   String get i18n => localize(this, _t);

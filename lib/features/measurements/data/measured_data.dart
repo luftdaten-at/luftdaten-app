@@ -2,19 +2,65 @@ import 'package:flutter/material.dart';
 import 'package:luftdaten.at/features/measurements/data/latlng_with_precision.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.i18n.dart';
 
+const _sen5xMeasures = <MeasurableQuantity>[
+  MeasurableQuantity.pm1,
+  MeasurableQuantity.pm25,
+  MeasurableQuantity.pm4,
+  MeasurableQuantity.pm10,
+  MeasurableQuantity.humidity,
+  MeasurableQuantity.temperature,
+  MeasurableQuantity.voc,
+  MeasurableQuantity.nox,
+];
+
+const _sen66Measures = <MeasurableQuantity>[
+  MeasurableQuantity.pm01,
+  ..._sen5xMeasures,
+];
+
+const _sen63cMeasures = <MeasurableQuantity>[
+  MeasurableQuantity.pm1,
+  MeasurableQuantity.pm25,
+  MeasurableQuantity.pm4,
+  MeasurableQuantity.pm10,
+  MeasurableQuantity.humidity,
+  MeasurableQuantity.temperature,
+];
+
+const _particulateMeasures = <MeasurableQuantity>[
+  MeasurableQuantity.pm1,
+  MeasurableQuantity.pm25,
+  MeasurableQuantity.pm4,
+  MeasurableQuantity.pm10,
+];
+
+const _pmsMeasures = <MeasurableQuantity>[
+  MeasurableQuantity.pm1,
+  MeasurableQuantity.pm25,
+  MeasurableQuantity.pm10,
+];
+
+const _lsm6dsMeasures = <MeasurableQuantity>[
+  MeasurableQuantity.accelerationX,
+  MeasurableQuantity.accelerationY,
+  MeasurableQuantity.accelerationZ,
+  MeasurableQuantity.gyroX,
+  MeasurableQuantity.gyroY,
+  MeasurableQuantity.gyroZ,
+];
+
+const _tsl2591Measures = <MeasurableQuantity>[
+  MeasurableQuantity.visible,
+  MeasurableQuantity.infrared,
+  MeasurableQuantity.fullSpectrum,
+  MeasurableQuantity.rawLuminosity,
+  MeasurableQuantity.lux,
+];
+
 enum LDSensor {
   sen5x(
     1,
-    [
-      MeasurableQuantity.pm1,
-      MeasurableQuantity.pm25,
-      MeasurableQuantity.pm4,
-      MeasurableQuantity.pm10,
-      MeasurableQuantity.humidity,
-      MeasurableQuantity.temperature,
-      MeasurableQuantity.voc,
-      MeasurableQuantity.nox,
-    ],
+    _sen5xMeasures,
     'Sensirion Sen5x',
     'Sen5x',
   ),
@@ -95,7 +141,7 @@ enum LDSensor {
     'AGS02MA',
   ),
   sht4x(
-    9,
+    10,
     [
       MeasurableQuantity.temperature,
       MeasurableQuantity.humidity,
@@ -104,13 +150,146 @@ enum LDSensor {
     'SHT4x',
   ),
   sgp40(
-    10,
+    11,
+    [
+      MeasurableQuantity.sgp40RawGasIndex,
+      MeasurableQuantity.sgp40AdjustedGasIndex,
+    ],
+    'Sensirion SGP40',
+    'SGP40',
+  ),
+  dht22(
+    12,
     [
       MeasurableQuantity.temperature,
       MeasurableQuantity.humidity,
     ],
-    'Sensirion SHT4x',
-    'SHT4x',
+    'ASAIR DHT22',
+    'DHT22',
+  ),
+  sds011(
+    13,
+    [
+      MeasurableQuantity.pm25,
+      MeasurableQuantity.pm10,
+    ],
+    'Nova Fitness SDS011',
+    'SDS011',
+  ),
+  sht35(
+    14,
+    [
+      MeasurableQuantity.temperature,
+      MeasurableQuantity.humidity,
+    ],
+    'Sensirion SHT35',
+    'SHT35',
+  ),
+  sps30(
+    15,
+    _particulateMeasures,
+    'Sensirion SPS30',
+    'SPS30',
+  ),
+  pms5003(
+    16,
+    _pmsMeasures,
+    'Plantower PMS5003',
+    'PMS5003',
+  ),
+  pms7003(
+    17,
+    _pmsMeasures,
+    'Plantower PMS7003',
+    'PMS7003',
+  ),
+  virtualSensor(
+    18,
+    [],
+    'Luftdaten.at Virtual Sensor',
+    'VIRTUAL',
+  ),
+  ltr390(
+    19,
+    [
+      MeasurableQuantity.uvs,
+      MeasurableQuantity.light,
+      MeasurableQuantity.uvi,
+    ],
+    'ams OSRAM LTR390',
+    'LTR390',
+  ),
+  bmp388(
+    20,
+    [
+      MeasurableQuantity.temperature,
+      MeasurableQuantity.pressure,
+    ],
+    'Bosch Sensortec BMP388',
+    'BMP388',
+  ),
+  bmp390(
+    21,
+    [
+      MeasurableQuantity.temperature,
+      MeasurableQuantity.pressure,
+    ],
+    'Bosch Sensortec BMP390',
+    'BMP390',
+  ),
+  lsm6ds(
+    22,
+    _lsm6dsMeasures,
+    'STMicroelectronics LSM6DS',
+    'LSM6DS',
+  ),
+  sen66(
+    23,
+    _sen66Measures,
+    'Sensirion SEN66',
+    'SEN66',
+  ),
+  mlx90640(
+    24,
+    [],
+    'Melexis MLX90640',
+    'MLX90640',
+  ),
+  tsl2591(
+    25,
+    _tsl2591Measures,
+    'ams OSRAM TSL2591',
+    'TSL2591',
+  ),
+  sen63c(
+    26,
+    _sen63cMeasures,
+    'Sensirion SEN63C',
+    'SEN63C',
+  ),
+  sen62(
+    27,
+    _particulateMeasures,
+    'Sensirion SEN62',
+    'SEN62',
+  ),
+  bmp581(
+    28,
+    [
+      MeasurableQuantity.temperature,
+      MeasurableQuantity.pressure,
+    ],
+    'Bosch Sensortec BMP581',
+    'BMP581',
+  ),
+  shtc3(
+    29,
+    [
+      MeasurableQuantity.temperature,
+      MeasurableQuantity.humidity,
+    ],
+    'Sensirion SHTC3',
+    'SHTC3',
   ),
   unknown(
     999,
@@ -151,14 +330,31 @@ enum MeasurableQuantity {
   voc(8, 200, 400, 'VOCs', 'VOC Index', 'Index'),
   nox(9, 200, 400, 'NOx', 'NOx Index', 'Index'),
   pressure(10, 10000, 10000, 'Luftdruck', 'Pressure', 'hPa'),
-  co2(11, 1000, 2000, 'CO2', 'CO2', 'ppb'),
+  co2(11, 1000, 2000, 'CO2', 'CO2', 'ppm'),
   o3(12, 100, 200, 'O3', 'O3', 'ppb'),
   aqi(13, 30, 200, 'AQI', 'AQI', 'Index'),
-  gasResistance(14, 100, 200, 'Gaswiderstand', 'Gas Resistance', 'kOhm'), // TODO is this true unit?
+  gasResistance(14, 100, 200, 'Gaswiderstand', 'Gas Resistance', 'Ω'),
   totalVoc(15, 200, 400, 'VOCs (absolut)', 'VOCs', 'ppb'),
   no2(16, 100, 200, 'NO2', 'NO2', 'ppb'),
   sgp40RawGasIndex(17, 100, 200, 'SGP40 Gas-Index (Rohwert)', 'Raw Gas', 'Log.'),
-  sgp40AdjustedGasIndex(18, 100, 200, 'SGP40 Gas-Index (adjustiert)', 'Adjusted Gas', 'Log.');
+  sgp40AdjustedGasIndex(18, 100, 200, 'SGP40 Gas-Index (adjustiert)', 'Adjusted Gas', 'Log.'),
+  adjustedTempCube(19, 30, 40, 'Temperatur Air Cube (adjustiert)', 'Adj. Temp Cube', '°C'),
+  uvs(20, 100, 200, 'UVS', 'UVS', ''),
+  light(21, 100, 200, 'Licht', 'Light', ''),
+  altitude(22, 10000, 10000, 'Höhe', 'Altitude', 'm'),
+  uvi(23, 30, 200, 'UV-Index', 'UV Index', 'UV Index'),
+  lux(24, 100, 200, 'Beleuchtungsstärke', 'Lux', 'lx'),
+  accelerationX(25, 100, 200, 'Beschleunigung X', 'Accel X', 'm/s²'),
+  accelerationY(26, 100, 200, 'Beschleunigung Y', 'Accel Y', 'm/s²'),
+  accelerationZ(27, 100, 200, 'Beschleunigung Z', 'Accel Z', 'm/s²'),
+  gyroX(28, 100, 200, 'Gyroskop X', 'Gyro X', 'rad/s'),
+  gyroY(29, 100, 200, 'Gyroskop Y', 'Gyro Y', 'rad/s'),
+  gyroZ(30, 100, 200, 'Gyroskop Z', 'Gyro Z', 'rad/s'),
+  thermalArray(31, 100, 200, 'Thermalbild', 'Thermal Array', ''),
+  visible(32, 100, 200, 'Sichtbares Licht', 'Visible', ''),
+  infrared(33, 100, 200, 'Infrarot', 'Infrared', ''),
+  fullSpectrum(34, 100, 200, 'Vollspektrum', 'Full Spectrum', ''),
+  rawLuminosity(35, 100, 200, 'Roh-Luminanz', 'Raw Luminosity', '');
 
   const MeasurableQuantity(this.id, this.elevatedLimit, this.highLimit, this._name, this.csvName, this.csvUnit);
 
