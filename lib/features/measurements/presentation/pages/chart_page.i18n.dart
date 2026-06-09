@@ -64,9 +64,59 @@ extension Localization on String {
         "en": "Charge status (%)",
       } +
       {
+        "de": "Mittelwert",
+        "en": "Mean",
+      } +
+      {
+        "de": "Letzte Messwerte",
+        "en": "Latest measurements",
+      } +
+      {
         "de": "Batteriespannung (V)",
         "en": "Battery voltage (V)",
+      } +
+      {
+        "de": "%s in %s",
+        "en": "%s in %s",
+      } +
+      {
+        "de": "Batteriespannung",
+        "en": "Battery voltage",
+      } +
+      {
+        "de": "Luftdruck",
+        "en": "Air pressure",
+      } +
+      {
+        "de": "Air Quality Index",
+        "en": "Air Quality Index",
+      } +
+      {
+        "de": "Gaswiderstand",
+        "en": "Gas resistance",
+      } +
+      {
+        "de": "μg/m³",
+        "en": "μg/m³",
+      } +
+      {
+        "de": "hPa",
+        "en": "hPa",
+      } +
+      {
+        "de": "ppm",
+        "en": "ppm",
+      } +
+      {
+        "de": "ppb",
+        "en": "ppb",
+      } +
+      {
+        "de": "Index",
+        "en": "Index",
       };
 
   String get i18n => localize(this, _t);
+
+  String fill(List<Object> params) => localizeFill(this, params, _t);
 }
