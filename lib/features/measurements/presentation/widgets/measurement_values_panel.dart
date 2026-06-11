@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:luftdaten.at/core/core.dart';
+import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
+import 'package:luftdaten.at/features/measurements/logic/measurement_values_preferences.dart';
 import 'package:luftdaten.at/features/measurements/presentation/widgets/measurement_metric_entry.dart';
+import 'package:luftdaten.at/features/measurements/presentation/widgets/measurement_values_config_dialog.dart';
 import 'package:luftdaten.at/features/measurements/presentation/widgets/measurement_values_panel.i18n.dart';
 
 enum MeasurementValuesLayout {
@@ -24,61 +28,103 @@ class MeasurementValuesPanel extends StatelessWidget {
   const MeasurementValuesPanel({
     super.key,
     required this.point,
+    required this.tripSensors,
     required this.layout,
     this.showTimestamp = true,
+    this.showConfigButton = true,
     this.compact = false,
     this.columns,
   });
 
   final MeasuredDataPoint point;
+  final Set<LDSensor> tripSensors;
   final MeasurementValuesLayout layout;
   final bool showTimestamp;
+  final bool showConfigButton;
   final bool compact;
   final int? columns;
 
   @override
   Widget build(BuildContext context) {
-    final entries = MeasurementMetricParser.fromDataPoint(point);
-    if (entries.isEmpty) return const SizedBox.shrink();
+    return ChangeNotifierBuilder(
+      notifier: getIt<MeasurementValuesPreferences>(),
+      builder: (context, prefs) {
+        final allEntries = MeasurementMetricParser.fromDataPoint(point);
+        if (allEntries.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (showTimestamp)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(
-              '${'Gemessen:'.i18n} ${DateFormat('dd.MM.yyyy, HH:mm.').format(point.timestamp)}',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        switch (layout) {
-          MeasurementValuesLayout.md3StatCards => _MetricGrid(
-              entries: entries,
-              tileBuilder: (entry) => _Md3StatCard(entry, compact: compact),
-              columns: columns,
-              compact: compact,
-            ),
-          MeasurementValuesLayout.appNativeTiles => _MetricGrid(
-              entries: entries,
-              tileBuilder: (entry) => _AppNativeTile(entry, compact: compact),
-              columns: columns,
-              compact: compact,
-            ),
-          MeasurementValuesLayout.colorFilledKpi => _MetricGrid(
-              entries: entries,
-              tileBuilder: (entry) => _ColorFilledKpi(entry, compact: compact),
-              columns: columns,
-              compact: compact,
-            ),
-          MeasurementValuesLayout.groupedSections => _GroupedSections(
-              entries: entries,
-              compact: compact,
-              columns: columns,
-            ),
-        },
-      ],
+        final visibleEntries = allEntries
+            .where(
+              (entry) => prefs.isVisible(
+                entry.seriesKey,
+                tripSensors: tripSensors,
+                sensor: entry.sensor,
+                quantity: entry.quantity,
+              ),
+            )
+            .toList();
+        if (visibleEntries.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (showTimestamp)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 48),
+                    Expanded(
+                      child: Text(
+                        '${'Gemessen:'.i18n} ${DateFormat('dd.MM.yyyy, HH:mm.').format(point.timestamp)}',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 48,
+                      child: showConfigButton && allEntries.length >= 2
+                          ? IconButton(
+                              icon: const Icon(Icons.tune),
+                              tooltip: 'Messwerte konfigurieren'.i18n,
+                              onPressed: () => showMeasurementValuesConfigDialog(
+                                context,
+                                entries: allEntries,
+                                tripSensors: tripSensors,
+                              ),
+                            )
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+            switch (layout) {
+              MeasurementValuesLayout.md3StatCards => _MetricGrid(
+                  entries: visibleEntries,
+                  tileBuilder: (entry) => _Md3StatCard(entry, compact: compact),
+                  columns: columns,
+                  compact: compact,
+                ),
+              MeasurementValuesLayout.appNativeTiles => _MetricGrid(
+                  entries: visibleEntries,
+                  tileBuilder: (entry) => _AppNativeTile(entry, compact: compact),
+                  columns: columns,
+                  compact: compact,
+                ),
+              MeasurementValuesLayout.colorFilledKpi => _MetricGrid(
+                  entries: visibleEntries,
+                  tileBuilder: (entry) => _ColorFilledKpi(entry, compact: compact),
+                  columns: columns,
+                  compact: compact,
+                ),
+              MeasurementValuesLayout.groupedSections => _GroupedSections(
+                  entries: visibleEntries,
+                  compact: compact,
+                  columns: columns,
+                ),
+            },
+          ],
+        );
+      },
     );
   }
 }

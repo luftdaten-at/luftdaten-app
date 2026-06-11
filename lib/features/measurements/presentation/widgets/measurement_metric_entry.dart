@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:luftdaten.at/core/domain/dimensions.dart' as dim;
 import 'package:luftdaten.at/core/utils/gradient_color.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
+import 'package:luftdaten.at/features/measurements/logic/measurement_display_defaults.dart';
 
 enum MeasurementValueCategory {
   particulate,
@@ -29,6 +30,10 @@ class MeasurementMetricEntry {
   String get label => quantity.name;
 
   String get unit => quantity.csvUnit;
+
+  String get seriesKey => MeasurementDisplayDefaults.seriesKey(sensor, quantity);
+
+  String get configLabel => '${quantity.name} (${sensor.shortName})';
 
   MeasurementValueCategory get category => switch (quantity) {
         MeasurableQuantity.pm01 ||

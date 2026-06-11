@@ -41,6 +41,10 @@ extension Localization on String {
       {
         'de': 'Alle Varianten mit denselben Mock-Messwerten zum Vergleich.',
         'en': 'All variants using the same mock measurements for comparison.',
+      } +
+      {
+        'de': 'Messwerte konfigurieren',
+        'en': 'Configure measurement values',
       };
 
   String get i18n => localize(this, _t);

@@ -3,7 +3,6 @@ import 'package:convert/convert.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
-import 'package:luftdaten.at/core/widgets/dashboard_list_tile.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device_status.dart';
@@ -41,7 +40,11 @@ class DeviceInfoSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          DashboardSectionHeading(title: 'Geräteinfo'.i18n, bottomSpacing: 8),
+          Text(
+            'Geräteinfo'.i18n,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
           if (isLoading)
             _loadingRow()
           else if (device.state == BleDeviceState.connected)

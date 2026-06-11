@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/data/sensor_details.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/sensor_details_dialog.dart';
 
 import '../pages/device_detail_page.i18n.dart';
 
@@ -77,26 +78,32 @@ class DeviceSensorsSection extends StatelessWidget {
         color: scheme.primaryContainer.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
+          padding: const EdgeInsets.fromLTRB(12, 8, 4, 12),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                details.model.longName.i18n,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      details.model.longName.i18n,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text('Misst: %s'.i18n.fill([
+                      details.measuresQuantities.map((e) => e.name).join(', '),
+                    ])),
+                    if (details.serialNumber != null && details.serialNumber!.isNotEmpty)
+                      Text('Seriennummer: %s'.i18n.fill([details.serialNumber!])),
+                  ],
+                ),
               ),
-              const SizedBox(height: 4),
-              Text('Misst: %s'.i18n.fill([
-                details.measuresQuantities.map((e) => e.name).join(', '),
-              ])),
-              if (details.serialNumber != null && details.serialNumber!.isNotEmpty)
-                Text('Seriennummer: %s'.i18n.fill([details.serialNumber!])),
-              if (details.firmwareVersion != null)
-                Text('Sensor-Firmware: %s'.i18n.fill([details.firmwareVersion!])),
-              if (details.hardwareVersion != null)
-                Text('Hardware-Version: %s'.i18n.fill([details.hardwareVersion!])),
-              if (details.protocolVersion != null)
-                Text('Protokoll-Version: %s'.i18n.fill([details.protocolVersion!])),
+              IconButton(
+                icon: const Icon(Icons.info_outline),
+                tooltip: 'Sensorinformationen'.i18n,
+                onPressed: () => showSensorDetailsDialog(context, details),
+              ),
             ],
           ),
         ),

@@ -92,6 +92,10 @@ extension Localization on String {
         "en": "Select PM size to display",
       } +
       {
+        "de": "Angezeigte Messgröße auswählen",
+        "en": "Select measurement to display",
+      } +
+      {
         "de": "Dimension und Farblegende",
         "en": "Dimension and colour legend",
       } +

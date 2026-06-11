@@ -39,6 +39,23 @@ void main() {
       expect(status[4], BleOperationalStatusFlags.configIncomplete);
     });
 
+    test('aRound sensor_info includes SHTC3 block', () {
+      final aRound = BleDevice(
+        model: LDDeviceModel.aRound,
+        bleName: 'Luftdaten.at-000000000003',
+        bleMacAddress: '000000000003',
+        deviceOriginalDisplayName: 'Mock aRound',
+        isMock: true,
+        bleId: 'mock:Luftdaten.at-000000000003',
+      );
+      MockBleGatt.initForDevice(aRound);
+
+      final sensorInfo = MockBleGatt.readCharacteristic(aRound, BleGattUuids.sensorInfo);
+      expect(sensorInfo, contains(LDSensor.shtc3.id));
+
+      MockBleGatt.removeDevice(aRound);
+    });
+
     test('command 0x01 refreshes sensor_values characteristic', () {
       final before = MockBleGattCodec.decodeSensorValuesBinary(
         MockBleGatt.readCharacteristic(device, BleGattUuids.sensorValues),

@@ -79,6 +79,7 @@ class _ChartPageState extends State<ChartPage> {
             }
             List<List<_SensorDataPointWithTimestamp>> reshapedData =
                 reshapedDataMap.values.toList();
+            final tripSensors = reshapedDataMap.keys.toSet();
             return ChangeNotifierBuilder(
               notifier: getIt<ChartSeriesPreferences>(),
               builder: (context, chartPrefs) {
@@ -89,13 +90,14 @@ class _ChartPageState extends State<ChartPage> {
                         padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                         child: MeasurementValuesPanel(
                           point: points.last,
+                          tripSensors: tripSensors,
                           layout: MeasurementValuesLayout.appNativeTiles,
                           compact: true,
                           columns: 4,
                           showTimestamp: true,
                         ),
                       ),
-                      _buildParticulateChart(data, chartPrefs) ?? const SizedBox(),
+                      _buildParticulateChart(data, chartPrefs, tripSensors) ?? const SizedBox(),
                       _buildChart(
                             chartId: ChartSeriesChartId.temperature,
                             title: 'Temperatur',
@@ -103,6 +105,7 @@ class _ChartPageState extends State<ChartPage> {
                             data: reshapedData,
                             dimension: MeasurableQuantity.temperature,
                             preferences: chartPrefs,
+                            tripSensors: tripSensors,
                           ) ??
                           const SizedBox(),
                       _buildChart(
@@ -112,6 +115,7 @@ class _ChartPageState extends State<ChartPage> {
                             data: reshapedData,
                             dimension: MeasurableQuantity.humidity,
                             preferences: chartPrefs,
+                            tripSensors: tripSensors,
                           ) ??
                           const SizedBox(),
                       _buildChart(
@@ -121,6 +125,7 @@ class _ChartPageState extends State<ChartPage> {
                             data: reshapedData,
                             dimension: MeasurableQuantity.voc,
                             preferences: chartPrefs,
+                            tripSensors: tripSensors,
                           ) ??
                           const SizedBox(),
                       _buildChart(
@@ -130,6 +135,7 @@ class _ChartPageState extends State<ChartPage> {
                             data: reshapedData,
                             dimension: MeasurableQuantity.totalVoc,
                             preferences: chartPrefs,
+                            tripSensors: tripSensors,
                           ) ??
                           const SizedBox(),
                       _buildChart(
@@ -139,6 +145,7 @@ class _ChartPageState extends State<ChartPage> {
                             data: reshapedData,
                             dimension: MeasurableQuantity.nox,
                             preferences: chartPrefs,
+                            tripSensors: tripSensors,
                           ) ??
                           const SizedBox(),
                       _buildChart(
@@ -148,6 +155,7 @@ class _ChartPageState extends State<ChartPage> {
                             data: reshapedData,
                             dimension: MeasurableQuantity.pressure,
                             preferences: chartPrefs,
+                            tripSensors: tripSensors,
                           ) ??
                           const SizedBox(),
                       _buildChart(
@@ -157,6 +165,7 @@ class _ChartPageState extends State<ChartPage> {
                             data: reshapedData,
                             dimension: MeasurableQuantity.co2,
                             preferences: chartPrefs,
+                            tripSensors: tripSensors,
                           ) ??
                           const SizedBox(),
                       _buildChart(
@@ -166,6 +175,7 @@ class _ChartPageState extends State<ChartPage> {
                             data: reshapedData,
                             dimension: MeasurableQuantity.o3,
                             preferences: chartPrefs,
+                            tripSensors: tripSensors,
                           ) ??
                           const SizedBox(),
                       _buildChart(
@@ -175,6 +185,7 @@ class _ChartPageState extends State<ChartPage> {
                             data: reshapedData,
                             dimension: MeasurableQuantity.aqi,
                             preferences: chartPrefs,
+                            tripSensors: tripSensors,
                           ) ??
                           const SizedBox(),
                       _buildChart(
@@ -184,6 +195,7 @@ class _ChartPageState extends State<ChartPage> {
                             data: reshapedData,
                             dimension: MeasurableQuantity.gasResistance,
                             preferences: chartPrefs,
+                            tripSensors: tripSensors,
                           ) ??
                           const SizedBox(),
                       ChangeNotifierBuilder(
@@ -254,6 +266,7 @@ class _ChartPageState extends State<ChartPage> {
   Widget? _buildParticulateChart(
     List<FlattenedDataPoint> data,
     ChartSeriesPreferences preferences,
+    Set<LDSensor> tripSensors,
   ) {
     if (data.isEmpty) return null;
 
@@ -316,6 +329,7 @@ class _ChartPageState extends State<ChartPage> {
       title: _chartHeadline('Feinstaubbelastung', 'μg/m³'),
       chartId: ChartSeriesChartId.particulate,
       seriesOptions: options,
+      tripSensors: tripSensors,
       chart: SfCartesianChart(
         primaryXAxis: DateTimeAxis(
           dateFormat: DateFormat('MMM d\nHH:mm'),
@@ -345,6 +359,7 @@ class _ChartPageState extends State<ChartPage> {
     required List<List<_SensorDataPointWithTimestamp>> data,
     required MeasurableQuantity dimension,
     required ChartSeriesPreferences preferences,
+    required Set<LDSensor> tripSensors,
   }) {
     List<List<_SensorDataPointWithTimestamp>> qualifyingData =
         data.where((e) => e.firstOrNull?.data.values.containsKey(dimension) ?? false).toList();
@@ -363,7 +378,7 @@ class _ChartPageState extends State<ChartPage> {
     List<LineSeries> series = [];
     for (List<_SensorDataPointWithTimestamp> sensorData in qualifyingData) {
       final sensorKey = sensorData.first.data.sensor.name;
-      if (!preferences.isVisible(chartId, sensorKey)) continue;
+      if (!preferences.isVisible(chartId, sensorKey, tripSensors: tripSensors)) continue;
       series.add(LineSeries<_SensorDataPointWithTimestamp, DateTime>(
         dataSource: sensorData,
         xValueMapper: (_SensorDataPointWithTimestamp item, _) => item.timestamp,
@@ -373,7 +388,7 @@ class _ChartPageState extends State<ChartPage> {
       ));
     }
     if (qualifyingData.length > 1 &&
-        preferences.isVisible(chartId, ChartSeriesKeys.mean)) {
+        preferences.isVisible(chartId, ChartSeriesKeys.mean, tripSensors: tripSensors)) {
       List<_SensorDataPointWithTimestamp> meanData = [];
       for (int i = 0; i < qualifyingData.first.length; i++) {
         double sum = 0;
@@ -400,6 +415,7 @@ class _ChartPageState extends State<ChartPage> {
       title: _chartHeadline(title, yAxisTitle),
       chartId: chartId,
       seriesOptions: options,
+      tripSensors: tripSensors,
       chart: SfCartesianChart(
         primaryXAxis: DateTimeAxis(
           dateFormat: DateFormat('MMM d\nHH:mm'),
