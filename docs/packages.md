@@ -28,7 +28,6 @@ Tables below mirror **`dart pub deps --json`** (direct production and dev roots)
 | `file_picker` | `10.3.10` | pub.dev |
 | `flutter` | `0.0.0` | Flutter SDK |
 | `flutter_background_service` | `5.1.0` | pub.dev |
-| `flutter_compass` | `0.8.1` | pub.dev |
 | `flutter_displaymode` | `0.6.0` | pub.dev |
 | `flutter_file_dialog` | `3.0.2` | pub.dev |
 | `flutter_local_notifications` | `19.0.0` | pub.dev |
