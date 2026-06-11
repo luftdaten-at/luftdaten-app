@@ -313,9 +313,11 @@ class _DashboardPage extends State<DashboardPage> {
               },
             );
           } else {
-            return _buildTappableTile(
-                title: 'Workshop-Details'.i18n,
-                onTap: () {
+            return _buildNavigationButton(
+              title: 'Workshop-Details'.i18n,
+              icon: Icons.groups_outlined,
+              emphasized: true,
+              onTap: () {
                   showLDDialog(
                     context,
                     title: 'Workshop läuft'.i18n,
@@ -358,7 +360,8 @@ class _DashboardPage extends State<DashboardPage> {
                       LDDialogAction.dismiss(filled: true),
                     ],
                   );
-                });
+                },
+            );
           }
         }
       ),

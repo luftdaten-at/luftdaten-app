@@ -19,6 +19,7 @@ class MeasurementValuesComparison extends StatelessWidget {
     if (!kDebugMode) return const SizedBox.shrink();
 
     final sample = point ?? MeasurementValuesMock.samplePoint();
+    final tripSensors = sample.sensorData.map((s) => s.sensor).toSet();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
@@ -50,8 +51,10 @@ class MeasurementValuesComparison extends StatelessWidget {
                 const SizedBox(height: 8),
                 MeasurementValuesPanel(
                   point: sample,
+                  tripSensors: tripSensors,
                   layout: layout,
                   showTimestamp: layout == MeasurementValuesLayout.values.first,
+                  showConfigButton: false,
                 ),
                 if (layout != MeasurementValuesLayout.values.last) ...[
                   const SizedBox(height: 16),

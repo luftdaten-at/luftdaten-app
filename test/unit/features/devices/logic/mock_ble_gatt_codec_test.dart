@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
@@ -41,6 +43,43 @@ void main() {
       );
       final bytes = MockBleGattCodec.encodeDeviceInfoJson(device);
       expect(bytes.first, 0x7B);
+    });
+
+    test('encodeDeviceInfoJson lists Sen5x and SHTC3 for aRound', () {
+      final device = BleDevice(
+        model: LDDeviceModel.aRound,
+        bleName: 'Luftdaten.at-000000000001',
+        bleMacAddress: '000000000001',
+        deviceOriginalDisplayName: 'Mock',
+        isMock: true,
+        bleId: 'mock:Luftdaten.at-000000000001',
+      );
+      final json = jsonDecode(utf8.decode(MockBleGattCodec.encodeDeviceInfoJson(device)))
+          as Map<String, dynamic>;
+      final sensorList = json['sensor_list'] as List<dynamic>;
+      expect(sensorList, hasLength(2));
+      expect(sensorList[0]['model'], LDSensor.sen5x.id);
+      expect(sensorList[1]['model'], LDSensor.shtc3.id);
+    });
+
+    test('encodeSensorValuesForDevice round-trips two blocks for aRound', () {
+      final device = BleDevice(
+        model: LDDeviceModel.aRound,
+        bleName: 'Luftdaten.at-000000000001',
+        bleMacAddress: '000000000001',
+        deviceOriginalDisplayName: 'Mock',
+        isMock: true,
+        bleId: 'mock:Luftdaten.at-000000000001',
+      );
+      final encoded = MockBleGattCodec.encodeSensorValuesForDevice(device, timeSeconds: 0);
+      final decoded = MockBleGattCodec.decodeAllSensorBlocks(encoded);
+
+      expect(decoded.keys, containsAll([LDSensor.sen5x, LDSensor.shtc3]));
+      expect(decoded[LDSensor.sen5x]![MeasurableQuantity.pm25], closeTo(12, 0.1));
+      expect(decoded[LDSensor.sen5x]![MeasurableQuantity.temperature], closeTo(21, 0.1));
+      expect(decoded[LDSensor.sen5x]![MeasurableQuantity.humidity], closeTo(50, 0.1));
+      expect(decoded[LDSensor.shtc3]![MeasurableQuantity.temperature], closeTo(20, 0.1));
+      expect(decoded[LDSensor.shtc3]![MeasurableQuantity.humidity], closeTo(58, 0.1));
     });
 
     test('mergeTlvRecords overwrites same flag', () {

@@ -49,4 +49,28 @@ void main() {
     );
     expect(device.availableSensors!.first.serialNumber, 'MOCK-SEN5X');
   });
+
+  test('refreshDeviceInfo repopulates two sensors for mock aRound', () async {
+    if (!getIt.isRegistered<BatteryInfoAggregator>()) {
+      getIt.registerSingleton<BatteryInfoAggregator>(BatteryInfoAggregator());
+    }
+
+    final device = MockBleDevices.buildMockDevice(
+      LDDeviceModel.aRound,
+      existingBleNames: const [],
+    );
+    device.state = BleDeviceState.connected;
+    device.availableSensors = [];
+
+    MockBleGatt.initForDevice(device);
+    await BleController().refreshDeviceInfo(device);
+
+    expect(device.availableSensors, hasLength(2));
+    expect(device.availableSensors!.map((s) => s.model), contains(LDSensor.sen5x));
+    expect(device.availableSensors!.map((s) => s.model), contains(LDSensor.shtc3));
+    expect(
+      device.availableSensors!.firstWhere((s) => s.model == LDSensor.sen5x).serialNumber,
+      'MOCK-SEN5X',
+    );
+  });
 }

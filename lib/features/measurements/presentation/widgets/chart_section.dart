@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/measurements/logic/chart_series_preferences.dart';
 import 'package:luftdaten.at/features/measurements/presentation/widgets/chart_series_config_dialog.dart';
 import 'package:luftdaten.at/features/measurements/presentation/widgets/chart_series_config_dialog.i18n.dart';
@@ -48,12 +49,14 @@ class ChartSection extends StatelessWidget {
     required this.chartId,
     required this.seriesOptions,
     required this.chart,
+    this.tripSensors,
   });
 
   final String title;
   final ChartSeriesChartId chartId;
   final List<ChartSeriesOption> seriesOptions;
   final Widget chart;
+  final Set<LDSensor>? tripSensors;
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +74,7 @@ class ChartSection extends StatelessWidget {
                     chartTitle: title,
                     chartId: chartId,
                     options: seriesOptions,
+                    tripSensors: tripSensors,
                   ),
                 )
               : null,

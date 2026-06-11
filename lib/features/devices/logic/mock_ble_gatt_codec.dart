@@ -15,27 +15,39 @@ abstract final class MockBleGattCodec {
   static const int cmdSetAirStationConfiguration = 0x06;
 
   static List<int> encodeDeviceInfoJson(BleDevice device) {
+    final sensorList = <Map<String, dynamic>>[
+      {
+        'model': LDSensor.sen5x.id,
+        'dimensions': LDSensor.sen5x.measures.map((q) => q.id).toList(),
+        'serial': 'MOCK-SEN5X',
+      },
+    ];
+    if (device.model == LDDeviceModel.aRound) {
+      sensorList.add({
+        'model': LDSensor.shtc3.id,
+        'dimensions': LDSensor.shtc3.measures.map((q) => q.id).toList(),
+        'serial': 'MOCK-SHTC3',
+      });
+    }
     final payload = <String, dynamic>{
       'device': {
         'firmware': '1.0.0',
         'device': device.chipIdForApi,
         'model': device.model.name,
       },
-      'sensor_list': [
-        {
-          'model': LDSensor.sen5x.id,
-          'dimensions': LDSensor.sen5x.measures.map((q) => q.id).toList(),
-          'serial': 'MOCK-SEN5X',
-        },
-      ],
+      'sensor_list': sensorList,
     };
     return utf8.encode(jsonEncode(payload));
   }
 
-  static List<int> encodeSensorInfo() {
+  static List<int> encodeSensorInfo(BleDevice device) {
     final serial = utf8.encode('MOCK-SEN5X');
     final details = <int>[1, 0, 1, 0, 1, 0, ...serial];
-    return [LDSensor.sen5x.id, 0xFF, ...details, 0xFF];
+    final out = <int>[LDSensor.sen5x.id, 0xFF, ...details, 0xFF];
+    if (device.model == LDDeviceModel.aRound) {
+      out.addAll([LDSensor.shtc3.id, 0xFF, 0xFF]);
+    }
+    return out;
   }
 
   static List<int> encodeDeviceStatus({
@@ -48,6 +60,43 @@ abstract final class MockBleGattCodec {
     return [1, pct, voltageTimes10, wifiDetail, operationalFlags & 0xFF];
   }
 
+  static Map<LDSensor, Map<MeasurableQuantity, double>> telemetryBySensor(
+    BleDevice device, {
+    double? timeSeconds,
+  }) {
+    final t = timeSeconds ?? DateTime.now().millisecondsSinceEpoch / 1000.0;
+    final pm25 = 12 + 8 * sin(t / 30);
+    if (device.model == LDDeviceModel.aRound) {
+      return {
+        LDSensor.sen5x: {
+          MeasurableQuantity.pm25: pm25,
+          MeasurableQuantity.pm10: pm25 * 1.2,
+          MeasurableQuantity.pm1: pm25 * 0.8,
+          MeasurableQuantity.pm4: pm25 * 1.1,
+          MeasurableQuantity.temperature: 21 + 2 * sin(t / 120),
+          MeasurableQuantity.humidity: 45 + 5 * cos(t / 90),
+          MeasurableQuantity.voc: 120 + 30 * sin(t / 45),
+        },
+        LDSensor.shtc3: {
+          MeasurableQuantity.temperature: 20 + 2 * sin(t / 100),
+          MeasurableQuantity.humidity: 50 + 8 * cos(t / 80),
+        },
+      };
+    }
+    return {
+      LDSensor.sen5x: {
+        MeasurableQuantity.pm25: pm25,
+        MeasurableQuantity.pm10: pm25 * 1.2,
+        MeasurableQuantity.pm1: pm25 * 0.8,
+        MeasurableQuantity.pm4: pm25 * 1.1,
+        MeasurableQuantity.temperature: 21 + 2 * sin(t / 120),
+        MeasurableQuantity.humidity: 45 + 5 * cos(t / 90),
+        MeasurableQuantity.voc: 120 + 30 * sin(t / 45),
+      },
+    };
+  }
+
+  /// Legacy single-block helper for tests; encodes as Sen5x only.
   static Map<MeasurableQuantity, double> telemetryValues({double? timeSeconds}) {
     final t = timeSeconds ?? DateTime.now().millisecondsSinceEpoch / 1000.0;
     final pm25 = 12 + 8 * sin(t / 30);
@@ -62,9 +111,29 @@ abstract final class MockBleGattCodec {
     };
   }
 
-  static List<int> encodeSensorValuesBinary(Map<MeasurableQuantity, double> values) {
+  static List<int> encodeSensorValuesForDevice(
+    BleDevice device, {
+    double? timeSeconds,
+  }) {
+    return encodeSensorValuesBySensor(telemetryBySensor(device, timeSeconds: timeSeconds));
+  }
+
+  static List<int> encodeSensorValuesBySensor(
+    Map<LDSensor, Map<MeasurableQuantity, double>> bySensor,
+  ) {
+    final out = <int>[];
+    for (final entry in bySensor.entries) {
+      out.addAll(_encodeSingleSensorBlock(entry.key, entry.value));
+    }
+    return out;
+  }
+
+  static List<int> _encodeSingleSensorBlock(
+    LDSensor sensor,
+    Map<MeasurableQuantity, double> values,
+  ) {
     final entries = values.entries.toList();
-    final out = <int>[LDSensor.sen5x.id, entries.length];
+    final out = <int>[sensor.id, entries.length];
     for (final entry in entries) {
       final scaled = (entry.value * 10).round().clamp(0, 0xFFFF);
       out
@@ -75,18 +144,36 @@ abstract final class MockBleGattCodec {
     return out;
   }
 
-  /// Inverse of [encodeSensorValuesBinary] for tests and validation.
+  static List<int> encodeSensorValuesBinary(Map<MeasurableQuantity, double> values) {
+    return _encodeSingleSensorBlock(LDSensor.sen5x, values);
+  }
+
+  /// Decodes the first sensor block only (legacy).
   static Map<MeasurableQuantity, double> decodeSensorValuesBinary(List<int> raw) {
-    if (raw.length < 2) return {};
-    final count = raw[1];
-    final out = <MeasurableQuantity, double>{};
-    var offset = 2;
-    for (var i = 0; i < count; i++) {
-      if (offset + 3 > raw.length) break;
-      final quantity = MeasurableQuantity.fromId(raw[offset]);
-      final scaled = (raw[offset + 1] << 8) | raw[offset + 2];
-      out[quantity] = scaled / 10.0;
-      offset += 3;
+    final blocks = decodeAllSensorBlocks(raw);
+    if (blocks.isEmpty) return {};
+    return blocks.values.first;
+  }
+
+  /// Decodes all concatenated sensor blocks (firmware v2 layout).
+  static Map<LDSensor, Map<MeasurableQuantity, double>> decodeAllSensorBlocks(List<int> raw) {
+    final out = <LDSensor, Map<MeasurableQuantity, double>>{};
+    var offset = 0;
+    while (offset + 2 <= raw.length) {
+      final numEntries = raw[offset + 1];
+      final numBytes = 2 + numEntries * 3;
+      if (offset + numBytes > raw.length) break;
+      final block = raw.sublist(offset, offset + numBytes);
+      final sensor = LDSensor.fromId(block[0]);
+      final values = <MeasurableQuantity, double>{};
+      for (var i = 0; i < numEntries; i++) {
+        final base = 2 + i * 3;
+        if (base + 3 > block.length) break;
+        values[MeasurableQuantity.fromId(block[base])] =
+            ((block[base + 1] << 8) | block[base + 2]) / 10.0;
+      }
+      out[sensor] = values;
+      offset += numBytes;
     }
     return out;
   }

@@ -136,36 +136,47 @@ class _MapPageState extends State<MapPage>
   @override
   bool get wantKeepAlive => true;
 
-  @override
-  void initState() {
-    super.initState();
-    logger.d("MapPage: initState()");
-    _textController = TextEditingController();
-    _workshopController = getIt<WorkshopController>();
-    _workshopController.addListener(_syncMapDimensionWithWorkshop);
-    mapDisplayType = getIt<PreferencesHandler>().selectedPM;
-    _normalizeMapDimensionAgainstWorkshop();
+  bool _tripHasTemperature(Trip? trip) {
+    if (trip == null) return false;
+    return trip.data.any((point) => point.flatten.temperature != null);
   }
 
-  void _normalizeMapDimensionAgainstWorkshop() {
-    if (_workshopController.currentWorkshop == null &&
+  bool _canSelectTemperatureOnMap() {
+    return _workshopController.currentWorkshop != null ||
+        _tripHasTemperature(router.primaryTripToDisplay);
+  }
+
+  void _normalizeMapDimension() {
+    if (!_canSelectTemperatureOnMap() &&
         mapDisplayType == enums.Dimension.TEMPERATURE) {
       mapDisplayType = enums.Dimension.PM2_5;
       getIt<PreferencesHandler>().selectedPM = enums.Dimension.PM2_5;
     }
   }
 
-  /// Temperature is workshop-only on the Luftkarte; reset when leaving a campaign.
-  void _syncMapDimensionWithWorkshop() {
+  void _syncMapDimension() {
     if (!mounted) return;
     setState(() {
-      _normalizeMapDimensionAgainstWorkshop();
+      _normalizeMapDimension();
     });
   }
 
   @override
+  void initState() {
+    super.initState();
+    logger.d("MapPage: initState()");
+    _textController = TextEditingController();
+    _workshopController = getIt<WorkshopController>();
+    _workshopController.addListener(_syncMapDimension);
+    router.addListener(_syncMapDimension);
+    mapDisplayType = getIt<PreferencesHandler>().selectedPM;
+    _normalizeMapDimension();
+  }
+
+  @override
   void dispose() {
-    _workshopController.removeListener(_syncMapDimensionWithWorkshop);
+    _workshopController.removeListener(_syncMapDimension);
+    router.removeListener(_syncMapDimension);
     _textController.dispose();
     _mapMovedSubscription?.cancel();
     super.dispose();
@@ -641,68 +652,78 @@ class _MapPageState extends State<MapPage>
           ChangeNotifierBuilder(
             notifier: AppSettings.I,
             builder: (context, settings) {
-              final workshopActive = _workshopController.currentWorkshop != null;
-              if (!settings.showOverlay && !workshopActive) return const SizedBox();
-              return Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: PopupMenuButton<int>(
-                    itemBuilder: (context) => [
-                      const PopupMenuItem<int>(
-                        value: enums.Dimension.PM1_0,
-                        child: Text('PM1.0'),
-                      ),
-                      const PopupMenuItem<int>(
-                        value: enums.Dimension.PM2_5,
-                        child: Text('PM2.5'),
-                      ),
-                      const PopupMenuItem<int>(
-                        value: enums.Dimension.PM10_0,
-                        child: Text('PM10.0'),
-                      ),
-                      if (_workshopController.currentWorkshop != null)
-                        PopupMenuItem<int>(
-                          value: enums.Dimension.TEMPERATURE,
-                          child: Text('Temperatur'.i18n),
-                        ),
-                    ],
-                    onSelected: (value) async {
-                      // Wait for the popup menu closing animation to finish to avoid perception of lag
-                      await Future.delayed(const Duration(milliseconds: 330));
-                      setState(() {
-                        mapDisplayType = value;
-                        getIt<PreferencesHandler>().selectedPM = value;
-                      });
-                    },
-                    child: IconButton.filled(
-                      style: ButtonStyle(
-                        backgroundColor: WidgetStateProperty.all(Colors.white),
-                        elevation: WidgetStateProperty.all(2),
-                        shadowColor: WidgetStateProperty.all(Colors.black),
-                      ),
-                      tooltip: 'Angezeigte Feinstaubgröße auswählen'.i18n,
-                      color: Colors.black,
-                      onPressed: null,
-                      icon: SizedBox(
-                        height: 44,
-                        width: 44,
-                        child: Center(
-                          child: Text(
-                            enums.Dimension.get_name(mapDisplayType),
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.nunitoSans(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              height: 1,
+              return ChangeNotifierBuilder(
+                notifier: router,
+                builder: (context, _) {
+                  final workshopActive = _workshopController.currentWorkshop != null;
+                  final trip = router.primaryTripToDisplay;
+                  final hasLocalTrail = trip != null && trip.data.isNotEmpty;
+                  if (!settings.showOverlay && !workshopActive && !hasLocalTrail) {
+                    return const SizedBox();
+                  }
+                  final canSelectTemperature = _canSelectTemperatureOnMap();
+                  return Align(
+                    alignment: Alignment.topRight,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: PopupMenuButton<int>(
+                        itemBuilder: (context) => [
+                          const PopupMenuItem<int>(
+                            value: enums.Dimension.PM1_0,
+                            child: Text('PM1.0'),
+                          ),
+                          const PopupMenuItem<int>(
+                            value: enums.Dimension.PM2_5,
+                            child: Text('PM2.5'),
+                          ),
+                          const PopupMenuItem<int>(
+                            value: enums.Dimension.PM10_0,
+                            child: Text('PM10.0'),
+                          ),
+                          if (canSelectTemperature)
+                            PopupMenuItem<int>(
+                              value: enums.Dimension.TEMPERATURE,
+                              child: Text('Temperatur'.i18n),
+                            ),
+                        ],
+                        onSelected: (value) async {
+                          // Wait for the popup menu closing animation to finish to avoid perception of lag
+                          await Future.delayed(const Duration(milliseconds: 330));
+                          setState(() {
+                            mapDisplayType = value;
+                            getIt<PreferencesHandler>().selectedPM = value;
+                          });
+                        },
+                        child: IconButton.filled(
+                          style: ButtonStyle(
+                            backgroundColor: WidgetStateProperty.all(Colors.white),
+                            elevation: WidgetStateProperty.all(2),
+                            shadowColor: WidgetStateProperty.all(Colors.black),
+                          ),
+                          tooltip: 'Angezeigte Messgröße auswählen'.i18n,
+                          color: Colors.black,
+                          onPressed: null,
+                          icon: SizedBox(
+                            height: 44,
+                            width: 44,
+                            child: Center(
+                              child: Text(
+                                enums.Dimension.get_name(mapDisplayType),
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.nunitoSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1,
+                                ),
+                              ),
                             ),
                           ),
+                          padding: const EdgeInsets.all(0),
                         ),
                       ),
-                      padding: const EdgeInsets.all(0),
                     ),
-                  ),
-                ),
+                  );
+                },
               );
             },
           ),

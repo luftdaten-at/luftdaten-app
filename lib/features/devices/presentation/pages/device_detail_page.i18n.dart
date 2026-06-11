@@ -19,6 +19,10 @@ extension Localization on String {
         "en": "Sensors",
       } +
       {
+        "de": "Sensorinformationen",
+        "en": "Sensor information",
+      } +
+      {
         "de": "Geräteinfo",
         "en": "Device info",
       } +

@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
+import 'package:luftdaten.at/features/measurements/logic/measurement_display_defaults.dart';
 
 enum ChartSeriesChartId {
   particulate,
@@ -69,9 +71,23 @@ class ChartSeriesPreferences extends ChangeNotifier {
   String _chartKey(ChartSeriesChartId chart) => chart.name;
 
   /// Default series visibility when the user has not saved a preference yet.
-  bool defaultVisible(ChartSeriesChartId chart, String seriesKey) {
+  bool defaultVisible(
+    ChartSeriesChartId chart,
+    String seriesKey, {
+    Set<LDSensor>? tripSensors,
+  }) {
     if (chart == ChartSeriesChartId.particulate && seriesKey == ChartSeriesKeys.pm4) {
       return false;
+    }
+    if (tripSensors != null && seriesKey != ChartSeriesKeys.mean) {
+      final sensor = LDSensor.fromName(seriesKey);
+      if (sensor != LDSensor.unknown) {
+        return MeasurementDisplayDefaults.defaultSeriesVisible(
+          sensor: sensor,
+          chartId: chart,
+          tripSensors: tripSensors,
+        );
+      }
     }
     return true;
   }
@@ -79,10 +95,11 @@ class ChartSeriesPreferences extends ChangeNotifier {
   bool isVisible(
     ChartSeriesChartId chart,
     String seriesKey, {
+    Set<LDSensor>? tripSensors,
     bool? defaultValue,
   }) {
     final chartMap = _visibility[_chartKey(chart)];
-    final fallback = defaultValue ?? defaultVisible(chart, seriesKey);
+    final fallback = defaultValue ?? defaultVisible(chart, seriesKey, tripSensors: tripSensors);
     if (chartMap == null || !chartMap.containsKey(seriesKey)) {
       return fallback;
     }

@@ -25,10 +25,10 @@ class MockBleGattState {
 
   void refreshTelemetry() {
     _telemetryTick++;
-    final values = MockBleGattCodec.telemetryValues(
+    sensorValues = MockBleGattCodec.encodeSensorValuesForDevice(
+      device,
       timeSeconds: _telemetryTick * 30.0,
     );
-    sensorValues = MockBleGattCodec.encodeSensorValuesBinary(values);
   }
 
   void refreshBattery() {
@@ -37,7 +37,7 @@ class MockBleGattState {
 
   List<int> deviceInfoBytes() => MockBleGattCodec.encodeDeviceInfoJson(device);
 
-  List<int> sensorInfoBytes() => MockBleGattCodec.encodeSensorInfo();
+  List<int> sensorInfoBytes() => MockBleGattCodec.encodeSensorInfo(device);
 
   List<int> deviceStatusBytes({bool refreshBatteryOnRead = false}) {
     if (refreshBatteryOnRead) refreshBattery();
@@ -105,9 +105,7 @@ abstract final class MockBleGatt {
       batteryPct: 78,
       operationalFlags: MockBleGattCodec.defaultOperationalFlags(device.model),
       airStationConfigTlv: airStationConfigTlv,
-      sensorValues: MockBleGattCodec.encodeSensorValuesBinary(
-        MockBleGattCodec.telemetryValues(),
-      ),
+      sensorValues: MockBleGattCodec.encodeSensorValuesForDevice(device),
     )..airStationConfig = initialConfig;
 
     _states[id] = state;

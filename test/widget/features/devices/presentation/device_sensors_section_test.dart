@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
+import 'package:luftdaten.at/features/devices/logic/ble_controller.dart';
 import 'package:luftdaten.at/features/devices/logic/mock_ble_devices.dart';
+import 'package:luftdaten.at/features/devices/logic/mock_ble_gatt.dart';
 import 'package:luftdaten.at/features/devices/logic/mock_ble_profile.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/device_sensors_section.dart';
 
@@ -11,6 +13,7 @@ void main() {
   setUp(() async => setUpDeviceWidgetTests(
         storageBucket: 'device_sensors_section_tests',
         mockBleEnabled: true,
+        registerBleController: true,
       ));
 
   tearDown(tearDownDeviceWidgetTests);
@@ -52,13 +55,15 @@ void main() {
     expect(find.textContaining('Keine Sensorinformationen verfügbar'), findsOneWidget);
   });
 
-  testWidgets('connected with mock profile shows sensor serial without firmware', (tester) async {
+  testWidgets('connected mock profile shows serial without inline firmware', (tester) async {
     final device = MockBleDevices.buildMockDevice(
       LDDeviceModel.aRound,
       existingBleNames: const [],
     );
     MockBleProfile.apply(device);
     device.state = BleDeviceState.connected;
+    MockBleGatt.initForDevice(device);
+    await BleController().refreshDeviceInfo(device);
 
     await pumpDeviceApp(
       tester,
@@ -67,7 +72,33 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('Firmware-Version:'), findsNothing);
+    expect(find.textContaining('Sensor-Firmware:'), findsNothing);
     expect(find.textContaining('MOCK-SEN5X'), findsOneWidget);
+    expect(find.byIcon(Icons.info_outline), findsWidgets);
+  });
+
+  testWidgets('info button opens dialog with sensor firmware details', (tester) async {
+    final device = MockBleDevices.buildMockDevice(
+      LDDeviceModel.aRound,
+      existingBleNames: const [],
+    );
+    MockBleProfile.apply(device);
+    device.state = BleDeviceState.connected;
+    MockBleGatt.initForDevice(device);
+    await BleController().refreshDeviceInfo(device);
+
+    await pumpDeviceApp(
+      tester,
+      Scaffold(
+        body: DeviceSensorsSection(device: device, isLoading: false),
+      ),
+    );
+
+    await tester.tap(find.byIcon(Icons.info_outline).first);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Sensor-Firmware: 1.0'), findsOneWidget);
+    expect(find.textContaining('Hardware-Version: 1.0'), findsOneWidget);
+    expect(find.textContaining('Protokoll-Version: 1.0'), findsOneWidget);
   });
 }

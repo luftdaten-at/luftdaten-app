@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/measurements/logic/chart_series_preferences.dart';
 
 void main() {
@@ -37,6 +38,57 @@ void main() {
   test('unknown series defaults to visible', () {
     expect(
       prefs.isVisible(ChartSeriesChartId.temperature, 'sen5x'),
+      isTrue,
+    );
+  });
+
+  test('sen5x climate series default hidden with secondary sensor', () {
+    final tripSensors = {LDSensor.sen5x, LDSensor.shtc3};
+    expect(
+      prefs.isVisible(
+        ChartSeriesChartId.temperature,
+        'sen5x',
+        tripSensors: tripSensors,
+      ),
+      isFalse,
+    );
+    expect(
+      prefs.isVisible(
+        ChartSeriesChartId.humidity,
+        'sen5x',
+        tripSensors: tripSensors,
+      ),
+      isFalse,
+    );
+    expect(
+      prefs.isVisible(
+        ChartSeriesChartId.temperature,
+        'shtc3',
+        tripSensors: tripSensors,
+      ),
+      isTrue,
+    );
+  });
+
+  test('sen5x climate visible on single-sensor trip', () {
+    expect(
+      prefs.isVisible(
+        ChartSeriesChartId.temperature,
+        'sen5x',
+        tripSensors: {LDSensor.sen5x},
+      ),
+      isTrue,
+    );
+  });
+
+  test('stored chart override wins over dual-sensor default', () {
+    prefs.setVisible(ChartSeriesChartId.temperature, 'sen5x', true);
+    expect(
+      prefs.isVisible(
+        ChartSeriesChartId.temperature,
+        'sen5x',
+        tripSensors: {LDSensor.sen5x, LDSensor.shtc3},
+      ),
       isTrue,
     );
   });

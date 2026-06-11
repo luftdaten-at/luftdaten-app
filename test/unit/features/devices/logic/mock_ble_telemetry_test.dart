@@ -7,7 +7,7 @@ import 'package:luftdaten.at/features/devices/logic/mock_ble_gatt_codec.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 
 void main() {
-  test('mock GATT command path yields PM readings', () {
+  test('mock GATT command path yields PM and SHTC3 climate readings for aRound', () {
     final device = MockBleDevices.buildMockDevice(
       LDDeviceModel.aRound,
       existingBleNames: const [],
@@ -15,11 +15,15 @@ void main() {
     MockBleGatt.initForDevice(device);
 
     MockBleGatt.writeCommand(device, [MockBleGattCodec.cmdReadSensorData]);
-    final values = MockBleGattCodec.decodeSensorValuesBinary(
+    final blocks = MockBleGattCodec.decodeAllSensorBlocks(
       MockBleGatt.readCharacteristic(device, BleGattUuids.sensorValues),
     );
 
-    expect(values[MeasurableQuantity.pm25], isNotNull);
-    expect(values[MeasurableQuantity.temperature], isNotNull);
+    expect(blocks.length, 2);
+    expect(blocks[LDSensor.sen5x]![MeasurableQuantity.pm25], isNotNull);
+    expect(blocks[LDSensor.sen5x]![MeasurableQuantity.temperature], isNotNull);
+    expect(blocks[LDSensor.sen5x]![MeasurableQuantity.humidity], isNotNull);
+    expect(blocks[LDSensor.shtc3]![MeasurableQuantity.temperature], isNotNull);
+    expect(blocks[LDSensor.shtc3]![MeasurableQuantity.humidity], isNotNull);
   });
 }
