@@ -27,7 +27,6 @@ dependencies:
   flutter_local_notifications: ^19.0.0
   flutter_native_splash: ^2.3.2
   flutter_map_location_marker: ^9.1.1
-  flutter_compass: ^0.8.0
   path_provider: ^2.1.1
   share_plus: ^10.0.2
   package_info_plus: ^8.0.0
@@ -105,7 +104,6 @@ flutter:
     - assets/icon-round-2.png
     - assets/LD_logo_wordmark_blue.svg
     - assets/lottie/
-    - assets/compass_needle.svg
     - assets/audio/silent.wav
     - assets/images/
   uses-material-design: true

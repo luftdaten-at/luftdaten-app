@@ -15,15 +15,11 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
  */
-import 'dart:async';
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_animations/flutter_map_animations.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -72,7 +68,6 @@ class _MapPageState extends State<MapPage>
     duration: const Duration(milliseconds: 500),
     curve: Curves.easeInOut,
   );
-  StreamSubscription? _mapMovedSubscription;
   double _zoom = 11.2;
   final MarkerDialogController _markerDialogController = MarkerDialogController();
 
@@ -80,6 +75,7 @@ class _MapPageState extends State<MapPage>
   List<Marker> historyMarkers = [];
   late TextEditingController _textController;
   final TripController router = getIt<TripController>();
+  late final WorkshopController _workshopController;
   int primaryItem = 5; // = PM10.0
 
   bool autoCenter = true;
@@ -96,9 +92,6 @@ class _MapPageState extends State<MapPage>
         : MapCollapsibleLegend.collapsedHeight;
     return inset + 8;
   }
-
-  final CompassController _compassController = CompassController();
-  late final WorkshopController _workshopController;
 
   /// Stable TileLayer to avoid rebuild-driven connection churn (reduces tile load errors).
   /// Use tile.openstreetmap.org without subdomains (OSM recommends this; see operations#737).
@@ -178,7 +171,6 @@ class _MapPageState extends State<MapPage>
     _workshopController.removeListener(_syncMapDimension);
     router.removeListener(_syncMapDimension);
     _textController.dispose();
-    _mapMovedSubscription?.cancel();
     super.dispose();
   }
 
@@ -379,22 +371,6 @@ class _MapPageState extends State<MapPage>
           initialCenter: const LatLng(48.21919466912646, 16.383482313924404),
           initialZoom: _zoom,
           maxZoom: 18,
-          onMapReady: () {
-            _mapMovedSubscription =
-                _controller.mapController.mapEventStream.listen((MapEvent mapEvent) {
-              if (mapEvent is MapEventRotate) {
-                double rotation = mapEvent.camera.rotation;
-                _compassController.bearing.value = rotation;
-              }
-              if (mapEvent is MapEventRotateEnd) {
-                double rotation = mapEvent.camera.rotation;
-                bool showCompass = rotation != 0.0;
-                if (showCompass != _compassController.showCompass.value) {
-                  _compassController.showCompass.value = showCompass;
-                }
-              }
-            });
-          },
         ),
         children: [
           _osmTileLayer,
@@ -608,47 +584,6 @@ class _MapPageState extends State<MapPage>
                   }),
             ),
           ),
-          Align(
-            alignment: Alignment.bottomLeft,
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: ChangeNotifierBuilder(
-                  notifier: _compassController.showCompass,
-                  builder: (context, showCompass) {
-                    return AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child: showCompass.value
-                          ? IconButton.filled(
-                              key: const Key('compass-button'),
-                              style: ButtonStyle(
-                                backgroundColor: WidgetStateProperty.all(Colors.white),
-                                elevation: WidgetStateProperty.all(2),
-                                shadowColor: WidgetStateProperty.all(Colors.black),
-                              ),
-                              tooltip: 'Nach Norden orientieren'.i18n,
-                              color: Colors.black,
-                              onPressed: () {
-                                _controller.animateTo(rotation: 0);
-                                showCompass.value = false;
-                              },
-                              icon: ChangeNotifierBuilder(
-                                  notifier: _compassController.bearing,
-                                  builder: (context, bearing) {
-                                    return Transform.rotate(
-                                      angle: bearing.value * math.pi / 180.0,
-                                      child:
-                                          SvgPicture.asset('assets/compass_needle.svg', height: 24),
-                                    );
-                                  }),
-                              padding: const EdgeInsets.all(10),
-                            )
-                          : const SizedBox(
-                              key: Key('compass-placeholder'),
-                            ),
-                    );
-                  }),
-            ),
-          ),
           ChangeNotifierBuilder(
             notifier: AppSettings.I,
             builder: (context, settings) {
@@ -824,10 +759,4 @@ class StationPM {
   final double? pm1, pm25, pm10;
 
   const StationPM({this.pm1, this.pm25, this.pm10});
-}
-
-class CompassController extends ChangeNotifier {
-  ValueNotifier<double> bearing = ValueNotifier(0);
-
-  ValueNotifier<bool> showCompass = ValueNotifier(false);
 }
