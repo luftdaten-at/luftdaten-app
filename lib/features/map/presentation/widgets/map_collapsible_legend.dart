@@ -130,7 +130,7 @@ class _MapCollapsibleLegendState extends State<MapCollapsibleLegend>
                 if (_expanded || _controller.isAnimating)
                   SizeTransition(
                     sizeFactor: _expandAnimation,
-                    axisAlignment: -1,
+                    alignment: Alignment.topCenter,
                     child: ConstrainedBox(
                       constraints: BoxConstraints(
                         maxHeight: MediaQuery.sizeOf(context).height * 0.4,

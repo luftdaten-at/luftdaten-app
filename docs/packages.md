@@ -54,7 +54,7 @@ Tables below mirror **`dart pub deps --json`** (direct production and dev roots)
 | `latlong2` | `0.9.1` | pub.dev |
 | `logger` | `2.5.0` | pub.dev |
 | `lottie` | `3.3.1` | pub.dev |
-| `native_qr` | `0.0.3` | pub.dev |
+| `mobile_scanner` | `7.2.0` | pub.dev |
 | `network_info_plus` | `6.1.3` | pub.dev |
 | `package_info_plus` | `8.3.0` | pub.dev |
 | `path_provider` | `2.1.5` | pub.dev |

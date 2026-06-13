@@ -223,7 +223,7 @@ class _EnterWorkshopPageState extends State<EnterWorkshopPage> with TickerProvid
                           FilledButton(
                               onPressed: () async {
                                 await AppPermissions.locationWhileInUse.request();
-                                if (!context.mounted) return;
+                                if (!mounted) return;
                                 getIt<WorkshopController>().currentWorkshop = config;
                                 Navigator.of(context).pop(true);
                                 Toaster.showSuccessToast(

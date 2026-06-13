@@ -18,7 +18,9 @@
 extension IterableMean on Iterable<num> {
   double get mean {
     double sum = 0;
-    for (num n in this) sum += n;
+    for (num n in this) {
+      sum += n;
+    }
     return sum / length;
   }
 }
@@ -33,8 +35,11 @@ extension SpaceWith<A> on List<A> {
     if (length == 1) return this;
     List<A> list = [this[0]];
     for (int i = 1; i < length; i++) {
-      if (i == 1 && first != null) list.add(first);
-      else list.add(spacer);
+      if (i == 1 && first != null) {
+        list.add(first);
+      } else {
+        list.add(spacer);
+      }
       list.add(this[i]);
     }
     return list;
@@ -45,8 +50,11 @@ extension SpaceWith<A> on List<A> {
     if (length == 1) return this;
     List<A> list = [this[0]];
     for (int i = 1; i < length; i++) {
-      if (i == 1 && first != null) list.add(first);
-      else list.addAll(spacer);
+      if (i == 1 && first != null) {
+        list.add(first);
+      } else {
+        list.addAll(spacer);
+      }
       list.add(this[i]);
     }
     return list;

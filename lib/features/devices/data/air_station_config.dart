@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+// ignore_for_file: constant_identifier_names
+
 import 'package:flutter/cupertino.dart';
 import 'package:i18n_extension/default.i18n.dart';
 import 'package:luftdaten.at/core/utils/util.dart';

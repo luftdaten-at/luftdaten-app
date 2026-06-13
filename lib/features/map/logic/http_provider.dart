@@ -72,11 +72,11 @@ class DataItem {
 
 /*
 class DataLocationItem extends DataItem {
-  String device_id;
+  String deviceId;
   double latitude;
   double longitude;
 
-  DataLocationItem(this.device_id, this.latitude, this.longitude, super.pm1, super.pm25, super.pm10);
+  DataLocationItem(this.deviceId, this.latitude, this.longitude, super.pm1, super.pm25, super.pm10);
 }
 */
 
@@ -222,12 +222,12 @@ class MapHttpProvider extends HttpProvider {
 
 
 class SingleStationHttpProvider extends HttpProvider {
-  /// device_id: Device id in api.luftdaten.at format
-  /// for the given station data is fetch from API_URL
+  /// deviceId: Device id in api.luftdaten.at format
+  /// for the given station data is fetch from apiUrl
   /// items contains 3 resolutions of the fetched data. See definition of items
 
-  final String API_URL = "https://api.luftdaten.at/v1/station/historical";
-  final String device_id;
+  final String apiUrl = "https://api.luftdaten.at/v1/station/historical";
+  final String deviceId;
 
   /// ([Data last day], [last week], [last month]):
   List<List<DataItem>> items = [[], [], []];
@@ -243,15 +243,15 @@ class SingleStationHttpProvider extends HttpProvider {
   bool error = false;
 
   //SingleStationHttpProvider._(this.sid, [this.isAirStation = false]);
-  SingleStationHttpProvider._(this.device_id);
+  SingleStationHttpProvider._(this.deviceId);
 
-  factory SingleStationHttpProvider(String device_id) {
-    if (_providers[device_id] != null) {
-      return _providers[device_id]!;
+  factory SingleStationHttpProvider(String deviceId) {
+    if (_providers[deviceId] != null) {
+      return _providers[deviceId]!;
     } else {
-      SingleStationHttpProvider provider = SingleStationHttpProvider._(device_id);
+      SingleStationHttpProvider provider = SingleStationHttpProvider._(deviceId);
       provider._fetch();
-      _providers[device_id] = provider;
+      _providers[deviceId] = provider;
       return provider;
     }
   }
@@ -279,7 +279,7 @@ class SingleStationHttpProvider extends HttpProvider {
     hourly24h = [];
     _resetSliceState();
     notifyListeners();
-    logger.d('SingleStationHttpProvider: Fetching data for $device_id');
+    logger.d('SingleStationHttpProvider: Fetching data for $deviceId');
     await Future.wait([
       _fetchHourly24hJson(),
       _runSlice(0, "all"),
@@ -288,7 +288,7 @@ class SingleStationHttpProvider extends HttpProvider {
     ]);
 
     finished = true;
-    logger.d('Fetch done for $device_id.');
+    logger.d('Fetch done for $deviceId.');
     notifyListeners();
   }
 
@@ -300,18 +300,18 @@ class SingleStationHttpProvider extends HttpProvider {
       final startIso = startHour.toIso8601String().substring(0, 16);
       final endIso = endHour.toIso8601String().substring(0, 16);
       final uri = Uri.parse(
-        '$API_URL/?station_ids=$device_id&output_format=json&precision=hour&start=$startIso&end=$endIso',
+        '$apiUrl/?station_ids=$deviceId&output_format=json&precision=hour&start=$startIso&end=$endIso',
       );
       final response = await http.get(uri, headers: httpHeaders);
       if (response.statusCode == 200) {
         hourly24h = parseHistoricalHourlyJson(response.body);
-        logger.d('SingleStationHttpProvider: loaded ${hourly24h.length} hourly rows for $device_id');
+        logger.d('SingleStationHttpProvider: loaded ${hourly24h.length} hourly rows for $deviceId');
       } else {
-        logger.d('SingleStationHttpProvider: hourly24h failed for $device_id: ${response.statusCode}');
+        logger.d('SingleStationHttpProvider: hourly24h failed for $deviceId: ${response.statusCode}');
         error = true;
       }
     } catch (e, st) {
-      logger.d('SingleStationHttpProvider: hourly24h error for $device_id: $e $st');
+      logger.d('SingleStationHttpProvider: hourly24h error for $deviceId: $e $st');
       error = true;
     } finally {
       hourly24hReady = true;
@@ -368,7 +368,7 @@ class SingleStationHttpProvider extends HttpProvider {
     try {
       await _fetchForPrecision(index, precision);
     } catch (e, st) {
-      logger.d('SingleStationHttpProvider: slice $index failed for $device_id: $e $st');
+      logger.d('SingleStationHttpProvider: slice $index failed for $deviceId: $e $st');
       error = true;
     } finally {
       sliceReady[index] = true;
@@ -390,7 +390,7 @@ class SingleStationHttpProvider extends HttpProvider {
       start = start.subtract(Duration(days: 30));
     }
     
-    String requestUrl = "$API_URL/?station_ids=$device_id&precision=$precision&output_format=csv&start=${start.toIso8601String()}";
+    String requestUrl = "$apiUrl/?station_ids=$deviceId&precision=$precision&output_format=csv&start=${start.toIso8601String()}";
     Response response = await http.get(Uri.parse(requestUrl), headers: httpHeaders);
 
     if (response.statusCode == 200) {
@@ -412,7 +412,7 @@ class SingleStationHttpProvider extends HttpProvider {
 
           data.putIfAbsent(timeMeasured, () => <int, double>{})[dimension] = value;
         } catch (_) {
-          logger.d('SingleStationHttpProvider: skip malformed CSV line for $device_id');
+          logger.d('SingleStationHttpProvider: skip malformed CSV line for $deviceId');
           continue;
         }
       }
@@ -426,10 +426,10 @@ class SingleStationHttpProvider extends HttpProvider {
         );
         items[index].add(item);
       }
-      logger.d('Added ${items[index].length} entries for $device_id ($index)');
+      logger.d('Added ${items[index].length} entries for $deviceId ($index)');
     } else {
       // bad
-      logger.d("Unexpected, not adding entries for $device_id ($index)");
+      logger.d("Unexpected, not adding entries for $deviceId ($index)");
       error = true;
     }
   }

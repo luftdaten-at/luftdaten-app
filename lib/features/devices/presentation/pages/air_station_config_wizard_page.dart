@@ -260,6 +260,7 @@ class _AirStationConfigWizardPageState extends State<AirStationConfigWizardPage>
             TextButton(
               onPressed: () async {
                 if (await Permission.location.status == PermissionStatus.denied) {
+                  if (!mounted) return;
                   showLDDialog(
                     context,
                     title: 'Berechtigung abgelehnt',

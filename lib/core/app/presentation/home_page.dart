@@ -72,7 +72,7 @@ class _PageViewerPageState extends State<PageViewerPage> {
     super.initState();
   }
 
-  AppBar LDAppBar(BuildContext context, String title) {
+  AppBar ldAppBar(BuildContext context, String title) {
     return AppBar(
       iconTheme: const IconThemeData(color: Colors.white),
       actions: [
@@ -202,7 +202,7 @@ class _PageViewerPageState extends State<PageViewerPage> {
     );
   }
 
-  Widget DrawerMenuItem(BuildContext context, Widget mItem, Icon icon, String route,
+  Widget drawerMenuItem(BuildContext context, Widget mItem, Icon icon, String route,
           String curRoute, int index) =>
       ListTile(
         title: mItem,
@@ -242,17 +242,17 @@ class _PageViewerPageState extends State<PageViewerPage> {
               ),
             ),
             for (int i = 0; i < _labels.length; i++)
-              DrawerMenuItem(
+              drawerMenuItem(
                   context, Text(_labels[i].i18n), Icon(_selectedIcons[i]), "", currentRoute, i),
-            DrawerMenuItem(context, Text("Favoriten".i18n), const Icon(Icons.bookmark),
+            drawerMenuItem(context, Text("Favoriten".i18n), const Icon(Icons.bookmark),
                 FavoritesPage.route, currentRoute, -1),
-            DrawerMenuItem(context, Text("Einstellungen".i18n), const Icon(Icons.settings),
+            drawerMenuItem(context, Text("Einstellungen".i18n), const Icon(Icons.settings),
                 SettingsPage.route, currentRoute, -1),
             if (settings.useLog)
-              DrawerMenuItem(context, Text("Log".i18n), const Icon(Icons.terminal),
+              drawerMenuItem(context, Text("Log".i18n), const Icon(Icons.terminal),
                   LoggingPage.route, currentRoute, -1),
             if (settings.showSerialMonitor)
-              DrawerMenuItem(
+              drawerMenuItem(
                 context,
                 Text("Serielle BLE-Konsole".i18n),
                 const Icon(Icons.nearby_error),
@@ -274,7 +274,7 @@ class _PageViewerPageState extends State<PageViewerPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: LDAppBar(context, _labels[currentPage].i18n),
+        appBar: ldAppBar(context, _labels[currentPage].i18n),
         drawer: _buildDrawer(context, PageViewerPage.route),
         body: PageView(
           controller: _pageController,
@@ -292,9 +292,9 @@ class _PageViewerPageState extends State<PageViewerPage> {
         bottomNavigationBar: Theme(
           data: Theme.of(context).copyWith(
             navigationBarTheme: Theme.of(context).navigationBarTheme.copyWith(
-              labelTextStyle: MaterialStateProperty.resolveWith(
+              labelTextStyle: WidgetStateProperty.resolveWith(
                 (states) {
-                  if (states.contains(MaterialState.selected)) {
+                  if (states.contains(WidgetState.selected)) {
                     return const TextStyle(
                       fontSize: 13.0,
                       color: Colors.white,

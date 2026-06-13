@@ -59,7 +59,9 @@ class MultiChangeNotifierRefresher<T extends ChangeNotifier> extends StatefulWid
 class _MultiChangeNotifierRefresherState<T extends ChangeNotifier> extends State<MultiChangeNotifierRefresher<T>> {
   @override
   void initState() {
-    for (T e in widget.notifiers) e.addListener(setStateCallback);
+    for (T e in widget.notifiers) {
+      e.addListener(setStateCallback);
+    }
     super.initState();
   }
 
@@ -68,7 +70,9 @@ class _MultiChangeNotifierRefresherState<T extends ChangeNotifier> extends State
 
   @override
   void dispose() {
-    for (T e in widget.notifiers) e.removeListener(setStateCallback);
+    for (T e in widget.notifiers) {
+      e.removeListener(setStateCallback);
+    }
     super.dispose();
   }
 

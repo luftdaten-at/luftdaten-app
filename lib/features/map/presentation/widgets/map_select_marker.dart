@@ -8,13 +8,13 @@ import 'package:luftdaten.at/features/devices/data/ble_device.i18n.dart';
 class MapScreen extends StatefulWidget {
   final AirStationConfigWizardController controller;
 
-  MapScreen({required this.controller});
+  const MapScreen({super.key, required this.controller});
 
   @override
-  _MapScreenState createState() => _MapScreenState();
+  MapScreenState createState() => MapScreenState();
 }
 
-class _MapScreenState extends State<MapScreen> {
+class MapScreenState extends State<MapScreen> {
   LatLng? selectedPosition;
   double longitude = 0;
   double latitude = 0;
@@ -29,8 +29,8 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     widget.controller.getCurrentLocation();
-    longitude = widget.controller.current_position.longitude;
-    latitude = widget.controller.current_position.latitude;
+    longitude = widget.controller.currentPosition.longitude;
+    latitude = widget.controller.currentPosition.latitude;
 
     // Initialisiere die Controller mit den Anfangswerten
     longitudeController.text = longitude.toString();

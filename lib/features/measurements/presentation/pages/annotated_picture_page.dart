@@ -185,8 +185,8 @@ class _AnnotatedPicturePageState extends State<AnnotatedPicturePage> with Widget
                                           style: TextStyle(
                                             fontSize: 24 * scaleFactor,
                                             fontWeight: FontWeight.bold,
-                                            color:
-                                                Colors.black.withOpacity(showBoxShadow ? 1 : 0.5),
+                                            color: Colors.black
+                                                .withValues(alpha: showBoxShadow ? 1 : 0.5),
                                           ),
                                         ),
                                         Text(
@@ -194,7 +194,8 @@ class _AnnotatedPicturePageState extends State<AnnotatedPicturePage> with Widget
                                           style: TextStyle(
                                             fontSize: 24 * scaleFactor,
                                             fontWeight: FontWeight.bold,
-                                            color: kv.color.withOpacity(showBoxShadow ? 1 : 0.5),
+                                            color: kv.color
+                                                .withValues(alpha: showBoxShadow ? 1 : 0.5),
                                           ),
                                         )
                                       ],
@@ -215,7 +216,10 @@ class _AnnotatedPicturePageState extends State<AnnotatedPicturePage> with Widget
                         child: SvgPicture.asset(
                           'assets/LD_logo_wordmark_blue.svg',
                           width: imWidth / 2,
-                          color: Theme.of(context).primaryColor,
+                          colorFilter: ColorFilter.mode(
+                            Theme.of(context).primaryColor,
+                            BlendMode.srcIn,
+                          ),
                         ),
                       ),
                     ),
@@ -474,7 +478,8 @@ class _AnnotatedPicturePageState extends State<AnnotatedPicturePage> with Widget
                                       style: TextStyle(
                                         fontSize: 24 * scaleFactor * extraFontScaling,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.black.withOpacity(showBoxShadow ? 1 : 0.5),
+                                        color: Colors.black
+                                            .withValues(alpha: showBoxShadow ? 1 : 0.5),
                                       ),
                                     ),
                                     Text(
@@ -482,7 +487,8 @@ class _AnnotatedPicturePageState extends State<AnnotatedPicturePage> with Widget
                                       style: TextStyle(
                                         fontSize: 24 * scaleFactor * extraFontScaling,
                                         fontWeight: FontWeight.bold,
-                                        color: kv.color.withOpacity(showBoxShadow ? 1 : 0.5),
+                                        color:
+                                            kv.color.withValues(alpha: showBoxShadow ? 1 : 0.5),
                                       ),
                                     )
                                   ],
@@ -503,7 +509,10 @@ class _AnnotatedPicturePageState extends State<AnnotatedPicturePage> with Widget
                     child: SvgPicture.asset(
                       'assets/LD_logo_wordmark_blue.svg',
                       width: imWidth / 2,
-                      color: primary,
+                      colorFilter: ColorFilter.mode(
+                        primary,
+                        BlendMode.srcIn,
+                      ),
                     ),
                   ),
                 ),

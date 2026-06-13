@@ -74,7 +74,10 @@ class _WelcomeWizardPageState extends State<WelcomeWizardPage> {
           SvgPicture.asset(
             'assets/LD_logo_wordmark_blue.svg',
             height: 40,
-            color: Theme.of(context).primaryColor,
+            colorFilter: ColorFilter.mode(
+              Theme.of(context).primaryColor,
+              BlendMode.srcIn,
+            ),
           ),
           const SizedBox(height: 20),
           Padding(
@@ -394,11 +397,11 @@ class _WelcomeWizardPageState extends State<WelcomeWizardPage> {
             backgroundColor: Colors.green.shade50,
             borderColor: Colors.green.shade400,
             onTap: () async {
-              Navigator.of(context).pushNamed(QRCodePage.route).then((e) {
-                if (e != null) {
-                  Navigator.of(context).pushNamed('/');
-                }
-              });
+              final navigator = Navigator.of(context);
+              final result = await navigator.pushNamed(QRCodePage.route);
+              if (result != null) {
+                navigator.pushNamed('/');
+              }
             },
           ),
           _WelcomeWizardTile(

@@ -26,7 +26,7 @@ void main() {
       };
       final value = SensorDataValue.fromJson(json);
       expect(value.id, 123);
-      expect(value.value_type, 'P2');
+      expect(value.valueType, 'P2');
       expect(value.value, '12.5');
       final restored = value.toJson();
       expect(restored['value_type'], 'P2');
@@ -59,7 +59,7 @@ void main() {
       };
       final sensor = Sensor.fromJson(json);
       expect(sensor.id, 1);
-      expect(sensor.sensor_type.name, 'SEN5x');
+      expect(sensor.sensorType.name, 'SEN5x');
     });
   });
 
@@ -88,8 +88,8 @@ void main() {
       expect(data.timestamp, DateTime.utc(2024, 1, 15, 10));
       expect(data.location.latitude, 48.21);
       expect(data.sensordatavalues.length, 1);
-      expect(data.sensordatavalues.first.value_type, 'P2');
-      expect(data.sensor.sensor_type.name, 'SEN5x');
+      expect(data.sensordatavalues.first.valueType, 'P2');
+      expect(data.sensor.sensorType.name, 'SEN5x');
     });
   });
 }

@@ -15,6 +15,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+// ignore_for_file: constant_identifier_names
+
 import 'package:flutter/material.dart' as material;
 
 /// Particulate map colours follow the European Air Quality Index (µg/m³, hourly bands)
@@ -133,7 +135,7 @@ class Dimension {
     LUX: "Lux",
   };
 
-  static String get_name(int dim) => _names[dim] ?? "Name not found";
+  static String getName(int dim) => _names[dim] ?? "Name not found";
 
   /// EEA Eu-AQI µg/m³ thresholds (hourly): upper inclusive for Good … Very poor; Extremely poor is above the last bin.
   static const List<double> _eeaPm1Pm25InclusiveUppersMicrog = [5, 15, 50, 90, 140];
