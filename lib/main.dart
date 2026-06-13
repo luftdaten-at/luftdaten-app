@@ -19,6 +19,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:i18n_extension/i18n_extension.dart';
 import 'package:get_storage/get_storage.dart';
@@ -90,6 +91,7 @@ void main() async {
 
     if (Platform.isAndroid) {
       await FlutterDisplayMode.setHighRefreshRate();
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
 
     getIt.registerSingleton<DeviceManager>(DeviceManager()..init());

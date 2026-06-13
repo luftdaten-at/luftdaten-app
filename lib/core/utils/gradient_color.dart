@@ -19,7 +19,7 @@ import 'package:flutter/material.dart';
 
 class GradientColor {
   final double best, good, medium, bad, worst;
-  final _ColorScheme _colorScheme;
+  final GradientColorScheme _colorScheme;
 
   GradientColor.pm1()
       : best = 0,
@@ -27,7 +27,7 @@ class GradientColor {
         medium = 10,
         bad = 20,
         worst = 40,
-        _colorScheme = _ColorScheme.greenToRed;
+        _colorScheme = GradientColorScheme.greenToRed;
 
   GradientColor.pm25()
       : best = 0,
@@ -35,7 +35,7 @@ class GradientColor {
         medium = 15,
         bad = 25,
         worst = 60,
-        _colorScheme = _ColorScheme.greenToRed;
+        _colorScheme = GradientColorScheme.greenToRed;
 
   GradientColor.pm4()
       : best = 0,
@@ -43,7 +43,7 @@ class GradientColor {
         medium = 20,
         bad = 35,
         worst = 60,
-        _colorScheme = _ColorScheme.greenToRed;
+        _colorScheme = GradientColorScheme.greenToRed;
 
   GradientColor.pm10()
       : best = 0,
@@ -51,7 +51,7 @@ class GradientColor {
         medium = 45,
         bad = 80,
         worst = 120,
-        _colorScheme = _ColorScheme.greenToRed;
+        _colorScheme = GradientColorScheme.greenToRed;
 
   GradientColor.temperature()
       : best = 15,
@@ -59,7 +59,7 @@ class GradientColor {
         medium = 25,
         bad = 30,
         worst = 35,
-        _colorScheme = _ColorScheme.blueToRed;
+        _colorScheme = GradientColorScheme.blueToRed;
 
   GradientColor.humidity()
       : best = 0,
@@ -67,7 +67,7 @@ class GradientColor {
         medium = 60,
         bad = 80,
         worst = 100,
-        _colorScheme = _ColorScheme.lightBlueToDarkBlue;
+        _colorScheme = GradientColorScheme.lightBlueToDarkBlue;
 
   GradientColor.voc()
       : best = 70,
@@ -75,7 +75,7 @@ class GradientColor {
         medium = 100,
         bad = 150,
         worst = 300,
-        _colorScheme = _ColorScheme.greenToRed;
+        _colorScheme = GradientColorScheme.greenToRed;
 
   GradientColor.nox()
       : best = 70,
@@ -83,7 +83,7 @@ class GradientColor {
         medium = 100,
         bad = 150,
         worst = 300,
-        _colorScheme = _ColorScheme.greenToRed;
+        _colorScheme = GradientColorScheme.greenToRed;
 
   GradientColor.pressure()
       : best = 1000,
@@ -91,7 +91,7 @@ class GradientColor {
         medium = 1020,
         bad = 1030,
         worst = 1040,
-        _colorScheme = _ColorScheme.blueToRed;
+        _colorScheme = GradientColorScheme.blueToRed;
 
   GradientColor.co2()
       : best = 0,
@@ -99,7 +99,7 @@ class GradientColor {
         medium = 800,
         bad = 1200,
         worst = 2000,
-        _colorScheme = _ColorScheme.greenToRed;
+        _colorScheme = GradientColorScheme.greenToRed;
 
   GradientColor.o3()
       : best = 0,
@@ -107,7 +107,7 @@ class GradientColor {
         medium = 20,
         bad = 40,
         worst = 60,
-        _colorScheme = _ColorScheme.greenToRed;
+        _colorScheme = GradientColorScheme.greenToRed;
 
   GradientColor.aqi()
       : best = 0,
@@ -115,7 +115,7 @@ class GradientColor {
         medium = 100,
         bad = 150,
         worst = 200,
-        _colorScheme = _ColorScheme.greenToRed;
+        _colorScheme = GradientColorScheme.greenToRed;
 
   GradientColor.gasResistance()
       : best = 0,
@@ -123,7 +123,7 @@ class GradientColor {
         medium = 10000,
         bad = 20000,
         worst = 30000,
-        _colorScheme = _ColorScheme.greenToRed;
+        _colorScheme = GradientColorScheme.greenToRed;
 
   GradientColor.totalVoc()
       : best = 0,
@@ -131,7 +131,7 @@ class GradientColor {
         medium = 20,
         bad = 30,
         worst = 40,
-        _colorScheme = _ColorScheme.greenToRed;
+        _colorScheme = GradientColorScheme.greenToRed;
 
   final List<HSVColor> colorStepsGreenToRed = const [
     HSVColor.fromAHSV(1, 115, 0.8, 0.8),
@@ -187,16 +187,16 @@ class GradientColor {
     ).toColor();
   }
 
-  List<HSVColor> forColorScheme(_ColorScheme colorScheme) {
+  List<HSVColor> forColorScheme(GradientColorScheme colorScheme) {
     switch (colorScheme) {
-      case _ColorScheme.greenToRed:
+      case GradientColorScheme.greenToRed:
         return colorStepsGreenToRed;
-      case _ColorScheme.blueToRed:
+      case GradientColorScheme.blueToRed:
         return colorStepsBlueToRed;
-      case _ColorScheme.lightBlueToDarkBlue:
+      case GradientColorScheme.lightBlueToDarkBlue:
         return colorStepsLightBlueToDarkBlue;
     }
   }
 }
 
-enum _ColorScheme { greenToRed, blueToRed, lightBlueToDarkBlue }
+enum GradientColorScheme { greenToRed, blueToRed, lightBlueToDarkBlue }

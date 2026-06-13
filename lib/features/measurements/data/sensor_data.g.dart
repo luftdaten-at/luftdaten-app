@@ -28,7 +28,7 @@ SensorDataValue _$SensorDataValueFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$SensorDataValueToJson(SensorDataValue instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'value_type': instance.value_type,
+      'value_type': instance.valueType,
       'value': instance.value,
     };
 
@@ -52,7 +52,7 @@ Sensor _$SensorFromJson(Map<String, dynamic> json) => Sensor(
 
 Map<String, dynamic> _$SensorToJson(Sensor instance) => <String, dynamic>{
       'id': instance.id,
-      'sensor_type': instance.sensor_type.toJson(),
+      'sensor_type': instance.sensorType.toJson(),
     };
 
 SCData _$SCDataFromJson(Map<String, dynamic> json) => SCData(

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:luftdaten.at/features/devices/logic/battery_info_aggregator.dart';
 import 'package:luftdaten.at/features/devices/data/battery_details.dart';
 

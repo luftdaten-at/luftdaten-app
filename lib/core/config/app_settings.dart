@@ -15,7 +15,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:luftdaten.at/core/app/device_info.dart';

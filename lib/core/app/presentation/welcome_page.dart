@@ -28,12 +28,12 @@ class _WelcomePageState extends State<WelcomePage> {
     _Permission.camera: false,
     _Permission.notifications: false,
   };
-  List<ExpansionTileController> controllers = [
-    ExpansionTileController(),
-    ExpansionTileController(),
-    ExpansionTileController(),
-    ExpansionTileController(),
-    ExpansionTileController(),
+  List<ExpansibleController> controllers = [
+    ExpansibleController(),
+    ExpansibleController(),
+    ExpansibleController(),
+    ExpansibleController(),
+    ExpansibleController(),
   ];
   List<bool> isLoading = List.filled(5, false);
 
@@ -184,7 +184,7 @@ class _WelcomePageState extends State<WelcomePage> {
                       }
                     },
                     style: ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all(Theme.of(context).primaryColor),
+                      backgroundColor: WidgetStateProperty.all(Theme.of(context).primaryColor),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -224,7 +224,10 @@ class _WelcomePageState extends State<WelcomePage> {
                   SvgPicture.asset(
                     'assets/LD_logo_wordmark_blue.svg',
                     height: 40,
-                    color: Theme.of(context).primaryColor,
+                    colorFilter: ColorFilter.mode(
+                      Theme.of(context).primaryColor,
+                      BlendMode.srcIn,
+                    ),
                   ),
                   const Spacer(flex: 1),
                 ],
@@ -305,7 +308,7 @@ class _WelcomePageState extends State<WelcomePage> {
                       });
                     },
                     style: ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all(Theme.of(context).primaryColor),
+                      backgroundColor: WidgetStateProperty.all(Theme.of(context).primaryColor),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -438,7 +441,7 @@ class _WelcomePageState extends State<WelcomePage> {
       onPressed: !granted && !loading ? onPressed : null,
       style: ButtonStyle(
         backgroundColor:
-            MaterialStateProperty.all((granted || loading) ? Colors.green.shade100 : Colors.green),
+            WidgetStateProperty.all((granted || loading) ? Colors.green.shade100 : Colors.green),
       ),
       child: SizedBox(
         width: 70,

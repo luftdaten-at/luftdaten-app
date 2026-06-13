@@ -216,12 +216,9 @@ class _DashboardPage extends State<DashboardPage> {
                   children[index].dragController?.isDragging = false;
                 } catch(_) {}
               },
-              onReorder: (int oldIndex, int newIndex) {
+              onReorderItem: (int oldIndex, int newIndex) {
                 setState(() {
                   List<Favorite> items = getIt<FavoritesManager>().favorites;
-                  if (oldIndex < newIndex) {
-                    newIndex -= 1;
-                  }
                   final Favorite item = items.removeAt(oldIndex);
                   items.insert(newIndex, item);
                   getIt<FavoritesManager>().save();

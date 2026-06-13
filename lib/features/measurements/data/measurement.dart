@@ -66,7 +66,7 @@ class Measurement {
     );
   }
 
-  double? get_valueByDimension(int dimension) {
+  double? getValueByDimension(int dimension) {
     return values.where((val) => val.dimension == dimension).firstOrNull?.value;
   }
 }

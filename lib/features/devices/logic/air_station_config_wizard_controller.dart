@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:bluetooth_enable/bluetooth_enable.dart';
 import 'package:collection_providers/collection_providers.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:get_storage/get_storage.dart';
@@ -32,7 +31,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
     debugBleStatus = null;
   }
 
-  Position current_position = Position(
+  Position currentPosition = Position(
     latitude: 0.0,
     longitude: 0.0,
     timestamp: DateTime.now(),
@@ -591,7 +590,9 @@ class AirStationConfigWizardController extends ChangeNotifier {
   // Method to fetch current location
   Future<void> getCurrentLocation() async {
     if(await Permission.location.request() == PermissionStatus.granted){
-      current_position = await Geolocator.getCurrentPosition();
+      currentPosition = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
     }
   }
 }

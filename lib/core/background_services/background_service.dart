@@ -69,7 +69,11 @@ abstract class BackgroundService {
       logger.d('Attempting to find position');
       try {
         position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high, timeLimit: const Duration(seconds: 10));
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 10),
+          ),
+        );
         logger.d('Got position: $position');
       } catch (e) {
         logger.e('Failed to get current location: $e');

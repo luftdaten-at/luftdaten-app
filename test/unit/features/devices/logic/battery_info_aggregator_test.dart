@@ -36,7 +36,7 @@ void main() {
     GetIt.instance.reset();
   });
 
-  BleDevice _connectedDevice() {
+  BleDevice connectedDevice() {
     final device = BleDevice(
       model: LDDeviceModel.aRound,
       bleName: 'Luftdaten.at-X-1',
@@ -50,7 +50,7 @@ void main() {
 
   group('BatteryInfoAggregator', () {
     test('syncFromConnectedDevices picks reportable battery on connected device', () {
-      final device = _connectedDevice();
+      final device = connectedDevice();
       final details = BatteryDetails.fromBytes([1, 75, 37]);
       device.batteryDetails = details;
 
@@ -60,7 +60,7 @@ void main() {
     });
 
     test('show is false for faulty battery on connected device', () {
-      final device = _connectedDevice();
+      final device = connectedDevice();
       device.batteryDetails = BatteryDetails.fromBytes([0, 0, 0]);
 
       expect(aggregator.show, isFalse);
@@ -68,7 +68,7 @@ void main() {
     });
 
     test('show is false when no device connected', () {
-      final device = _connectedDevice();
+      final device = connectedDevice();
       device.batteryDetails = BatteryDetails.fromBytes([1, 75, 37]);
       expect(aggregator.show, isTrue);
 
@@ -80,7 +80,7 @@ void main() {
     });
 
     test('prefers first connected device with reportable battery', () {
-      final d1 = _connectedDevice();
+      final d1 = connectedDevice();
       d1.batteryDetails = BatteryDetails.fromBytes([0, 0, 0]);
 
       final d2 = BleDevice(

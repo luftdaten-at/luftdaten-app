@@ -312,7 +312,7 @@ Future<bool?> showLDDialog(
   );
 }
 
-AppBar LDAppBar(BuildContext context, String title) {
+AppBar ldAppBar(BuildContext context, String title) {
   return AppBar(
     iconTheme: const IconThemeData(color: Colors.white),
     title: Column(

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:luftdaten.at/core/config/app_settings.dart';
 import 'package:luftdaten.at/core/core.dart';

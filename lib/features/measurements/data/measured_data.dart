@@ -617,7 +617,6 @@ class FlattenedDataPoint extends SensorDataPoint {
         if (mode != null) 'mode': mode!.name,
       };
 
-  @override
   FlattenedDataPoint.fromJson(Map<String, dynamic> json)
       : pm1 = json['pm1'],
         pm25 = json['pm25'],

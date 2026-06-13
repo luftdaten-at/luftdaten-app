@@ -68,8 +68,14 @@ class _LDAppState extends State<LDApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion(
-      value: SystemUiOverlayStyle.dark,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
       child: MultiProvider(
         providers: [
           ChangeNotifierProvider.value(value: getIt<DeviceManager>()),

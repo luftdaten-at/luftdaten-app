@@ -93,6 +93,16 @@ class _MapPageState extends State<MapPage>
     return inset + 8;
   }
 
+  EdgeInsets _mapOverlayPadding(BuildContext context, {double base = 20}) {
+    final viewPadding = MediaQuery.viewPaddingOf(context);
+    return EdgeInsets.fromLTRB(
+      base + viewPadding.left,
+      base + viewPadding.top,
+      base + viewPadding.right,
+      base + viewPadding.bottom,
+    );
+  }
+
   /// Stable TileLayer to avoid rebuild-driven connection churn (reduces tile load errors).
   /// Use tile.openstreetmap.org without subdomains (OSM recommends this; see operations#737).
   static final TileLayer _osmTileLayer = TileLayer(
@@ -118,7 +128,7 @@ class _MapPageState extends State<MapPage>
   }
 
   bool measurementHasDisplayedValue(Measurement m) {
-    final v = m.get_valueByDimension(mapDisplayType);
+    final v = m.getValueByDimension(mapDisplayType);
     return v != null && !v.isNaN;
   }
 
@@ -263,7 +273,7 @@ class _MapPageState extends State<MapPage>
                     xValueMapper: (DataItem item, _) => item.timestamp!,
                     yValueMapper: (DataItem item, _) =>
                         item.valueForDimension(chartDimension)!,
-                    name: enums.Dimension.get_name(chartDimension),
+                    name: enums.Dimension.getName(chartDimension),
                     pointColorMapper: (DataItem item, _) =>
                         enums.Dimension.getColor(
                           chartDimension,
@@ -351,7 +361,9 @@ class _MapPageState extends State<MapPage>
   }
 
   void updateGPS({double newZoom = 0.0}) async {
-    var position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    var position = await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+    );
     logger.d("Position: $position, ${_controller.mapController.camera.center}");
     _controller.animateTo(dest: LatLng(position.latitude, position.longitude), zoom: 17);
   }
@@ -403,7 +415,7 @@ class _MapPageState extends State<MapPage>
                               padding: EdgeInsets.zero,
                               icon: Builder(builder: (context) {
                                 double value =
-                                    e.get_valueByDimension(mapDisplayType)!;
+                                    e.getValueByDimension(mapDisplayType)!;
                                 Color color =
                                     enums.Dimension.getColor(mapDisplayType, value) as Color;
                                 return Container(
@@ -435,7 +447,7 @@ class _MapPageState extends State<MapPage>
                       int count = 0;
                       for (Marker marker in markers) {
                         Measurement measurement = (marker as ValueMarker).value as Measurement;
-                        double? value = measurement.get_valueByDimension(mapDisplayType);
+                        double? value = measurement.getValueByDimension(mapDisplayType);
                         if (value != null && !value.isNaN) {
                           acc += value;
                           count++;
@@ -499,10 +511,11 @@ class _MapPageState extends State<MapPage>
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
               padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: _bottomOffsetAboveLegend(whenNoLegend: 20),
+                left: 20 + MediaQuery.viewPaddingOf(context).left,
+                right: 20 + MediaQuery.viewPaddingOf(context).right,
+                top: 20 + MediaQuery.viewPaddingOf(context).top,
+                bottom: _bottomOffsetAboveLegend(whenNoLegend: 20) +
+                    MediaQuery.viewPaddingOf(context).bottom,
               ),
               child: ChangeNotifierBuilder(
                   notifier: AppSettings.I,
@@ -600,7 +613,7 @@ class _MapPageState extends State<MapPage>
                   return Align(
                     alignment: Alignment.topRight,
                     child: Padding(
-                      padding: const EdgeInsets.all(20),
+                      padding: _mapOverlayPadding(context),
                       child: PopupMenuButton<int>(
                         itemBuilder: (context) => [
                           const PopupMenuItem<int>(
@@ -643,7 +656,7 @@ class _MapPageState extends State<MapPage>
                             width: 44,
                             child: Center(
                               child: Text(
-                                enums.Dimension.get_name(mapDisplayType),
+                                enums.Dimension.getName(mapDisplayType),
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.nunitoSans(
                                   fontSize: 11,
@@ -681,7 +694,7 @@ class _MapPageState extends State<MapPage>
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
               padding: EdgeInsets.only(
-                bottom: _bottomOffsetAboveLegend(),
+                bottom: _bottomOffsetAboveLegend() + MediaQuery.viewPaddingOf(context).bottom,
               ),
               child: StartButton(page: 'map', updateGPSCallback: () => updateGPS(newZoom: 17)),
             ),
@@ -689,7 +702,7 @@ class _MapPageState extends State<MapPage>
           Align(
             alignment: Alignment.topLeft,
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: _mapOverlayPadding(context),
               child: IconButton.filled(
                 style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(Colors.white),

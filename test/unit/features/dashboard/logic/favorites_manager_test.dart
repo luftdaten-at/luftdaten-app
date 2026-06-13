@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/features/dashboard/logic/favorites_manager.dart';
 
 void main() {

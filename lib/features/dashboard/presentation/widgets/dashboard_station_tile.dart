@@ -41,17 +41,17 @@ class _DashboardStationTileState extends State<DashboardStationTile> {
      * Otherwise favorite != null and device id can be retrieved from there
      */
     
-    String device_id = "";
+    String deviceId = "";
     if(widget.device != null){
       // TODO find better Method of getting the Device ID if AirStationConfig is null
       String backupDeviceId = '${widget.device!.bleName.split("-")[1]}AAA';
-      device_id = AirStationConfigManager.getConfig(widget.device!.bleName)?.deviceId ?? backupDeviceId;
+      deviceId = AirStationConfigManager.getConfig(widget.device!.bleName)?.deviceId ?? backupDeviceId;
     }else{
-      device_id = widget.favorite!.id;
+      deviceId = widget.favorite!.id;
     }
 
     provider = SingleStationHttpProvider(
-      device_id,
+      deviceId,
     );
     super.initState();
   }

@@ -76,7 +76,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(appBar: LDAppBar(context, "Umgebungsdaten"), body: Center(child: Text(error)));
+    return Scaffold(appBar: ldAppBar(context, "Umgebungsdaten"), body: Center(child: Text(error)));
   }
 }
 
@@ -129,7 +129,7 @@ class _Register1PageState extends State<Register1Page> {
     double width = MediaQuery.sizeOf(context).width;
 
     return Scaffold(
-      appBar: LDAppBar(context, "Umgebungsdaten"),
+      appBar: ldAppBar(context, "Umgebungsdaten"),
       body: Container(
         color: Colors.grey[200],
         height: height,
@@ -271,7 +271,7 @@ class _Register2PageState extends State<Register2Page> {
     print(
         "Got regData: ${widget.data} - ${widget.data.geolocation?.x}, ${widget.data.geolocation?.y}");
     return Scaffold(
-      appBar: LDAppBar(context, "E-Mail & Datenschutz"),
+      appBar: ldAppBar(context, "E-Mail & Datenschutz"),
       body: Container(
           color: Colors.grey[200],
           height: height,
@@ -406,7 +406,7 @@ class _Register3PageState extends State<Register3Page> {
     double width = MediaQuery.sizeOf(context).width;
 
     return Scaffold(
-      appBar: LDAppBar(context, "sensor.community"),
+      appBar: ldAppBar(context, "sensor.community"),
       body: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -591,7 +591,7 @@ class _Register4PageState extends State<Register4Page> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: LDAppBar(context, "Registrierung"),
+      appBar: ldAppBar(context, "Registrierung"),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

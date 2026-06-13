@@ -56,8 +56,8 @@ class _BLESerialPageState extends State<BLESerialPage> {
                 modified = true;
               }
             }
-          } catch (_, __) {
-            debugPrint("Exception: $_ / $__");
+          } catch (error, stackTrace) {
+            debugPrint("Exception: $error / $stackTrace");
           }
         });
         if (modified) {

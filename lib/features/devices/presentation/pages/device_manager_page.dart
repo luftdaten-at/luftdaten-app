@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:native_qr/native_qr.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -362,14 +362,24 @@ class QRCodePage extends StatefulWidget {
 
 class _QRCodePageState extends State<QRCodePage> {
   bool missingCameraPermission = false;
+  bool _handled = false;
+  final MobileScannerController _scannerController = MobileScannerController(
+    formats: const [BarcodeFormat.qrCode],
+  );
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _initAndLaunchScanner());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initScanner());
   }
 
-  Future<void> _initAndLaunchScanner() async {
+  @override
+  void dispose() {
+    _scannerController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initScanner() async {
     final status = await Permission.camera.status;
     if (!status.isGranted) {
       final result = await Permission.camera.request();
@@ -378,24 +388,17 @@ class _QRCodePageState extends State<QRCodePage> {
         return;
       }
     }
-    if (!mounted) return;
-    await _scanQrCode();
+    if (mounted) setState(() {});
   }
 
-  Future<void> _scanQrCode() async {
-    try {
-      final nativeQr = NativeQr();
-      final result = await nativeQr.get();
-      if (!mounted) return;
-      final dev = getIt<DeviceManager>().addDeviceByCode(result);
-      if (dev != null) {
-        Navigator.of(context).pop(dev);
-      } else {
-        Navigator.of(context).pop();
-      }
-    } catch (err) {
-      if (mounted) Navigator.of(context).pop();
-    }
+  void _onDetect(BarcodeCapture capture) {
+    if (_handled) return;
+    final raw = capture.barcodes.firstOrNull?.rawValue;
+    if (raw == null || raw.isEmpty) return;
+    _handled = true;
+    final dev = getIt<DeviceManager>().addDeviceByCode(raw);
+    if (!mounted) return;
+    Navigator.of(context).pop(dev);
   }
 
   @override
@@ -434,15 +437,29 @@ class _QRCodePageState extends State<QRCodePage> {
                   ),
                 ),
               )
-            : Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 24),
-                    Text('QR-Code Scannen'.i18n, style: Theme.of(context).textTheme.titleMedium),
-                  ],
-                ),
+            : Stack(
+                fit: StackFit.expand,
+                children: [
+                  MobileScanner(
+                    controller: _scannerController,
+                    onDetect: _onDetect,
+                  ),
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'QR-Code Scannen'.i18n,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: Colors.white,
+                                shadows: const [Shadow(blurRadius: 4, color: Colors.black54)],
+                              ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
       ),
     );
@@ -567,17 +584,17 @@ class _QRCodeManualEntryPageState extends State<QRCodeManualEntryPage> {
                                 }
                               : null,
                           style: ButtonStyle(
-                            backgroundColor: MaterialStateProperty.resolveWith(
+                            backgroundColor: WidgetStateProperty.resolveWith(
                               (state) {
-                                if (state.contains(MaterialState.disabled)) {
+                                if (state.contains(WidgetState.disabled)) {
                                   return Colors.grey;
                                 }
                                 return Theme.of(context).primaryColor;
                               },
                             ),
-                            foregroundColor: MaterialStateProperty.resolveWith(
+                            foregroundColor: WidgetStateProperty.resolveWith(
                               (state) {
-                                if (state.contains(MaterialState.disabled)) {
+                                if (state.contains(WidgetState.disabled)) {
                                   return Colors.grey.shade200;
                                 }
                                 return Colors.white;
@@ -767,7 +784,7 @@ class _DeviceConfigDialogState extends State<DeviceConfigDialog> {
               getIt<DeviceManager>().notifyListeners();
             },
             style: ButtonStyle(
-              backgroundColor: MaterialStateProperty.all(Theme.of(context).primaryColor),
+              backgroundColor: WidgetStateProperty.all(Theme.of(context).primaryColor),
             ),
             child: Text(
               'Speichern'.i18n,
@@ -834,7 +851,7 @@ class _AirStationRenamingDialogState extends State<AirStationRenamingDialog> {
               getIt<DeviceManager>().notifyListeners();
             },
             style: ButtonStyle(
-              backgroundColor: MaterialStateProperty.all(Theme.of(context).primaryColor),
+              backgroundColor: WidgetStateProperty.all(Theme.of(context).primaryColor),
             ),
             child: Text(
               'Speichern'.i18n,

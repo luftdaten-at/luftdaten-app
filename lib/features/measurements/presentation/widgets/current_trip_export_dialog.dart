@@ -71,9 +71,20 @@ class _CurrentTripExportDialog extends State<CurrentTripExportDialog> {
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            _fileFormatSelectionTile(false),
-            const SizedBox(height: 10),
-            _fileFormatSelectionTile(true),
+            RadioGroup<bool>(
+              groupValue: exportAsCsv,
+              onChanged: (val) {
+                if (val == null) return;
+                setState(() => exportAsCsv = val);
+              },
+              child: Column(
+                children: [
+                  _fileFormatSelectionTile(false),
+                  const SizedBox(height: 10),
+                  _fileFormatSelectionTile(true),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -103,7 +114,7 @@ class _CurrentTripExportDialog extends State<CurrentTripExportDialog> {
               Navigator.pop(context, true);
             },
             style: ButtonStyle(
-              backgroundColor: MaterialStateProperty.all(Theme.of(context).primaryColor),
+              backgroundColor: WidgetStateProperty.all(Theme.of(context).primaryColor),
             ),
             child: Text(
               'Teilen'.i18n,
@@ -252,14 +263,6 @@ class _CurrentTripExportDialog extends State<CurrentTripExportDialog> {
           children: [
             Radio(
               value: csv,
-              groupValue: exportAsCsv,
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() {
-                    exportAsCsv = val;
-                  });
-                }
-              },
             ),
             Expanded(
               child: Column(

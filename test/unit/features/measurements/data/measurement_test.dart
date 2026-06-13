@@ -41,15 +41,15 @@ void main() {
       expect(m.deviceId, 'device-123');
     });
 
-    test('get_valueByDimension returns value for matching dimension', () {
+    test('getValueByDimension returns value for matching dimension', () {
       final m = Measurement(
         Location(0, 0, null),
         [Values(Dimension.PM2_5, 15.0)],
         'dev',
         null,
       );
-      expect(m.get_valueByDimension(Dimension.PM2_5), 15.0);
-      expect(m.get_valueByDimension(Dimension.TEMPERATURE), isNull);
+      expect(m.getValueByDimension(Dimension.PM2_5), 15.0);
+      expect(m.getValueByDimension(Dimension.TEMPERATURE), isNull);
     });
   });
 }
