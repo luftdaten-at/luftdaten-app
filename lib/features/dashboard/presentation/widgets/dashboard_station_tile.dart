@@ -7,6 +7,7 @@ import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/ble_device_notices_banner.dart';
 import 'package:luftdaten.at/features/map/presentation/pages/station_details_page.dart';
+import 'package:luftdaten.at/features/map/presentation/widgets/station_display_name.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 import 'dashboard_station_tile.i18n.dart';
 import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
@@ -30,6 +31,7 @@ class DashboardStationTile extends StatefulWidget {
 
 class _DashboardStationTileState extends State<DashboardStationTile> {
   late SingleStationHttpProvider provider;
+  late String deviceId;
 
   TextEditingController nameController = TextEditingController();
 
@@ -50,8 +52,10 @@ class _DashboardStationTileState extends State<DashboardStationTile> {
       deviceId = widget.favorite!.id;
     }
 
+    this.deviceId = deviceId;
     provider = SingleStationHttpProvider(
       deviceId,
+      currentOnly: true,
     );
     super.initState();
   }
@@ -101,14 +105,11 @@ class _DashboardStationTileState extends State<DashboardStationTile> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(
-                                    widget.device != null
-                                        ? 'Air Station'.i18n
-                                        : widget.favorite!.name ??
-                                            'Station #%i'.i18n.fill([widget.favorite!.id]),
+                                  StationDisplayName(
+                                    stationId: deviceId,
+                                    localDevice: widget.device,
                                     style: const TextStyle(fontWeight: FontWeight.bold),
                                   ),
-                                  if (widget.device != null) Text(widget.device!.displayName),
                                   if (widget.favorite?.id != null &&
                                       widget.favorite!.locationString !=
                                           null)
@@ -152,71 +153,67 @@ class _DashboardStationTileState extends State<DashboardStationTile> {
   }
 
   Widget _buildStatus() {
-    if (provider.finished) {
-      if (provider.error) {
-        return IconButton(
-          onPressed: () {
-            showLDDialog(
-              context,
-              title: 'Ladefehler'.i18n,
-              icon: Icons.error_outline,
-              text: 'Daten konnten nicht geladen werden. Überprüfe deine Internetverbindung.'.i18n,
-            );
-          },
-          icon: Icon(Icons.error_outline, color: Theme.of(context).colorScheme.primary),
-          tooltip: 'Ladefehler'.i18n,
-        );
-      } else {
-        if (provider.items.firstOrNull?.isEmpty ?? true) {
-          return IconButton(
-            onPressed: () {
-              showLDDialog(
-                context,
-                title: 'Keine Daten'.i18n,
-                icon: Icons.error_outline,
-                text:
-                    'Von dieser Station sind keine Daten verfügbar. Wenn du die Station zum ersten Mal verwendest, kann es einige Minuten dauern, bis Daten eintreffen.'
-                        .i18n,
-                actions: [
-                  LDDialogAction(
-                      label: 'Neu suchen'.i18n,
-                      filled: false,
-                      onTap: () {
-                        provider.refetch();
-                      }),
-                  LDDialogAction(label: 'Schließen'.i18n, filled: true),
-                ],
-              );
-            },
-            tooltip: 'Keine Daten'.i18n,
-            icon: Icon(Icons.error_outline, color: Theme.of(context).colorScheme.primary),
+    if (!provider.currentReady) {
+      return SpinKitDualRing(
+        color: Theme.of(context).primaryColor,
+        size: 20,
+        lineWidth: 2,
+      );
+    }
+    if (provider.currentError) {
+      return IconButton(
+        onPressed: () {
+          showLDDialog(
+            context,
+            title: 'Ladefehler'.i18n,
+            icon: Icons.error_outline,
+            text: 'Daten konnten nicht geladen werden. Überprüfe deine Internetverbindung.'.i18n,
           );
-        } else {
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('PM2.5', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text(provider.items[0].last.pm25?.toStringAsFixed(1) ?? "nan"),
+        },
+        icon: Icon(Icons.error_outline, color: Theme.of(context).colorScheme.primary),
+        tooltip: 'Ladefehler'.i18n,
+      );
+    }
+    if (provider.currentReading?.pm25 == null) {
+      return IconButton(
+        onPressed: () {
+          showLDDialog(
+            context,
+            title: 'Keine Daten'.i18n,
+            icon: Icons.error_outline,
+            text:
+                'Von dieser Station sind keine Daten verfügbar. Wenn du die Station zum ersten Mal verwendest, kann es einige Minuten dauern, bis Daten eintreffen.'
+                    .i18n,
+            actions: [
+              LDDialogAction(
+                  label: 'Neu suchen'.i18n,
+                  filled: false,
+                  onTap: () {
+                    provider.refetch();
+                  }),
+              LDDialogAction(label: 'Schließen'.i18n, filled: true),
             ],
           );
-        }
-      }
+        },
+        tooltip: 'Keine Daten'.i18n,
+        icon: Icon(Icons.error_outline, color: Theme.of(context).colorScheme.primary),
+      );
     }
-    return SpinKitDualRing(
-      color: Theme.of(context).primaryColor,
-      size: 20,
-      lineWidth: 2,
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text('PM2.5', style: TextStyle(fontWeight: FontWeight.bold)),
+        Text(provider.currentReading!.pm25!.toStringAsFixed(1)),
+      ],
     );
   }
 
   Color _getColor() {
-    if (provider.finished && !provider.error) {
-      if (provider.items[0].lastOrNull?.pm25 != null) {
-        double pm25 = provider.items[0].last.pm25 ?? 0;
-        if (pm25 < 5) return Colors.green.shade50;
-        if (pm25 < 15) return Colors.orange.shade50;
-        return Colors.red.shade50;
-      }
+    final pm25 = provider.currentReading?.pm25;
+    if (provider.currentReady && !provider.currentError && pm25 != null) {
+      if (pm25 < 5) return Colors.green.shade50;
+      if (pm25 < 15) return Colors.orange.shade50;
+      return Colors.red.shade50;
     }
     return Theme.of(context).colorScheme.primaryContainer;
   }

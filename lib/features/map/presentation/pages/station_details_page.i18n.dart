@@ -3,10 +3,6 @@ import 'package:i18n_extension/i18n_extension.dart';
 extension Localization on String {
   static final _t = Translations.byText("de") +
       {
-        "de": "Station #%s",
-        "en": "Station #%s",
-      } +
-      {
         "de": "Synchronisieren",
         "en": "Sync",
       } +
@@ -43,10 +39,6 @@ extension Localization on String {
         "en": "Concentration (μg/m³)",
       } +
       {
-        "de": "Durchschnittswerte der letzten 7 Tage (μg/m³):",
-        "en": "Means for the past 7 days (μg/m³):",
-      } +
-      {
         "de": "Richtwerte der WHO (μg/m³, 24h-Mittel):",
         "en": "WHO guidelines (μg/m³, 24h mean):",
       } +
@@ -59,22 +51,6 @@ extension Localization on String {
         "en": "PM10 guidelines exceeded on %s days/week.",
       } +
       {
-        "de": "Richtwerte der WHO (μg/m³, Jahresmittel):",
-        "en": "WHO guidelines (μg/m³, annual mean):",
-      } +
-      {
-        "de": "Aktuelle Messwerte (μg/m³):",
-        "en": "Most recent measurements (μg/m³):",
-      } +
-      {
-        "de": "Gemessen",
-        "en": "Measured at",
-      } +
-      {
-        "de": "(vor %s)",
-        "en": "(%s ago)",
-      } +
-      {
         "de": "Innerhalb des Richtwerts",
         "en": "Within guidelines",
       } +
@@ -85,6 +61,34 @@ extension Localization on String {
       {
         "de": "Richtwert anzeigen",
         "en": "Show guidelines",
+      } +
+      {
+        "de": "Temperatur & Luftfeuchtigkeit",
+        "en": "Temperature & humidity",
+      } +
+      {
+        "de": "Temperatur",
+        "en": "Temperature",
+      } +
+      {
+        "de": "Relative Luftfeuchtigkeit",
+        "en": "Relative humidity",
+      } +
+      {
+        "de": "Luftdruck",
+        "en": "Air pressure",
+      } +
+      {
+        "de": "°C",
+        "en": "°C",
+      } +
+      {
+        "de": "%",
+        "en": "%",
+      } +
+      {
+        "de": "hPa",
+        "en": "hPa",
       };
 
   String get i18n => localize(this, _t);

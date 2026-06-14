@@ -44,12 +44,35 @@ class HttpProvider with ChangeNotifier {
 }
 
 class DataItem {
-  DataItem(this.pm1, this.pm25, this.pm10, [this.timestamp]);
+  DataItem(
+    this.pm1,
+    this.pm25,
+    this.pm10, [
+    this.timestamp,
+    this.temperature,
+    this.humidity,
+    this.pressure,
+  ]);
+
+  factory DataItem.fromDimensionMap(Map<int, double> dims, DateTime timestamp) {
+    return DataItem(
+      dims[Dimension.PM1_0],
+      dims[Dimension.PM2_5],
+      dims[Dimension.PM10_0],
+      timestamp,
+      dims[Dimension.TEMPERATURE],
+      dims[Dimension.HUMIDITY],
+      dims[Dimension.PRESSURE],
+    );
+  }
 
   DateTime? timestamp;
   double? pm1;
   double? pm25;
   double? pm10;
+  double? temperature;
+  double? humidity;
+  double? pressure;
 
   double? valueForDimension(int dimensionId) {
     switch (dimensionId) {
@@ -59,6 +82,12 @@ class DataItem {
         return pm25;
       case Dimension.PM10_0:
         return pm10;
+      case Dimension.TEMPERATURE:
+        return temperature;
+      case Dimension.HUMIDITY:
+        return humidity;
+      case Dimension.PRESSURE:
+        return pressure;
       default:
         return null;
     }
@@ -66,7 +95,7 @@ class DataItem {
 
   @override
   String toString() {
-    return 'LDItem($timestamp, $pm1, $pm25, $pm10)';
+    return 'LDItem($timestamp, $pm1, $pm25, $pm10, $temperature, $humidity, $pressure)';
   }
 }
 
@@ -242,15 +271,28 @@ class SingleStationHttpProvider extends HttpProvider {
   bool finished = false;
   bool error = false;
 
-  //SingleStationHttpProvider._(this.sid, [this.isAirStation = false]);
+  /// Latest reading from `/v1/station/current` (dashboard tiles).
+  DataItem? currentReading;
+  bool currentReady = false;
+  bool currentError = false;
+  bool historicalLoaded = false;
+
   SingleStationHttpProvider._(this.deviceId);
 
-  factory SingleStationHttpProvider(String deviceId) {
+  factory SingleStationHttpProvider(String deviceId, {bool currentOnly = false}) {
     if (_providers[deviceId] != null) {
-      return _providers[deviceId]!;
+      final provider = _providers[deviceId]!;
+      if (!currentOnly && !provider.historicalLoaded) {
+        provider.ensureHistoricalLoaded();
+      }
+      return provider;
     } else {
       SingleStationHttpProvider provider = SingleStationHttpProvider._(deviceId);
-      provider._fetch();
+      if (currentOnly) {
+        provider.fetchCurrent();
+      } else {
+        provider._fetch();
+      }
       _providers[deviceId] = provider;
       return provider;
     }
@@ -258,8 +300,85 @@ class SingleStationHttpProvider extends HttpProvider {
 
   static final Map<String, SingleStationHttpProvider> _providers = {};
 
-  Future<void> refetch() async {
+  static Uri currentSnapshotUri(String deviceId) {
+    return Uri.https(
+      'api.luftdaten.at',
+      '/v1/station/current',
+      <String, String>{
+        'station_ids': deviceId,
+        'last_active': '3600',
+        'output_format': 'geojson',
+        'calibration_data': 'false',
+      },
+    );
+  }
+
+  static DataItem? dataItemFromCurrentFeature(Map<String, dynamic> feature) {
+    final measurement = MapHttpProvider.measurementFromStationCurrentGeoFeature(feature);
+    if (measurement == null) return null;
+    return DataItem(
+      measurement.getValueByDimension(Dimension.PM1_0),
+      measurement.getValueByDimension(Dimension.PM2_5),
+      measurement.getValueByDimension(Dimension.PM10_0),
+      measurement.time,
+      measurement.getValueByDimension(Dimension.TEMPERATURE),
+      measurement.getValueByDimension(Dimension.HUMIDITY),
+      measurement.getValueByDimension(Dimension.PRESSURE),
+    );
+  }
+
+  Future<void> fetchCurrent() async {
+    currentReady = false;
+    currentError = false;
+    currentReading = null;
+    notifyListeners();
+    try {
+      final response = await http.get(currentSnapshotUri(deviceId), headers: httpHeaders);
+      if (response.statusCode != 200) {
+        logger.d('SingleStationHttpProvider: current failed for $deviceId: ${response.statusCode}');
+        currentError = true;
+        return;
+      }
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map) {
+        currentError = true;
+        return;
+      }
+      final features = decoded['features'];
+      if (features is! List) {
+        currentError = true;
+        return;
+      }
+      for (final rawFeature in features) {
+        if (rawFeature is! Map) continue;
+        final feature = Map<String, dynamic>.from(rawFeature);
+        final measurement = MapHttpProvider.measurementFromStationCurrentGeoFeature(feature);
+        if (measurement == null || measurement.deviceId != deviceId) continue;
+        currentReading = dataItemFromCurrentFeature(feature);
+        logger.d('SingleStationHttpProvider: current PM2.5=${currentReading?.pm25} for $deviceId');
+        return;
+      }
+      logger.d('SingleStationHttpProvider: no current feature for $deviceId');
+    } catch (e, st) {
+      logger.d('SingleStationHttpProvider: current error for $deviceId: $e $st');
+      currentError = true;
+    } finally {
+      currentReady = true;
+      notifyListeners();
+    }
+  }
+
+  Future<void> ensureHistoricalLoaded() async {
+    if (historicalLoaded) return;
     await _fetch();
+  }
+
+  Future<void> refetch() async {
+    if (historicalLoaded) {
+      await _fetch();
+    } else {
+      await fetchCurrent();
+    }
   }
 
   void _resetSliceState() {
@@ -288,6 +407,7 @@ class SingleStationHttpProvider extends HttpProvider {
     ]);
 
     finished = true;
+    historicalLoaded = true;
     logger.d('Fetch done for $deviceId.');
     notifyListeners();
   }
@@ -353,14 +473,7 @@ class SingleStationHttpProvider extends HttpProvider {
     }
 
     return data.entries
-        .map(
-          (entry) => DataItem(
-            entry.value[Dimension.PM1_0],
-            entry.value[Dimension.PM2_5],
-            entry.value[Dimension.PM10_0],
-            entry.key,
-          ),
-        )
+        .map((entry) => DataItem.fromDimensionMap(entry.value, entry.key))
         .toList();
   }
 
@@ -418,13 +531,7 @@ class SingleStationHttpProvider extends HttpProvider {
       }
 
       for (var entry in data.entries) {
-        DataItem item = DataItem(
-          entry.value[Dimension.PM1_0] ?? 0,
-          entry.value[Dimension.PM2_5] ?? 0,
-          entry.value[Dimension.PM10_0] ?? 0,
-          entry.key,
-        );
-        items[index].add(item);
+        items[index].add(DataItem.fromDimensionMap(entry.value, entry.key));
       }
       logger.d('Added ${items[index].length} entries for $deviceId ($index)');
     } else {

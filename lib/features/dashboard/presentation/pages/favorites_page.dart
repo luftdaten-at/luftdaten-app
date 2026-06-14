@@ -3,6 +3,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:luftdaten.at/features/dashboard/logic/favorites_manager.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/features/map/presentation/pages/station_details_page.dart';
+import 'package:luftdaten.at/features/map/presentation/widgets/station_display_name.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
 
@@ -130,8 +131,8 @@ class _FavoritesPageState extends State<FavoritesPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          'Station #%s'.i18n.fill([favorite.id]),
+                        StationDisplayName(
+                          stationId: favorite.id,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         if (favorite.locationString != null) Text(favorite.locationString!)

@@ -27,7 +27,7 @@ class _DeviceConnectButtonState extends State<DeviceConnectButton> {
       case BleDeviceState.notFound:
       case BleDeviceState.unknown:
         return FilledButton(
-          onPressed: () => widget.device.connect(),
+          onPressed: widget.onSelected != null ? _connectAndSelect : () => widget.device.connect(),
           child: Text('Verbinden'.i18n),
         );
       case BleDeviceState.connecting:
@@ -57,13 +57,16 @@ class _DeviceConnectButtonState extends State<DeviceConnectButton> {
         );
       case BleDeviceState.error:
         return FilledButton(
-          onPressed: null,
-          style: ButtonStyle(
-            backgroundColor: WidgetStateProperty.all(Colors.grey.shade300),
-          ),
+          onPressed: widget.onSelected != null ? _connectAndSelect : () => widget.device.connect(),
           child: Text('Verbinden'.i18n),
         );
     }
+  }
+
+  Future<void> _connectAndSelect() async {
+    final success = await widget.device.connect();
+    if (!mounted || !success || widget.onSelected == null) return;
+    widget.onSelected!(widget.device);
   }
 
   void setStateCallback() => setState(() {});

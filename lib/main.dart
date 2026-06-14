@@ -39,6 +39,7 @@ import 'package:luftdaten.at/features/devices/logic/ble_controller.dart';
 import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
 import 'package:luftdaten.at/features/dashboard/logic/favorites_manager.dart';
 import 'package:luftdaten.at/features/map/logic/http_provider.dart';
+import 'package:luftdaten.at/features/map/logic/station_name_resolver.dart';
 import 'package:luftdaten.at/features/measurements/logic/file_handler.dart';
 import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
 import 'package:luftdaten.at/features/measurements/logic/workshop_controller.dart';
@@ -98,6 +99,7 @@ void main() async {
     getIt.registerSingleton<TripController>(TripController()..init());
     getIt.registerSingleton<BackgroundService>(BackgroundService.forPlatform()..init());
     getIt.registerSingleton<MapHttpProvider>(MapHttpProvider()..fetch());
+    getIt.registerSingleton<StationNameResolver>(StationNameResolver());
     getIt.registerSingleton<BleController>(BleController());
     getIt.registerSingleton<FileHandler>(FileHandler()..init());
     getIt.registerSingleton<FavoritesManager>(FavoritesManager()..init());
