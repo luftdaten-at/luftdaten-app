@@ -36,6 +36,9 @@ void main() {
 
     expect(find.byKey(const Key('map-legend-color-segment')), findsNWidgets(6));
     expect(find.byKey(const Key('map-legend-expanded-content')), findsNothing);
+    expect(find.text('Gut'), findsOneWidget);
+    expect(find.text('Extrem schlecht'), findsOneWidget);
+    expect(find.textContaining('µg/m³'), findsNothing);
   });
 
   testWidgets('tap expands and shows Eu-AQI title', (tester) async {
@@ -47,6 +50,27 @@ void main() {
 
     expect(find.byKey(const Key('map-legend-expanded-content')), findsOneWidget);
     expect(find.textContaining('Eu‑Luftqualitätsindex'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('map-legend-expanded-content')),
+        matching: find.text('Gut: ≤ 5 µg/m³'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('map-legend-expanded-content')),
+        matching: find.textContaining('Zufriedenstellend:'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('map-legend-expanded-content')),
+        matching: find.textContaining('Extrem schlecht:'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('tap again collapses expanded legend', (tester) async {

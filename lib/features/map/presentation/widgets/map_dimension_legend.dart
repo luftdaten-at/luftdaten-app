@@ -10,6 +10,15 @@ import 'package:luftdaten.at/features/map/presentation/pages/map_page.i18n.dart'
 class MapDimensionLegendData {
   MapDimensionLegendData._();
 
+  static const _euPmCategoryNames = [
+    'Gut',
+    'Zufriedenstellend',
+    'Mäßig',
+    'Schlecht',
+    'Sehr schlecht',
+    'Extrem schlecht',
+  ];
+
   static String formatNum(num n) {
     final d = n.toDouble();
     if (d % 1 == 0) {
@@ -57,23 +66,30 @@ class MapDimensionLegendData {
       return [];
     }
 
-    return [
-      (
-        colors[0],
-        '≤ %s µg/m³'.i18n.fill([formatNum(uppers[0])]),
-      ),
+    final rangeLabels = <String>[
+      '≤ %s µg/m³'.i18n.fill([formatNum(uppers[0])]),
       for (var i = 1; i < 5; i++)
+        '> %s – ≤ %s µg/m³'
+            .i18n
+            .fill([formatNum(uppers[i - 1]), formatNum(uppers[i])]),
+      '> %s µg/m³'.i18n.fill([formatNum(uppers[4])]),
+    ];
+
+    return [
+      for (var i = 0; i < 6; i++)
         (
           colors[i],
-          '> %s – ≤ %s µg/m³'
-              .i18n
-              .fill([formatNum(uppers[i - 1]), formatNum(uppers[i])]),
+          '%s: %s'.i18n.fill([_euPmCategoryNames[i].i18n, rangeLabels[i]]),
         ),
-      (
-        colors[5],
-        '> %s µg/m³'.i18n.fill([formatNum(uppers[4])]),
-      ),
     ];
+  }
+
+  /// Lowest and highest Eu‑AQI category names for the collapsed colour strip (no concentration values).
+  static (String lowest, String highest)? pmCollapsedEndpointNames(int dimensionId) {
+    if (!_hasPmLegend(dimensionId)) {
+      return null;
+    }
+    return (_euPmCategoryNames.first.i18n, _euPmCategoryNames.last.i18n);
   }
 
   static List<(Color color, String label)> temperatureBandLabels() {
@@ -115,6 +131,7 @@ class MapDimensionLegendStrip extends StatelessWidget {
     final labelStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
           fontWeight: FontWeight.w600,
         );
+    final pmEndpoints = MapDimensionLegendData.pmCollapsedEndpointNames(dimensionId);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -136,21 +153,31 @@ class MapDimensionLegendStrip extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(10, 2, 10, 0),
-          child: Row(
-            children: [
-              Text('Gut'.i18n, style: labelStyle),
-              Expanded(
-                child: Center(
+          child: pmEndpoints != null
+              ? Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(pmEndpoints.$1, style: labelStyle),
+                        Text(pmEndpoints.$2, style: labelStyle),
+                      ],
+                    ),
+                    Icon(
+                      expanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                )
+              : Center(
                   child: Icon(
                     expanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
                     size: 20,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
-              ),
-              Text('Schlecht'.i18n, style: labelStyle),
-            ],
-          ),
         ),
       ],
     );

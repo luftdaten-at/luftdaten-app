@@ -80,12 +80,26 @@ class _ChartPageState extends State<ChartPage> {
             List<List<_SensorDataPointWithTimestamp>> reshapedData =
                 reshapedDataMap.values.toList();
             final tripSensors = reshapedDataMap.keys.toSet();
+            final trip = provider.primaryTripToDisplay!;
+            final deviceLabel = trip.deviceDisplayName?.trim().isNotEmpty == true
+                ? trip.deviceDisplayName!.trim()
+                : trip.deviceFourLetterCode ?? 'Unbekanntes Gerät'.i18n;
             return ChangeNotifierBuilder(
               notifier: getIt<ChartSeriesPreferences>(),
               builder: (context, chartPrefs) {
                 return SingleChildScrollView(
                   child: Column(
                     children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                        child: Text(
+                          deviceLabel,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                         child: MeasurementValuesPanel(

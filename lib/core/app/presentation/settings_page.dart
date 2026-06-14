@@ -174,7 +174,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 label: 'Löschen'.i18n,
                                 onTap: () {
                                   DeviceManager deviceManager = getIt<DeviceManager>();
-                                  for (BleDevice device in deviceManager.devices) {
+                                  for (final device in List<BleDevice>.from(deviceManager.devices)) {
                                     deviceManager.deleteDevice(device);
                                   }
                                 },

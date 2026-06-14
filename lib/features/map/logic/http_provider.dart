@@ -25,6 +25,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/core/app/device_info.dart';
 import 'package:luftdaten.at/core/domain/dimensions.dart';
@@ -273,9 +274,15 @@ class SingleStationHttpProvider extends HttpProvider {
 
   /// Latest reading from `/v1/station/current` (dashboard tiles).
   DataItem? currentReading;
+  LatLng? currentLocation;
   bool currentReady = false;
   bool currentError = false;
   bool historicalLoaded = false;
+
+  static const Duration dashboardCurrentRefreshInterval = Duration(minutes: 5);
+
+  DateTime? _lastCurrentFetch;
+  bool _refreshingCurrent = false;
 
   SingleStationHttpProvider._(this.deviceId);
 
@@ -327,38 +334,33 @@ class SingleStationHttpProvider extends HttpProvider {
     );
   }
 
+  static LatLng? locationFromCurrentFeature(Map<String, dynamic> feature) {
+    final geomRaw = feature['geometry'];
+    if (geomRaw is! Map) return null;
+    final geom = Map<String, dynamic>.from(geomRaw);
+    if (geom['type'] != 'Point') return null;
+
+    final coords = geom['coordinates'];
+    if (coords is! List || coords.length < 2) return null;
+    final lonNum = coords[0];
+    final latNum = coords[1];
+    if (lonNum is! num || latNum is! num) return null;
+
+    return LatLng(latNum.toDouble(), lonNum.toDouble());
+  }
+
   Future<void> fetchCurrent() async {
     currentReady = false;
     currentError = false;
     currentReading = null;
+    currentLocation = null;
     notifyListeners();
     try {
-      final response = await http.get(currentSnapshotUri(deviceId), headers: httpHeaders);
-      if (response.statusCode != 200) {
-        logger.d('SingleStationHttpProvider: current failed for $deviceId: ${response.statusCode}');
+      if (await _loadCurrentSnapshot()) {
+        _lastCurrentFetch = DateTime.now();
+      } else {
         currentError = true;
-        return;
       }
-      final decoded = jsonDecode(response.body);
-      if (decoded is! Map) {
-        currentError = true;
-        return;
-      }
-      final features = decoded['features'];
-      if (features is! List) {
-        currentError = true;
-        return;
-      }
-      for (final rawFeature in features) {
-        if (rawFeature is! Map) continue;
-        final feature = Map<String, dynamic>.from(rawFeature);
-        final measurement = MapHttpProvider.measurementFromStationCurrentGeoFeature(feature);
-        if (measurement == null || measurement.deviceId != deviceId) continue;
-        currentReading = dataItemFromCurrentFeature(feature);
-        logger.d('SingleStationHttpProvider: current PM2.5=${currentReading?.pm25} for $deviceId');
-        return;
-      }
-      logger.d('SingleStationHttpProvider: no current feature for $deviceId');
     } catch (e, st) {
       logger.d('SingleStationHttpProvider: current error for $deviceId: $e $st');
       currentError = true;
@@ -366,6 +368,62 @@ class SingleStationHttpProvider extends HttpProvider {
       currentReady = true;
       notifyListeners();
     }
+  }
+
+  /// Background refresh for dashboard tiles; keeps existing readings visible and throttles to [dashboardCurrentRefreshInterval].
+  Future<void> refreshCurrentIfStale() async {
+    if (_refreshingCurrent) return;
+    if (_lastCurrentFetch != null &&
+        DateTime.now().difference(_lastCurrentFetch!) < dashboardCurrentRefreshInterval) {
+      return;
+    }
+    _refreshingCurrent = true;
+    final hadData = currentReading != null;
+    try {
+      if (await _loadCurrentSnapshot()) {
+        currentError = false;
+        _lastCurrentFetch = DateTime.now();
+      } else if (!hadData) {
+        currentError = true;
+      }
+    } catch (e, st) {
+      logger.d('SingleStationHttpProvider: refresh current error for $deviceId: $e $st');
+      if (!hadData) {
+        currentError = true;
+      }
+    } finally {
+      _refreshingCurrent = false;
+      currentReady = true;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> _loadCurrentSnapshot() async {
+    final response = await http.get(currentSnapshotUri(deviceId), headers: httpHeaders);
+    if (response.statusCode != 200) {
+      logger.d('SingleStationHttpProvider: current failed for $deviceId: ${response.statusCode}');
+      return false;
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map) {
+      return false;
+    }
+    final features = decoded['features'];
+    if (features is! List) {
+      return false;
+    }
+    for (final rawFeature in features) {
+      if (rawFeature is! Map) continue;
+      final feature = Map<String, dynamic>.from(rawFeature);
+      final measurement = MapHttpProvider.measurementFromStationCurrentGeoFeature(feature);
+      if (measurement == null || measurement.deviceId != deviceId) continue;
+      currentReading = dataItemFromCurrentFeature(feature);
+      currentLocation = locationFromCurrentFeature(feature);
+      logger.d('SingleStationHttpProvider: current PM2.5=${currentReading?.pm25} for $deviceId');
+      return true;
+    }
+    logger.d('SingleStationHttpProvider: no current feature for $deviceId');
+    return false;
   }
 
   Future<void> ensureHistoricalLoaded() async {
@@ -401,7 +459,7 @@ class SingleStationHttpProvider extends HttpProvider {
     logger.d('SingleStationHttpProvider: Fetching data for $deviceId');
     await Future.wait([
       _fetchHourly24hJson(),
-      _runSlice(0, "all"),
+      _runSlice(0, "hour"),
       _runSlice(1, "hour"),
       _runSlice(2, "hour"),
     ]);

@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'package:luftdaten.at/core/config/app_settings.dart';
 import 'package:luftdaten.at/features/devices/logic/mock_ble_devices.dart';
+import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
 
 import '../data/air_station_config.dart';
 import '../data/ble_device.dart';
@@ -136,7 +137,22 @@ class DeviceManager extends ChangeNotifier {
     }
   }
 
+  void _prepareForDeviceRemoval() {
+    if (getIt.isRegistered<TripController>()) {
+      final trips = getIt<TripController>();
+      if (trips.isOngoing) {
+        trips.stopTrip();
+      }
+    }
+    for (final d in devices) {
+      if (d.state == BleDeviceState.connected || d.state == BleDeviceState.connecting) {
+        d.disconnect();
+      }
+    }
+  }
+
   void deleteDevice(BleDevice device) {
+    _prepareForDeviceRemoval();
     devices.remove(device);
     saveDeviceList();
     if (device.model == LDDeviceModel.station) {

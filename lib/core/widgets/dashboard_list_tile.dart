@@ -158,3 +158,31 @@ class DashboardSectionHeading extends StatelessWidget {
     );
   }
 }
+
+/// Compact icon action for [DashboardSectionHeading] rows (matches dashboard hide buttons).
+class DashboardSectionActionButton extends StatelessWidget {
+  const DashboardSectionActionButton({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.iconSize = 22,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  final double iconSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(4),
+        child: Icon(icon, size: iconSize),
+      ),
+    );
+  }
+}

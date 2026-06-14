@@ -35,6 +35,14 @@ extension Localization on String {
         "en": "Particulate Matter",
       } +
       {
+        "de": "μg/m³",
+        "en": "μg/m³",
+      } +
+      {
+        "de": "%s in %s",
+        "en": "%s in %s",
+      } +
+      {
         "de": "Konzentration (μg/m³)",
         "en": "Concentration (μg/m³)",
       } +
@@ -89,6 +97,10 @@ extension Localization on String {
       {
         "de": "hPa",
         "en": "hPa",
+      } +
+      {
+        "de": "°C und %",
+        "en": "°C and %",
       };
 
   String get i18n => localize(this, _t);

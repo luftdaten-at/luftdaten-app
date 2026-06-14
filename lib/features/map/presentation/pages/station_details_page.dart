@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -11,6 +12,8 @@ import 'package:luftdaten.at/features/map/logic/http_provider.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/air_station_config_wizard_page.dart';
 import 'package:luftdaten.at/features/map/presentation/widgets/station_display_name.dart';
+import 'package:luftdaten.at/features/map/presentation/widgets/station_favorite_button.dart';
+import 'package:luftdaten.at/features/measurements/presentation/widgets/chart_section.dart';
 import 'station_details_page.i18n.dart';
 import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
 
@@ -56,6 +59,20 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
     super.initState();
   }
 
+  Future<LatLng?> _resolveStationLocation() async {
+    if (widget.device != null) {
+      final config = AirStationConfigManager.getConfig(widget.device!.bleName);
+      if (config?.latitude != null && config?.longitude != null) {
+        return LatLng(config!.latitude!, config.longitude!);
+      }
+    }
+    if (provider.currentLocation != null) {
+      return provider.currentLocation;
+    }
+    await provider.fetchCurrent();
+    return provider.currentLocation;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -73,6 +90,11 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
           icon: const Icon(Icons.chevron_left, color: Colors.white),
         ),
         actions: [
+          StationFavoriteButton(
+            deviceId: deviceId,
+            iconColor: Colors.white,
+            resolveLocation: _resolveStationLocation,
+          ),
           if (widget.device != null)
             IconButton(
               onPressed: () {
@@ -221,137 +243,160 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
                       const Spacer(flex: 1),
                     ],
                   ),
-                  SfCartesianChart(
-                    primaryXAxis: DateTimeAxis(
-                      dateFormat: DateFormat('MMM d\nHH:mm'),
-                    ),
-                    title: ChartTitle(text: 'Feinstaubbelastung'.i18n),
-                    primaryYAxis: NumericAxis(
-                      title: AxisTitle(
-                        text: 'Konzentration (μg/m³)'.i18n,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      CenteredChartHeadline(
+                        title: _chartHeadline('Feinstaubbelastung', 'μg/m³'),
                       ),
-                      plotBands: [
-                        if (showWHO15)
-                          const PlotBand(
-                            start: 15,
-                            end: 15,
-                            borderColor: Colors.black,
-                            borderWidth: 2,
+                      _StableStationChart(
+                        periodIndex: selectedIndex,
+                        items: selectedItems,
+                        revision: Object.hash(showWHO15, showWHO45),
+                        builder: (items, periodIndex) => SfCartesianChart(
+                          key: ValueKey('station-pm-$periodIndex'),
+                          enableAxisAnimation: false,
+                          primaryXAxis: DateTimeAxis(
+                            dateFormat: DateFormat('MMM d\nHH:mm'),
                           ),
-                        if (showWHO45)
-                          const PlotBand(
-                            start: 45,
-                            end: 45,
-                            borderColor: Colors.black,
-                            borderWidth: 2,
+                          primaryYAxis: NumericAxis(
+                            plotBands: [
+                              if (showWHO15)
+                                const PlotBand(
+                                  start: 15,
+                                  end: 15,
+                                  borderColor: Colors.black,
+                                  borderWidth: 2,
+                                ),
+                              if (showWHO45)
+                                const PlotBand(
+                                  start: 45,
+                                  end: 45,
+                                  borderColor: Colors.black,
+                                  borderWidth: 2,
+                                ),
+                            ],
                           ),
-                      ],
-                    ),
-                    zoomPanBehavior: ZoomPanBehavior(
-                      enablePanning: true,
-                      enablePinching: true,
-                      enableDoubleTapZooming: true,
-                      zoomMode: ZoomMode.x,
-                      enableSelectionZooming: true,
-                    ),
-                    legend: const Legend(isVisible: true, position: LegendPosition.bottom),
-                    tooltipBehavior: TooltipBehavior(enable: true),
-                    series: <CartesianSeries<DataItem, DateTime>>[
-                      if (selectedItems.first.pm1 != null)
-                        LineSeries<DataItem, DateTime>(
-                          dataSource: selectedItems,
-                          xValueMapper: (DataItem item, _) => item.timestamp,
-                          yValueMapper: (DataItem item, _) => item.pm1,
-                          name: 'PM1.0',
-                          dataLabelSettings: const DataLabelSettings(isVisible: false),
+                          zoomPanBehavior: ZoomPanBehavior(
+                            enablePanning: true,
+                            enablePinching: true,
+                            enableDoubleTapZooming: true,
+                            zoomMode: ZoomMode.x,
+                            enableSelectionZooming: true,
+                          ),
+                          legend: const Legend(isVisible: true, position: LegendPosition.bottom),
+                          tooltipBehavior: TooltipBehavior(enable: true),
+                          series: <CartesianSeries<DataItem, DateTime>>[
+                            ..._lineSeriesForDimension(
+                              items,
+                              periodIndex,
+                              (e) => e.pm1,
+                              'PM1.0',
+                            ),
+                            ..._lineSeriesForDimension(
+                              items,
+                              periodIndex,
+                              (e) => e.pm25,
+                              'PM2.5',
+                            ),
+                            ..._lineSeriesForDimension(
+                              items,
+                              periodIndex,
+                              (e) => e.pm10,
+                              'PM10.0',
+                            ),
+                          ],
                         ),
-                      LineSeries<DataItem, DateTime>(
-                        dataSource: selectedItems,
-                        xValueMapper: (DataItem item, _) => item.timestamp,
-                        yValueMapper: (DataItem item, _) => item.pm25,
-                        name: 'PM2.5',
-                        dataLabelSettings: const DataLabelSettings(isVisible: false),
-                      ),
-                      LineSeries<DataItem, DateTime>(
-                        dataSource: selectedItems,
-                        xValueMapper: (DataItem item, _) => item.timestamp,
-                        yValueMapper: (DataItem item, _) => item.pm10,
-                        name: 'PM10.0',
-                        dataLabelSettings: const DataLabelSettings(isVisible: false),
                       ),
                     ],
                   ),
                   if (_hasTemperature(selectedItems) || _hasHumidity(selectedItems))
-                    SfCartesianChart(
-                      primaryXAxis: DateTimeAxis(
-                        dateFormat: DateFormat('MMM d\nHH:mm'),
-                      ),
-                      title: ChartTitle(text: 'Temperatur & Luftfeuchtigkeit'.i18n),
-                      primaryYAxis: NumericAxis(
-                        title: AxisTitle(text: '°C'.i18n),
-                      ),
-                      axes: <ChartAxis>[
-                        if (_hasHumidity(selectedItems))
-                          NumericAxis(
-                            name: 'humidityAxis',
-                            opposedPosition: true,
-                            title: AxisTitle(text: '%'.i18n),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        CenteredChartHeadline(
+                          title: _environmentChartHeadline(selectedItems),
+                        ),
+                        _StableStationChart(
+                          periodIndex: selectedIndex,
+                          items: selectedItems,
+                          builder: (items, periodIndex) => SfCartesianChart(
+                            key: ValueKey('station-env-$periodIndex'),
+                            enableAxisAnimation: false,
+                            primaryXAxis: DateTimeAxis(
+                              dateFormat: DateFormat('MMM d\nHH:mm'),
+                            ),
+                            primaryYAxis: const NumericAxis(),
+                            axes: <ChartAxis>[
+                              if (_hasHumidity(items))
+                                const NumericAxis(
+                                  name: 'humidityAxis',
+                                  opposedPosition: true,
+                                ),
+                            ],
+                            zoomPanBehavior: ZoomPanBehavior(
+                              enablePanning: true,
+                              enablePinching: true,
+                              enableDoubleTapZooming: true,
+                              zoomMode: ZoomMode.x,
+                              enableSelectionZooming: true,
+                            ),
+                            legend: const Legend(isVisible: true, position: LegendPosition.bottom),
+                            tooltipBehavior: TooltipBehavior(enable: true),
+                            series: <CartesianSeries<DataItem, DateTime>>[
+                              ..._lineSeriesForDimension(
+                                items,
+                                periodIndex,
+                                (e) => e.temperature,
+                                'Temperatur'.i18n,
+                              ),
+                              ..._lineSeriesForDimension(
+                                items,
+                                periodIndex,
+                                (e) => e.humidity,
+                                'Relative Luftfeuchtigkeit'.i18n,
+                                yAxisName: 'humidityAxis',
+                              ),
+                            ],
                           ),
-                      ],
-                      zoomPanBehavior: ZoomPanBehavior(
-                        enablePanning: true,
-                        enablePinching: true,
-                        enableDoubleTapZooming: true,
-                        zoomMode: ZoomMode.x,
-                        enableSelectionZooming: true,
-                      ),
-                      legend: const Legend(isVisible: true, position: LegendPosition.bottom),
-                      tooltipBehavior: TooltipBehavior(enable: true),
-                      series: <CartesianSeries<DataItem, DateTime>>[
-                        if (_hasTemperature(selectedItems))
-                          LineSeries<DataItem, DateTime>(
-                            dataSource: selectedItems,
-                            xValueMapper: (DataItem item, _) => item.timestamp,
-                            yValueMapper: (DataItem item, _) => item.temperature,
-                            name: 'Temperatur'.i18n,
-                            dataLabelSettings: const DataLabelSettings(isVisible: false),
-                          ),
-                        if (_hasHumidity(selectedItems))
-                          LineSeries<DataItem, DateTime>(
-                            dataSource: selectedItems,
-                            xValueMapper: (DataItem item, _) => item.timestamp,
-                            yValueMapper: (DataItem item, _) => item.humidity,
-                            yAxisName: 'humidityAxis',
-                            name: 'Relative Luftfeuchtigkeit'.i18n,
-                            dataLabelSettings: const DataLabelSettings(isVisible: false),
-                          ),
+                        ),
                       ],
                     ),
                   if (_hasPressure(selectedItems))
-                    SfCartesianChart(
-                      primaryXAxis: DateTimeAxis(
-                        dateFormat: DateFormat('MMM d\nHH:mm'),
-                      ),
-                      title: ChartTitle(text: 'Luftdruck'.i18n),
-                      primaryYAxis: NumericAxis(
-                        title: AxisTitle(text: 'hPa'.i18n),
-                      ),
-                      zoomPanBehavior: ZoomPanBehavior(
-                        enablePanning: true,
-                        enablePinching: true,
-                        enableDoubleTapZooming: true,
-                        zoomMode: ZoomMode.x,
-                        enableSelectionZooming: true,
-                      ),
-                      legend: const Legend(isVisible: true, position: LegendPosition.bottom),
-                      tooltipBehavior: TooltipBehavior(enable: true),
-                      series: <CartesianSeries<DataItem, DateTime>>[
-                        LineSeries<DataItem, DateTime>(
-                          dataSource: selectedItems,
-                          xValueMapper: (DataItem item, _) => item.timestamp,
-                          yValueMapper: (DataItem item, _) => item.pressure,
-                          name: 'Luftdruck'.i18n,
-                          dataLabelSettings: const DataLabelSettings(isVisible: false),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        CenteredChartHeadline(
+                          title: _chartHeadline('Luftdruck', 'hPa'),
+                        ),
+                        _StableStationChart(
+                          periodIndex: selectedIndex,
+                          items: selectedItems,
+                          builder: (items, periodIndex) => SfCartesianChart(
+                            key: ValueKey('station-pressure-$periodIndex'),
+                            enableAxisAnimation: false,
+                            primaryXAxis: DateTimeAxis(
+                              dateFormat: DateFormat('MMM d\nHH:mm'),
+                            ),
+                            primaryYAxis: const NumericAxis(),
+                            zoomPanBehavior: ZoomPanBehavior(
+                              enablePanning: true,
+                              enablePinching: true,
+                              enableDoubleTapZooming: true,
+                              zoomMode: ZoomMode.x,
+                              enableSelectionZooming: true,
+                            ),
+                            legend: const Legend(isVisible: true, position: LegendPosition.bottom),
+                            tooltipBehavior: TooltipBehavior(enable: true),
+                            series: <CartesianSeries<DataItem, DateTime>>[
+                              ..._lineSeriesForDimension(
+                                items,
+                                periodIndex,
+                                (e) => e.pressure,
+                                'Luftdruck'.i18n,
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -471,6 +516,85 @@ class _StationDetailsPageState extends State<StationDetailsPage> {
     );
   }
 
+  String _chartHeadline(String title, String unit) =>
+      '%s in %s'.i18n.fill([title.i18n, unit.i18n]);
+
+  List<DataItem> _pointsWithValue(
+    List<DataItem> items,
+    double? Function(DataItem item) value,
+  ) =>
+      items.where((item) => value(item) != null).toList();
+
+  Duration _maxGapForPeriod(int index) {
+    switch (index) {
+      case 0:
+        return const Duration(minutes: 90);
+      case 1:
+        return const Duration(hours: 3);
+      default:
+        return const Duration(hours: 3);
+    }
+  }
+
+  List<List<DataItem>> _segmentByTimeGap(List<DataItem> items, Duration maxGap) {
+    if (items.isEmpty) return [];
+    final sorted = List<DataItem>.from(items)
+      ..sort((a, b) => a.timestamp!.compareTo(b.timestamp!));
+    final segments = <List<DataItem>>[];
+    var current = <DataItem>[sorted.first];
+    for (var i = 1; i < sorted.length; i++) {
+      final previous = sorted[i - 1].timestamp!;
+      final next = sorted[i].timestamp!;
+      if (next.difference(previous) > maxGap) {
+        segments.add(current);
+        current = <DataItem>[];
+      }
+      current.add(sorted[i]);
+    }
+    segments.add(current);
+    return segments;
+  }
+
+  List<LineSeries<DataItem, DateTime>> _lineSeriesForDimension(
+    List<DataItem> items,
+    int periodIndex,
+    double? Function(DataItem item) value,
+    String name, {
+    String? yAxisName,
+  }) {
+    if (_pointsWithValue(items, value).isEmpty) return [];
+    final segments = _segmentByTimeGap(items, _maxGapForPeriod(periodIndex));
+    final visibleSegments =
+        segments.where((segment) => segment.any((item) => value(item) != null)).toList();
+    if (visibleSegments.isEmpty) return [];
+    return [
+      for (var i = 0; i < visibleSegments.length; i++)
+        LineSeries<DataItem, DateTime>(
+          animationDuration: 0,
+          dataSource: visibleSegments[i],
+          xValueMapper: (DataItem item, _) => item.timestamp,
+          yValueMapper: (DataItem item, _) => value(item),
+          emptyPointSettings: const EmptyPointSettings(mode: EmptyPointMode.gap),
+          yAxisName: yAxisName,
+          name: name,
+          isVisibleInLegend: i == 0,
+          dataLabelSettings: const DataLabelSettings(isVisible: false),
+        ),
+    ];
+  }
+
+  String _environmentChartHeadline(List<DataItem> items) {
+    final hasTemp = _hasTemperature(items);
+    final hasHumidity = _hasHumidity(items);
+    if (hasTemp && hasHumidity) {
+      return _chartHeadline('Temperatur & Luftfeuchtigkeit', '°C und %');
+    }
+    if (hasTemp) {
+      return _chartHeadline('Temperatur', '°C');
+    }
+    return _chartHeadline('Relative Luftfeuchtigkeit', '%');
+  }
+
   Widget _statusDot(bool withinLimits) {
     return Center(
       child: Tooltip(
@@ -524,6 +648,47 @@ bool _hasTemperature(List<DataItem> items) => items.any((e) => e.temperature != 
 bool _hasHumidity(List<DataItem> items) => items.any((e) => e.humidity != null);
 
 bool _hasPressure(List<DataItem> items) => items.any((e) => e.pressure != null);
+
+/// Keeps chart widgets from rebuilding when unrelated historical slices finish loading.
+class _StableStationChart extends StatefulWidget {
+  const _StableStationChart({
+    required this.periodIndex,
+    required this.items,
+    required this.builder,
+    this.revision = 0,
+  });
+
+  final int periodIndex;
+  final List<DataItem> items;
+  final int revision;
+  final Widget Function(List<DataItem> items, int periodIndex) builder;
+
+  @override
+  State<_StableStationChart> createState() => _StableStationChartState();
+}
+
+class _StableStationChartState extends State<_StableStationChart> {
+  late Widget _cachedChart;
+
+  @override
+  void initState() {
+    super.initState();
+    _cachedChart = widget.builder(widget.items, widget.periodIndex);
+  }
+
+  @override
+  void didUpdateWidget(covariant _StableStationChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.periodIndex != oldWidget.periodIndex ||
+        widget.revision != oldWidget.revision ||
+        !identical(widget.items, oldWidget.items)) {
+      _cachedChart = widget.builder(widget.items, widget.periodIndex);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => _cachedChart;
+}
 
 class _DataTable extends StatelessWidget {
   const _DataTable({required this.data});
