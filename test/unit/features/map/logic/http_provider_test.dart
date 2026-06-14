@@ -17,11 +17,14 @@ void main() {
       expect(item.timestamp, ts);
     });
 
-    test('valueForDimension returns PM fields', () {
-      final item = DataItem(1.0, 2.5, 10.0);
+    test('valueForDimension returns PM and environmental fields', () {
+      final item = DataItem(1.0, 2.5, 10.0, null, 22.5, 55.0, 1013.0);
       expect(item.valueForDimension(Dimension.PM1_0), 1.0);
       expect(item.valueForDimension(Dimension.PM2_5), 2.5);
       expect(item.valueForDimension(Dimension.PM10_0), 10.0);
+      expect(item.valueForDimension(Dimension.TEMPERATURE), 22.5);
+      expect(item.valueForDimension(Dimension.HUMIDITY), 55.0);
+      expect(item.valueForDimension(Dimension.PRESSURE), 1013.0);
     });
   });
 
@@ -40,7 +43,10 @@ void main() {
     "values": [
       {"dimension": 2, "value": 1.1},
       {"dimension": 3, "value": 2.2},
-      {"dimension": 5, "value": 10.0}
+      {"dimension": 5, "value": 10.0},
+      {"dimension": 6, "value": 55.0},
+      {"dimension": 7, "value": 22.5},
+      {"dimension": 10, "value": 1013.0}
     ]
   }
 ]
@@ -53,6 +59,9 @@ void main() {
       expect(items[0].pm1, 1.1);
       expect(items[0].pm25, 2.2);
       expect(items[0].pm10, 10.0);
+      expect(items[0].humidity, 55.0);
+      expect(items[0].temperature, 22.5);
+      expect(items[0].pressure, 1013.0);
       expect(items[1].timestamp, DateTime.parse('2024-06-08T11:00:00+00:00'));
       expect(items[1].pm1, isNull);
       expect(items[1].pm25, 3.3);
@@ -62,6 +71,49 @@ void main() {
     test('returns empty list for invalid payload', () {
       expect(SingleStationHttpProvider.parseHistoricalHourlyJson('{}'), isEmpty);
       expect(SingleStationHttpProvider.parseHistoricalHourlyJson('not json'), isEmpty);
+    });
+  });
+
+  group('SingleStationHttpProvider current snapshot', () {
+    test('currentSnapshotUri includes station_ids and geojson params', () {
+      final uri = SingleStationHttpProvider.currentSnapshotUri('278SC');
+      expect(uri.host, 'api.luftdaten.at');
+      expect(uri.path, '/v1/station/current');
+      expect(uri.queryParameters['station_ids'], '278SC');
+      expect(uri.queryParameters['output_format'], 'geojson');
+      expect(uri.queryParameters['last_active'], '3600');
+      expect(uri.queryParameters['calibration_data'], 'false');
+    });
+
+    test('dataItemFromCurrentFeature parses PM2.5 from GeoJSON feature', () {
+      final feature = {
+        'type': 'Feature',
+        'geometry': {
+          'type': 'Point',
+          'coordinates': [16.37, 48.21],
+        },
+        'properties': {
+          'device': '278SC',
+          'time': '2024-06-08T12:00:00+00:00',
+          'sensors': [
+            {
+              'values': [
+                {'dimension': 3, 'value': 12.5},
+              ],
+            },
+          ],
+        },
+      };
+
+      final item = SingleStationHttpProvider.dataItemFromCurrentFeature(feature);
+
+      expect(item, isNotNull);
+      expect(item!.pm25, 12.5);
+      expect(item.timestamp, DateTime.parse('2024-06-08T12:00:00+00:00'));
+    });
+
+    test('dataItemFromCurrentFeature returns null for invalid feature', () {
+      expect(SingleStationHttpProvider.dataItemFromCurrentFeature({}), isNull);
     });
   });
 }
