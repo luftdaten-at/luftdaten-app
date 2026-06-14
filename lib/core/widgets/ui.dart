@@ -239,6 +239,7 @@ Future<bool?> showLDDialog(
   BuildContext context, {
   Widget? content,
   required String title,
+  Widget? titleWidget,
   required IconData icon,
   String? dismissLabel,
   Color? color,
@@ -266,17 +267,16 @@ Future<bool?> showLDDialog(
       child: GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         child: Builder(builder: (context) {
+          final titleContent = titleWidget ?? Text(title);
           return AlertDialog(
             title: trailing == null
-                ? Text(title)
+                ? titleContent
                 : Row(
                     children: [
-                      const Spacer(flex: 1),
-                      Text(title),
                       Expanded(
-                        flex: 1,
-                        child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [trailing]),
+                        child: Center(child: titleContent),
                       ),
+                      trailing,
                     ],
                   ),
             icon: Icon(icon, color: Theme.of(context).primaryColor),

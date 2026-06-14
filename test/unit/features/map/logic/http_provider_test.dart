@@ -115,5 +115,28 @@ void main() {
     test('dataItemFromCurrentFeature returns null for invalid feature', () {
       expect(SingleStationHttpProvider.dataItemFromCurrentFeature({}), isNull);
     });
+
+    test('locationFromCurrentFeature parses coordinates from GeoJSON feature', () {
+      final feature = {
+        'type': 'Feature',
+        'geometry': {
+          'type': 'Point',
+          'coordinates': [16.37, 48.21],
+        },
+        'properties': {
+          'device': '278SC',
+        },
+      };
+
+      final location = SingleStationHttpProvider.locationFromCurrentFeature(feature);
+
+      expect(location, isNotNull);
+      expect(location!.latitude, 48.21);
+      expect(location.longitude, 16.37);
+    });
+
+    test('locationFromCurrentFeature returns null for invalid feature', () {
+      expect(SingleStationHttpProvider.locationFromCurrentFeature({}), isNull);
+    });
   });
 }

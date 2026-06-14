@@ -114,6 +114,10 @@ extension Localization on String {
       {
         "de": "Index",
         "en": "Index",
+      } +
+      {
+        "de": "Unbekanntes Gerät",
+        "en": "Unknown device",
       };
 
   String get i18n => localize(this, _t);

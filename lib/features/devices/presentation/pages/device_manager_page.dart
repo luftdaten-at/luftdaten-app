@@ -45,6 +45,8 @@ class DeviceManagerPage extends StatefulWidget {
 class _DeviceManagerPageState extends State<DeviceManagerPage> {
   static bool initialScan = false;
   RotatingWidgetController syncIconController = RotatingWidgetController();
+  bool _airRoundSortAscending = true;
+  bool _airStationSortAscending = true;
 
   void connectTo(BleDevice device) async {
     logger.d("Connecting to ${device.bleName}");
@@ -294,10 +296,37 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
     final devices = getIt<DeviceManager>().devices;
     final sections = <Widget>[];
 
-    void addSection(String title, List<BleDevice> group, {required bool isStation}) {
+    void addSection(
+      String title,
+      List<BleDevice> group, {
+      required bool isStation,
+      bool sortable = false,
+      bool? sortAscending,
+      VoidCallback? onSortToggle,
+    }) {
       if (group.isEmpty) return;
-      sections.add(DashboardSectionHeading(title: title));
-      for (final device in group) {
+      final sorted = List<BleDevice>.from(group);
+      if (sortable && sortAscending != null) {
+        sorted.sort((a, b) {
+          final cmp = a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+          return sortAscending ? cmp : -cmp;
+        });
+      }
+      sections.add(
+        DashboardSectionHeading(
+          title: title,
+          actions: sortable && onSortToggle != null && sortAscending != null
+              ? [
+                  DashboardSectionActionButton(
+                    icon: sortAscending ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                    tooltip: sortAscending ? 'Aufsteigend'.i18n : 'Absteigend'.i18n,
+                    onTap: onSortToggle,
+                  ),
+                ]
+              : const [],
+        ),
+      );
+      for (final device in sorted) {
         sections.add(
           DeviceListTile(
             device: device,
@@ -319,6 +348,9 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
       'Air aRound',
       devices.where((e) => e.model == LDDeviceModel.aRound).toList(),
       isStation: false,
+      sortable: true,
+      sortAscending: _airRoundSortAscending,
+      onSortToggle: () => setState(() => _airRoundSortAscending = !_airRoundSortAscending),
     );
     addSection(
       'Air Badge',
@@ -339,6 +371,9 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
       'Air Station',
       devices.where((e) => e.model == LDDeviceModel.station).toList(),
       isStation: true,
+      sortable: true,
+      sortAscending: _airStationSortAscending,
+      onSortToggle: () => setState(() => _airStationSortAscending = !_airStationSortAscending),
     );
 
     return SingleChildScrollView(

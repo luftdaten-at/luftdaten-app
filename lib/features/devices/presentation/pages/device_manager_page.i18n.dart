@@ -457,6 +457,14 @@ extension Localization on String {
       {
         "de": "Sensirion SHTC3",
         "en": "Sensirion SHTC3",
+      } +
+      {
+        "de": "Aufsteigend",
+        "en": "Ascending",
+      } +
+      {
+        "de": "Absteigend",
+        "en": "Descending",
       };
 
   String get i18n => localize(this, _t);

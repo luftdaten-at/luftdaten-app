@@ -20,7 +20,6 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_animations/flutter_map_animations.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -28,7 +27,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:luftdaten.at/core/config/app_settings.dart';
 import 'package:luftdaten.at/core/app/preferences_handler.dart';
 import 'package:luftdaten.at/core/app/toaster.dart';
-import 'package:luftdaten.at/features/dashboard/logic/favorites_manager.dart';
 import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
 import 'package:luftdaten.at/features/measurements/logic/workshop_controller.dart';
 import 'package:luftdaten.at/core/core.dart';
@@ -42,6 +40,8 @@ import 'package:luftdaten.at/core/widgets/start_button.dart';
 import 'package:luftdaten.at/features/map/presentation/widgets/map_collapsible_legend.dart';
 import 'package:luftdaten.at/features/map/presentation/widgets/map_dimension_legend.dart';
 import 'package:luftdaten.at/features/map/presentation/widgets/marker_dialog.dart';
+import 'package:luftdaten.at/features/map/presentation/widgets/station_display_name.dart';
+import 'package:luftdaten.at/features/map/presentation/widgets/station_favorite_button.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -49,6 +49,7 @@ import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:luftdaten.at/features/map/logic/http_provider.dart';
 import 'package:luftdaten.at/features/measurements/data/trip.dart';
 import 'package:luftdaten.at/features/measurements/data/value_marker.dart';
+import 'package:luftdaten.at/features/measurements/presentation/widgets/chart_section.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'package:luftdaten.at/core/domain/dimensions.dart' as enums;
 
@@ -188,46 +189,16 @@ class _MapPageState extends State<MapPage>
     SingleStationHttpProvider provider = SingleStationHttpProvider(item.deviceId.toString());
     showLDDialog(
       context,
-      title: "Station #%s".i18n.fill([item.deviceId.toString()]),
-      trailing: StatefulBuilder(builder: (_, setState) {
-        FavoritesManager favoritesManager = getIt<FavoritesManager>();
-        bool selected = favoritesManager.hasId(item.deviceId);
-        return IconButton(
-          tooltip: selected ? 'Aus Favoriten entfernen'.i18n : 'Zu Favoriten hinzufügen'.i18n,
-          onPressed: () async {
-            if (selected) {
-              favoritesManager.removeId(item.deviceId);
-              setState(() {});
-            } else {
-              Favorite favorite =
-                  Favorite(id: item.deviceId, latLng: LatLng(item.location.lat, item.location.lon));
-              favoritesManager.add(favorite);
-              setState(() {});
-              await setLocaleIdentifier(locale ?? 'de');
-              List<Placemark> placemarks = await placemarkFromCoordinates(
-                item.location.lat,
-                item.location.lon,
-              );
-              logger.d('Reverse geocoding result:');
-              for (Placemark placemark in placemarks) {
-                logger.d(placemark.toString());
-              }
-              if (placemarks.firstOrNull != null) {
-                Placemark placemark = placemarks.first;
-                if (placemark.thoroughfare != null &&
-                    placemark.postalCode != null &&
-                    placemark.administrativeArea != null) {
-                  String locationString =
-                      '${placemark.thoroughfare}, ${placemark.postalCode} ${placemark.administrativeArea}';
-                  favorite.locationString = locationString;
-                  logger.d('Formatted location: $locationString');
-                }
-              }
-            }
-          },
-          icon: Icon(selected ? Icons.bookmark_added : Icons.bookmark_add_outlined),
-        );
-      }),
+      title: '',
+      titleWidget: StationDisplayName(
+        stationId: item.deviceId,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: StationFavoriteButton(
+        deviceId: item.deviceId,
+        resolveLocation: () async => LatLng(item.location.lat, item.location.lon),
+      ),
       icon: Icons.air,
       content: SingleChildScrollView(
         child: SizedBox(
@@ -260,26 +231,33 @@ class _MapPageState extends State<MapPage>
               if (chartData.isEmpty) {
                 return Center(child: Text("Keine Daten verfügbar".i18n));
               }
-              return SfCartesianChart(
-                primaryXAxis: DateTimeAxis(dateFormat: DateFormat('HH:mm')),
-                title: ChartTitle(text: 'Letzte 24 Stunden (Stundenmittel)'.i18n),
-                primaryYAxis: NumericAxis(
-                  title: AxisTitle(text: 'Feinstaubbelastung (μg/m³)'.i18n),
-                ),
-                tooltipBehavior: TooltipBehavior(enable: true),
-                series: <CartesianSeries<DataItem, DateTime>>[
-                  ColumnSeries<DataItem, DateTime>(
-                    dataSource: chartData,
-                    xValueMapper: (DataItem item, _) => item.timestamp!,
-                    yValueMapper: (DataItem item, _) =>
-                        item.valueForDimension(chartDimension)!,
-                    name: enums.Dimension.getName(chartDimension),
-                    pointColorMapper: (DataItem item, _) =>
-                        enums.Dimension.getColor(
-                          chartDimension,
-                          item.valueForDimension(chartDimension)!,
-                        ) as Color,
-                    dataLabelSettings: const DataLabelSettings(isVisible: false),
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  CenteredChartHeadline(
+                    title: 'Feinstaubbelastung PM2.5 in den letzten 24 Stunden'.i18n,
+                  ),
+                  Expanded(
+                    child: SfCartesianChart(
+                      primaryXAxis: DateTimeAxis(dateFormat: DateFormat('HH:mm')),
+                      primaryYAxis: const NumericAxis(),
+                      tooltipBehavior: TooltipBehavior(enable: true),
+                      series: <CartesianSeries<DataItem, DateTime>>[
+                        ColumnSeries<DataItem, DateTime>(
+                          dataSource: chartData,
+                          xValueMapper: (DataItem item, _) => item.timestamp!,
+                          yValueMapper: (DataItem item, _) =>
+                              item.valueForDimension(chartDimension)!,
+                          name: enums.Dimension.getName(chartDimension),
+                          pointColorMapper: (DataItem item, _) =>
+                              enums.Dimension.getColor(
+                                chartDimension,
+                                item.valueForDimension(chartDimension)!,
+                              ) as Color,
+                          dataLabelSettings: const DataLabelSettings(isVisible: false),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               );

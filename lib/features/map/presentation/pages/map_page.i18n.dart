@@ -152,8 +152,32 @@ extension Localization on String {
         "en": "Bad",
       } +
       {
+        "de": "Zufriedenstellend",
+        "en": "Fair",
+      } +
+      {
+        "de": "Mäßig",
+        "en": "Moderate",
+      } +
+      {
+        "de": "Sehr schlecht",
+        "en": "Very poor",
+      } +
+      {
+        "de": "Extrem schlecht",
+        "en": "Extremely poor",
+      } +
+      {
+        "de": "%s: %s",
+        "en": "%s: %s",
+      } +
+      {
         "de": "Letzte 24 Stunden (Stundenmittel)",
         "en": "Last 24 hours (hourly mean)",
+      } +
+      {
+        "de": "Feinstaubbelastung PM2.5 in den letzten 24 Stunden",
+        "en": "Particulate matter PM2.5 in the last 24 hours",
       };
 
   String get i18n => localize(this, _t);

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:luftdaten.at/features/dashboard/logic/favorites_manager.dart';
@@ -32,6 +34,7 @@ class DashboardStationTile extends StatefulWidget {
 class _DashboardStationTileState extends State<DashboardStationTile> {
   late SingleStationHttpProvider provider;
   late String deviceId;
+  Timer? _refreshTimer;
 
   TextEditingController nameController = TextEditingController();
 
@@ -57,7 +60,21 @@ class _DashboardStationTileState extends State<DashboardStationTile> {
       deviceId,
       currentOnly: true,
     );
+    _refreshTimer = Timer.periodic(
+      SingleStationHttpProvider.dashboardCurrentRefreshInterval,
+      (_) {
+        if (mounted) {
+          provider.refreshCurrentIfStale();
+        }
+      },
+    );
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   @override

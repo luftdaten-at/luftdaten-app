@@ -57,7 +57,43 @@ void main() {
 
     expect(find.text('Air aRound'), findsNWidgets(2));
     expect(find.text('Air Station'), findsNWidgets(2));
+    expect(find.byIcon(Icons.arrow_drop_up), findsNWidgets(2));
     expect(find.widgetWithIcon(FilledButton, Icons.qr_code), findsOneWidget);
+  });
+
+  testWidgets('Air aRound sort button toggles device name order', (tester) async {
+    DeviceManagerPage.debugBleStatus = BleStatus.ready;
+    final manager = getIt<DeviceManager>();
+
+    final zebra = MockBleDevices.buildMockDevice(
+      LDDeviceModel.aRound,
+      existingBleNames: const [],
+    );
+    zebra.userAssignedName = 'Zebra';
+    final alpha = MockBleDevices.buildMockDevice(
+      LDDeviceModel.aRound,
+      existingBleNames: [zebra.bleName],
+    );
+    alpha.userAssignedName = 'Alpha';
+    manager.addDevice(zebra);
+    manager.addDevice(alpha);
+    await tester.pump();
+
+    await pumpDeviceApp(tester, const DeviceManagerPage(), manager: manager);
+    await tester.pump();
+
+    List<String> aRoundDisplayNames() => tester
+        .widgetList<DeviceListTile>(find.byType(DeviceListTile))
+        .map((tile) => tile.device.displayName)
+        .toList();
+
+    expect(aRoundDisplayNames(), ['Alpha', 'Zebra']);
+
+    await tester.tap(find.byIcon(Icons.arrow_drop_up).first);
+    await tester.pump();
+
+    expect(aRoundDisplayNames(), ['Zebra', 'Alpha']);
+    expect(find.byIcon(Icons.arrow_drop_down), findsOneWidget);
   });
 
   testWidgets('tapping device tile opens DeviceDetailPage', (tester) async {
