@@ -178,6 +178,21 @@ extension Localization on String {
         "en-US": "Raw luminosity",
       } +
       {
+        "de": "UVA",
+        "en": "UVA",
+        "en-US": "UVA",
+      } +
+      {
+        "de": "UVB",
+        "en": "UVB",
+        "en-US": "UVB",
+      } +
+      {
+        "de": "UVC",
+        "en": "UVC",
+        "en-US": "UVC",
+      } +
+      {
         "de": "Unbekannt",
         "en": "Unknown",
         "en-US": "Unknown",

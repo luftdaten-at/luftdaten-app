@@ -116,6 +116,22 @@ extension Localization on String {
         "en": "Index",
       } +
       {
+        "de": "µW/cm²",
+        "en": "µW/cm²",
+      } +
+      {
+        "de": "UVA",
+        "en": "UVA",
+      } +
+      {
+        "de": "UVB",
+        "en": "UVB",
+      } +
+      {
+        "de": "UVC",
+        "en": "UVC",
+      } +
+      {
         "de": "Unbekanntes Gerät",
         "en": "Unknown device",
       };

@@ -291,6 +291,16 @@ enum LDSensor {
     'Sensirion SHTC3',
     'SHTC3',
   ),
+  as7331(
+    30,
+    [
+      MeasurableQuantity.uva,
+      MeasurableQuantity.uvb,
+      MeasurableQuantity.uvc,
+    ],
+    'ams OSRAM AS7331',
+    'AS7331',
+  ),
   unknown(
     999,
     [],
@@ -354,7 +364,10 @@ enum MeasurableQuantity {
   visible(32, 100, 200, 'Sichtbares Licht', 'Visible', ''),
   infrared(33, 100, 200, 'Infrarot', 'Infrared', ''),
   fullSpectrum(34, 100, 200, 'Vollspektrum', 'Full Spectrum', ''),
-  rawLuminosity(35, 100, 200, 'Roh-Luminanz', 'Raw Luminosity', '');
+  rawLuminosity(35, 100, 200, 'Roh-Luminanz', 'Raw Luminosity', ''),
+  uva(36, 100, 200, 'UVA', 'UVA', 'µW/cm²'),
+  uvb(37, 100, 200, 'UVB', 'UVB', 'µW/cm²'),
+  uvc(38, 100, 200, 'UVC', 'UVC', 'µW/cm²');
 
   const MeasurableQuantity(this.id, this.elevatedLimit, this.highLimit, this._name, this.csvName, this.csvUnit);
 

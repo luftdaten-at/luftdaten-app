@@ -133,6 +133,36 @@ class _ChartPageState extends State<ChartPage> {
                           ) ??
                           const SizedBox(),
                       _buildChart(
+                            chartId: ChartSeriesChartId.uva,
+                            title: 'UVA',
+                            yAxisTitle: 'µW/cm²',
+                            data: reshapedData,
+                            dimension: MeasurableQuantity.uva,
+                            preferences: chartPrefs,
+                            tripSensors: tripSensors,
+                          ) ??
+                          const SizedBox(),
+                      _buildChart(
+                            chartId: ChartSeriesChartId.uvb,
+                            title: 'UVB',
+                            yAxisTitle: 'µW/cm²',
+                            data: reshapedData,
+                            dimension: MeasurableQuantity.uvb,
+                            preferences: chartPrefs,
+                            tripSensors: tripSensors,
+                          ) ??
+                          const SizedBox(),
+                      _buildChart(
+                            chartId: ChartSeriesChartId.uvc,
+                            title: 'UVC',
+                            yAxisTitle: 'µW/cm²',
+                            data: reshapedData,
+                            dimension: MeasurableQuantity.uvc,
+                            preferences: chartPrefs,
+                            tripSensors: tripSensors,
+                          ) ??
+                          const SizedBox(),
+                      _buildChart(
                             chartId: ChartSeriesChartId.voc,
                             title: 'Flüchtige organische Verbindungen (VOC)',
                             yAxisTitle: 'Index (%)',

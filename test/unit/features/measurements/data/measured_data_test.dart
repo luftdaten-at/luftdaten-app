@@ -11,6 +11,7 @@ void main() {
       expect(LDSensor.fromId(11), LDSensor.sgp40);
       expect(LDSensor.fromId(23), LDSensor.sen66);
       expect(LDSensor.fromId(29), LDSensor.shtc3);
+      expect(LDSensor.fromId(30), LDSensor.as7331);
     });
 
     test('fromId returns unknown for invalid id', () {
@@ -37,6 +38,18 @@ void main() {
         ],
       );
     });
+
+    test('as7331 measures UVA UVB UVC', () {
+      expect(LDSensor.as7331.id, 30);
+      expect(
+        LDSensor.as7331.measures,
+        [
+          MeasurableQuantity.uva,
+          MeasurableQuantity.uvb,
+          MeasurableQuantity.uvc,
+        ],
+      );
+    });
   });
 
   group('MeasurableQuantity', () {
@@ -44,6 +57,9 @@ void main() {
       expect(MeasurableQuantity.fromId(3), MeasurableQuantity.pm25);
       expect(MeasurableQuantity.fromId(23), MeasurableQuantity.uvi);
       expect(MeasurableQuantity.fromId(35), MeasurableQuantity.rawLuminosity);
+      expect(MeasurableQuantity.fromId(36), MeasurableQuantity.uva);
+      expect(MeasurableQuantity.fromId(37), MeasurableQuantity.uvb);
+      expect(MeasurableQuantity.fromId(38), MeasurableQuantity.uvc);
     });
 
     test('fromId returns unknown for invalid id', () {
@@ -53,6 +69,12 @@ void main() {
     test('co2 and gasResistance use firmware units', () {
       expect(MeasurableQuantity.co2.csvUnit, 'ppm');
       expect(MeasurableQuantity.gasResistance.csvUnit, 'Ω');
+    });
+
+    test('uva uvb uvc use µW/cm² unit', () {
+      expect(MeasurableQuantity.uva.csvUnit, 'µW/cm²');
+      expect(MeasurableQuantity.uvb.csvUnit, 'µW/cm²');
+      expect(MeasurableQuantity.uvc.csvUnit, 'µW/cm²');
     });
 
     test('binary payload decodes new dimension id', () {

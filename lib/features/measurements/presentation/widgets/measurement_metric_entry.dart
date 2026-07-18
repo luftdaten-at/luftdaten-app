@@ -48,7 +48,10 @@ class MeasurementMetricEntry {
         MeasurableQuantity.altitude ||
         MeasurableQuantity.adjustedTempCube ||
         MeasurableQuantity.lux ||
-        MeasurableQuantity.uvi =>
+        MeasurableQuantity.uvi ||
+        MeasurableQuantity.uva ||
+        MeasurableQuantity.uvb ||
+        MeasurableQuantity.uvc =>
           MeasurementValueCategory.climate,
         _ => MeasurementValueCategory.gases,
       };
@@ -118,6 +121,9 @@ class MeasurementMetricParser {
     MeasurableQuantity.altitude,
     MeasurableQuantity.uvi,
     MeasurableQuantity.lux,
+    MeasurableQuantity.uva,
+    MeasurableQuantity.uvb,
+    MeasurableQuantity.uvc,
     MeasurableQuantity.uvs,
     MeasurableQuantity.light,
     MeasurableQuantity.visible,

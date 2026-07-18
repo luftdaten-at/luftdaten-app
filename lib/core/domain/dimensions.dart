@@ -54,6 +54,9 @@ class Dimension {
   static const int GYRO_X = 28;
   static const int GYRO_Y = 29;
   static const int GYRO_Z = 30;
+  static const int UVA = 36;
+  static const int UVB = 37;
+  static const int UVC = 38;
 
   static final Map<int, List<dynamic>> thresholds = {
     TEMPERATURE: [[18, 24], [ColorConstants.BLUE, ColorConstants.GREEN, ColorConstants.RED]],
@@ -101,6 +104,9 @@ class Dimension {
     GYRO_Z: "radians/s",
     UVI: "UV Index",
     LUX: "lx",
+    UVA: "µW/cm²",
+    UVB: "µW/cm²",
+    UVC: "µW/cm²",
   };
 
   static final Map<int, String> _names = {
@@ -133,6 +139,9 @@ class Dimension {
     GYRO_Z: "Gyro Z",
     UVI: "UV Index",
     LUX: "Lux",
+    UVA: "UVA",
+    UVB: "UVB",
+    UVC: "UVC",
   };
 
   static String getName(int dim) => _names[dim] ?? "Name not found";
