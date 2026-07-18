@@ -15,6 +15,8 @@ import 'package:luftdaten.at/features/devices/logic/station_secrets_store.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/air_station_config_wizard_page.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_sd_ble_import.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/air_station_startup_flags_dialog.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/badge_firmware_ota_dialog.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/badge_meas_log_ble_import.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/ble_device_notices_banner.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/device_connect_button.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/device_connection_appearance.dart';
@@ -44,6 +46,9 @@ class DeviceDetailPageState extends State<DeviceDetailPage> {
   Timer? _statusPollTimer;
   bool _sdBleExportNonEmpty = false;
   DateTime? _lastSdBleExportPeekAt;
+  bool _badgeMeasLogNonEmpty = false;
+  int _badgeMeasLogRecordCount = 0;
+  DateTime? _lastBadgeMeasLogPeekAt;
   bool _bleBootstrapInProgress = false;
   bool _bootstrapAttempted = false;
   bool _awaitingConnectForBootstrap = false;
@@ -100,6 +105,8 @@ class DeviceDetailPageState extends State<DeviceDetailPage> {
     _startStatusPoll();
     if (widget.isStation) {
       unawaited(_peekSdBleExportAvailability());
+    } else if (widget.device.model == LDDeviceModel.badge) {
+      unawaited(_peekBadgeMeasLogAvailability());
     }
     unawaited(_refreshConfigSnapshot(widget.device));
   }
@@ -214,6 +221,40 @@ class DeviceDetailPageState extends State<DeviceDetailPage> {
     });
   }
 
+  Future<void> _peekBadgeMeasLogAvailability() async {
+    final device = widget.device;
+    if (device.model != LDDeviceModel.badge) return;
+    if (device.state != BleDeviceState.connected) return;
+    if (device.isMeasLoggingActive) {
+      if (!mounted) return;
+      setState(() {
+        _badgeMeasLogNonEmpty = false;
+        _badgeMeasLogRecordCount = 0;
+      });
+      return;
+    }
+    final now = DateTime.now();
+    if (_lastBadgeMeasLogPeekAt != null &&
+        now.difference(_lastBadgeMeasLogPeekAt!) < const Duration(seconds: 10)) {
+      return;
+    }
+    _lastBadgeMeasLogPeekAt = now;
+    try {
+      final info = await getIt<BleController>().peekBadgeMeasLog(device);
+      if (!mounted) return;
+      setState(() {
+        _badgeMeasLogNonEmpty = info?.logNonEmpty ?? false;
+        _badgeMeasLogRecordCount = info?.recordCount ?? 0;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _badgeMeasLogNonEmpty = false;
+        _badgeMeasLogRecordCount = 0;
+      });
+    }
+  }
+
   Future<void> _peekSdBleExportAvailability() async {
     final device = widget.device;
     if (device.state != BleDeviceState.connected) return;
@@ -325,6 +366,15 @@ class DeviceDetailPageState extends State<DeviceDetailPage> {
             unawaited(_peekSdBleExportAvailability());
           });
         }
+        if (!widget.isStation &&
+            device.model == LDDeviceModel.badge &&
+            device.state == BleDeviceState.connected &&
+            _lastBadgeMeasLogPeekAt == null &&
+            !_awaitingConnectForBootstrap) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            unawaited(_peekBadgeMeasLogAvailability());
+          });
+        }
 
         return Scaffold(
           appBar: AppBar(
@@ -376,6 +426,7 @@ class DeviceDetailPageState extends State<DeviceDetailPage> {
                 const SizedBox(height: 8),
                 _buildBootstrapBanner(device),
                 _buildConnectionFailureBanner(device),
+                _buildMeasLoggingBanner(device),
                 BleDeviceNoticesBanner(device: device),
                 DeviceSensorsSection(
                   device: device,
@@ -403,6 +454,35 @@ class DeviceDetailPageState extends State<DeviceDetailPage> {
     );
   }
 
+  Widget _buildMeasLoggingBanner(BleDevice device) {
+    if (device.model != LDDeviceModel.badge || !device.isMeasLoggingActive) {
+      return const SizedBox.shrink();
+    }
+    final color = Theme.of(context).colorScheme.primary;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Icon(Icons.fiber_manual_record, color: color, size: 16),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Messmodus aktiv — Aufzeichnung läuft auf dem Badge.'.i18n,
+                  style: TextStyle(color: color, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _deviceActionButton(
     BuildContext context, {
     required IconData icon,
@@ -425,10 +505,40 @@ class DeviceDetailPageState extends State<DeviceDetailPage> {
   }
 
   Widget _buildPortableActions(BuildContext context, BleDevice device) {
+    final isBadge = device.model == LDDeviceModel.badge;
     return Wrap(
       spacing: 8,
       runSpacing: 4,
       children: [
+        if (isBadge)
+          _deviceActionButton(
+            context,
+            icon: Icons.system_update_alt,
+            label: 'Firmware aktualisieren'.i18n,
+            enabled: device.state == BleDeviceState.connected,
+            onPressed: device.state == BleDeviceState.connected
+                ? () => showBadgeFirmwareOtaFlow(context: context, device: device)
+                : null,
+          ),
+        if (isBadge &&
+            device.state == BleDeviceState.connected &&
+            _badgeMeasLogNonEmpty &&
+            !device.isMeasLoggingActive)
+          _deviceActionButton(
+            context,
+            icon: Icons.download_outlined,
+            label: 'Messprotokoll importieren (BLE)'.i18n,
+            onPressed: () async {
+              await showBadgeMeasLogBleImportFlow(
+                context: context,
+                device: device,
+                recordCount: _badgeMeasLogRecordCount,
+              );
+              if (!context.mounted) return;
+              _lastBadgeMeasLogPeekAt = null;
+              await _peekBadgeMeasLogAvailability();
+            },
+          ),
         _deviceActionButton(
           context,
           icon: Icons.settings,

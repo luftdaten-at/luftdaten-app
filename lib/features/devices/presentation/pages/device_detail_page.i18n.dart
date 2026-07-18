@@ -408,6 +408,104 @@ extension Localization on String {
       {
         "de": "WLAN-Gerätestatus nach Verbindung verfügbar",
         "en": "Wi-Fi device status available after connecting",
+      } +
+      {
+        "de": "Firmware aktualisieren",
+        "en": "Update firmware",
+      } +
+      {
+        "de": "Von GitHub laden",
+        "en": "Download from GitHub",
+      } +
+      {
+        "de": "Datei wählen",
+        "en": "Choose file",
+      } +
+      {
+        "de": "Installierte Version: %s",
+        "en": "Installed version: %s",
+      } +
+      {
+        "de": "Release wird geladen…",
+        "en": "Loading release…",
+      } +
+      {
+        "de": "Kein Firmware-Release verfügbar.",
+        "en": "No firmware release available.",
+      } +
+      {
+        "de": "Kein neueres Release auf GitHub (%s).",
+        "en": "No newer release on GitHub (%s).",
+      } +
+      {
+        "de": "Firmware-Datei konnte nicht gelesen werden.",
+        "en": "Could not read firmware file.",
+      } +
+      {
+        "de": "Firmware-Version",
+        "en": "Firmware version",
+      } +
+      {
+        "de": "Versionsnummer der gewählten Datei eingeben.",
+        "en": "Enter the version number of the selected file.",
+      } +
+      {
+        "de": "Major",
+        "en": "Major",
+      } +
+      {
+        "de": "Minor",
+        "en": "Minor",
+      } +
+      {
+        "de": "Patch",
+        "en": "Patch",
+      } +
+      {
+        "de": "Update starten?",
+        "en": "Start update?",
+      } +
+      {
+        "de":
+            "Aktuell: %s\nNeu: %s\n\nDas Gerät startet nach dem Update neu. Nicht trennen.",
+        "en":
+            "Current: %s\nNew: %s\n\nThe device will reboot after the update. Do not disconnect.",
+      } +
+      {
+        "de": "Update starten",
+        "en": "Start update",
+      } +
+      {
+        "de": "Firmware wird übertragen…",
+        "en": "Transferring firmware…",
+      } +
+      {
+        "de": "Firmware aktualisiert (%s).",
+        "en": "Firmware updated (%s).",
+      } +
+      {
+        "de": "Firmware-Update abgebrochen.",
+        "en": "Firmware update cancelled.",
+      } +
+      {
+        "de": "Firmware-Update fehlgeschlagen.",
+        "en": "Firmware update failed.",
+      } +
+      {
+        "de": "Die gewählte Version ist nicht neuer als die installierte.",
+        "en": "The selected version is not newer than the installed one.",
+      } +
+      {
+        "de": "Firmware-Update während einer laufenden Messung nicht möglich.",
+        "en": "Firmware update is not available during an active measurement.",
+      } +
+      {
+        "de": "Messprotokoll importieren (BLE)",
+        "en": "Import measurement log (BLE)",
+      } +
+      {
+        "de": "Messmodus aktiv — Aufzeichnung läuft auf dem Badge.",
+        "en": "Measurement mode active — recording on the badge.",
       };
 
   String get i18n => localize(this, _t);

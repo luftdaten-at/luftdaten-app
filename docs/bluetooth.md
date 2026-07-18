@@ -90,8 +90,43 @@ Writes use `writeCharacteristicWithResponse` for Air Station config.
 | `4b439140-73cb-4776-b1f2-8f3711b3bb4f` | Sensor data after command |
 | `77db81d9-9773-49b4-aa17-16a2f93e95f2` | Device status: 5 bytes (battery + Wi‑Fi detail + operational flags) |
 | `b47b0cdf-0ced-49a9-86a5-d78a03ea7674` | Read Air Station configuration blob |
+| `6d7f8a9b-0c1d-4e2f-a3b4-c5d6e7f80910` | **Air Badge OTA** control (READ/WRITE/NOTIFY) |
+| `51d2f8a4-91c6-53b2-a6e5-71829304a505` | SD log export (Air Station) |
+| `6d7f8a9b-0c1d-4e2f-a3b4-c5d6e7f80911` | **Air Badge OTA** data (WRITE / WRITE_NO_RSP) |
+| `6d7f8a9b-0c1d-4e2f-a3b4-c5d6e7f80920` | **Air Badge** measurement log control (READ/WRITE/NOTIFY) |
+| `6d7f8a9b-0c1d-4e2f-a3b4-c5d6e7f80921` | **Air Badge** measurement log data (NOTIFY) |
 
 **Measurement flow (v2):** write command → delay (~2.5 s) → read status (battery) → read sensor data. Data may be **JSON** starting with `[` (`0x5B`): array `[metadataMap, rawBytes]`; metadata can carry an API key via `BleJsonParser`. Otherwise binary is parsed with the shared `_SensorDataParser` logic (same structure as v1-style payloads).
+
+### Air Badge BLE OTA
+
+Air Badge (`LDDeviceModel.badge`, model id 4) supports firmware updates over BLE using dual-bank OTA on the device. Protocol details: [firmware-badge `ble-ota.md`](https://github.com/luftdaten-at/firmware-badge/blob/main/docs/ble-ota.md).
+
+| Piece | Role |
+|-------|------|
+| `BleOtaClient` | START / chunked `ota_data` writes / FINISH / reconnect + version verify |
+| `BadgeFirmwareReleaseClient` | Latest release from [GitHub](https://github.com/luftdaten-at/firmware-badge/releases), asset `luftdaten-badge.bin` |
+| `showBadgeFirmwareOtaFlow` | Device detail UI: GitHub download or local `.bin` file picker |
+
+**App flow:** subscribe `ota_control` notify → write `OTA_START` (size, SHA-256, target semver) → stream image on `ota_data` (WRITE without response, MTU-sized chunks) → write `OTA_FINISH` → wait for `REBOOTING` notify → reconnect and re-read `device_info`.
+
+**UI entry:** Badge device detail → **Firmware aktualisieren** (connected only; blocked during active measurement trips).
+
+### Air Badge BLE measurement log
+
+Air Badge stores offline measurement records on external flash while the on-device measurement mode is active. Export protocol: [firmware-badge `ble-meas-log.md`](https://github.com/luftdaten-at/firmware-badge/blob/main/docs/ble-meas-log.md).
+
+| Piece | Role |
+|-------|------|
+| `BadgeMeasLogExportClient` | `LOG_STATUS` / `START_EXPORT` / chunked `log_data` NOTIFY / `LOG_ERASE` |
+| `parseBadgeMeasLogToDatahubJson` | LDLG binary → firmware-style `{device, sensors}` JSON for Datahub |
+| `showBadgeMeasLogBleImportFlow` | Device detail UI: confirm → BLE export → local JSONL cache → Datahub POST → erase log on full success |
+
+**Preconditions:** `device_status` operational flag `0x10` clear (measurement mode stopped); `record_count > 0`.
+
+**App flow:** subscribe `log_control` + `log_data` → write `LOG_STATUS` → write `START_EXPORT` → reassemble NOTIFY payloads (skip 2-byte sequence prefix) until `log_control` state `DONE` and byte count matches → parse → upload → write `LOG_ERASE` when all Datahub POSTs succeed.
+
+**UI entry:** Badge device detail → **Messprotokoll importieren (BLE)** when connected and log non-empty; blocked during active measurement trips. Recording indicator when flag `0x10` is set.
 
 ---
 
@@ -158,7 +193,7 @@ Characteristic `77db81d9-9773-49b4-aa17-16a2f93e95f2` — see firmware [`ble-cha
 |-------|--------|
 | 0–2 | Battery (`BatteryDetails.fromBytes`) |
 | 3 | Wi‑Fi detail when `WIFI_FAILURE` is set (`0x01` credentials missing, `0x02` SSID not in scan, `0x03` connection failed) |
-| 4 | Operational flags bitmask: `0x01` config incomplete, `0x02` Wi‑Fi failure, `0x04` no sensor, `0x08` SSID configured (informational only) |
+| 4 | Operational flags bitmask: `0x01` config incomplete, `0x02` Wi‑Fi failure, `0x04` no sensor, `0x08` SSID configured (informational only), `0x10` badge measurement logging active |
 
 Parsed by [`BleDeviceStatusParser`](lib/features/devices/data/ble_device_status.dart); shown in the app via [`BleDeviceNoticesBanner`](lib/features/devices/presentation/widgets/ble_device_notices_banner.dart) on Geräte, Dashboard (compact), and Air Station wizard. Legacy firmware with only 3 bytes still works (battery only). While a Geräte tile is expanded, status is polled every 2 s.
 
@@ -166,8 +201,9 @@ Parsed by [`BleDeviceStatusParser`](lib/features/devices/data/ble_device_status.
 
 In **debug** builds with **Mock-BLE aktiv**, mock devices do not use `FlutterReactiveBle`. Instead, [`MockBleGattTransport`](lib/features/devices/logic/mock_ble_gatt.dart) serves the same v2 characteristic UUIDs (`BleGattUuids` in [`ble_gatt_transport.dart`](lib/features/devices/logic/ble_gatt_transport.dart)) with firmware-shaped payloads from [`MockBleGattCodec`](lib/features/devices/logic/mock_ble_gatt_codec.dart).
 
-- **Reads:** `device_info` (JSON), `sensor_info`, `device_status`, `sensor_values`, `air_station_configuration` (Air Station only).
+- **Reads:** `device_info` (JSON), `sensor_info`, `device_status`, `sensor_values`, `air_station_configuration` (Air Station only), `log_control` (Badge meas log status).
 - **Writes (command char):** `0x01` / `0x02` refresh telemetry (+ battery on `0x02`); `0x06` merges Air Station TLV into read-back state.
+- **Badge meas log:** `log_control` commands with NOTIFY progress; chunked `log_data` NOTIFY during export (mock uses sample LDLG blob from `MockBleGattCodec.encodeBadgeMeasLogBlob()`).
 - **Parsing:** [`BleController`](lib/features/devices/logic/ble_controller.dart) delegates mock paths to [`BleControllerV2`](lib/features/devices/logic/ble_controller_v2.dart) with the mock transport, so connect and measurement loops exercise the same parsers as real devices.
 - **Not mocked:** SD log export (`0x08` / `51d2f8a4-…`); protocol v1 mock path.
 

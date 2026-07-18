@@ -29,6 +29,22 @@ abstract final class MockBleGattCodec {
         'serial': 'MOCK-SHTC3',
       });
     }
+    if (device.model == LDDeviceModel.badge) {
+      sensorList
+        ..clear()
+        ..addAll([
+          {
+            'model': LDSensor.shtc3.id,
+            'dimensions': LDSensor.shtc3.measures.map((q) => q.id).toList(),
+            'serial': 'MOCK-SHTC3',
+          },
+          {
+            'model': LDSensor.as7331.id,
+            'dimensions': LDSensor.as7331.measures.map((q) => q.id).toList(),
+            'serial': 'MOCK-AS7331',
+          },
+        ]);
+    }
     final payload = <String, dynamic>{
       'device': {
         'firmware': '1.0.0',
@@ -46,6 +62,11 @@ abstract final class MockBleGattCodec {
     final out = <int>[LDSensor.sen5x.id, 0xFF, ...details, 0xFF];
     if (device.model == LDDeviceModel.aRound) {
       out.addAll([LDSensor.shtc3.id, 0xFF, 0xFF]);
+    }
+    if (device.model == LDDeviceModel.badge) {
+      out
+        ..clear()
+        ..addAll([LDSensor.shtc3.id, 0xFF, 0xFF, LDSensor.as7331.id, 0xFF, 0xFF]);
     }
     return out;
   }
@@ -80,6 +101,19 @@ abstract final class MockBleGattCodec {
         LDSensor.shtc3: {
           MeasurableQuantity.temperature: 20 + 2 * sin(t / 100),
           MeasurableQuantity.humidity: 50 + 8 * cos(t / 80),
+        },
+      };
+    }
+    if (device.model == LDDeviceModel.badge) {
+      return {
+        LDSensor.shtc3: {
+          MeasurableQuantity.temperature: 22.5,
+          MeasurableQuantity.humidity: 45.0,
+        },
+        LDSensor.as7331: {
+          MeasurableQuantity.uva: 1.0,
+          MeasurableQuantity.uvb: 0.5,
+          MeasurableQuantity.uvc: 0.2,
         },
       };
     }
@@ -301,5 +335,53 @@ abstract final class MockBleGattCodec {
       return BleOperationalStatusFlags.configIncomplete;
     }
     return 0;
+  }
+
+  /// Mock LDLG measurement log blob for Badge BLE export tests.
+  static Uint8List encodeBadgeMeasLogBlob() {
+    const recordCount = 2;
+    final values = encodeSensorValuesBySensor({
+      LDSensor.shtc3: {
+        MeasurableQuantity.temperature: 22.5,
+        MeasurableQuantity.humidity: 45.0,
+      },
+      LDSensor.as7331: {
+        MeasurableQuantity.uva: 1.0,
+        MeasurableQuantity.uvb: 0.5,
+        MeasurableQuantity.uvc: 0.2,
+      },
+    });
+    const recordSize = 48;
+    final out = Uint8List(64 + recordCount * recordSize);
+    out[0] = 0x4c;
+    out[1] = 0x44;
+    out[2] = 0x4c;
+    out[3] = 0x47;
+    out[4] = 1;
+    _writeU32le(out, 6, recordCount);
+    out[10] = recordSize & 0xff;
+    out[11] = (recordSize >> 8) & 0xff;
+    _writeU32le(out, 12, 1000);
+
+    for (var i = 0; i < recordCount; i++) {
+      final base = 64 + i * recordSize;
+      _writeU32le(out, base, i * 30000);
+      out[base + 4] = 78;
+      out[base + 5] = 38;
+      out[base + 6] = values.length & 0xff;
+      out[base + 7] = (values.length >> 8) & 0xff;
+      out.setRange(base + 8, base + 8 + values.length, values);
+      for (var p = base + 8 + values.length; p < base + recordSize; p++) {
+        out[p] = 0xff;
+      }
+    }
+    return out;
+  }
+
+  static void _writeU32le(Uint8List out, int offset, int value) {
+    out[offset] = value & 0xff;
+    out[offset + 1] = (value >> 8) & 0xff;
+    out[offset + 2] = (value >> 16) & 0xff;
+    out[offset + 3] = (value >> 24) & 0xff;
   }
 }

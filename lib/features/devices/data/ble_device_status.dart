@@ -30,6 +30,7 @@ class BleOperationalStatusFlags {
   static const int wifiFailure = 0x02;
   static const int noSensor = 0x04;
   static const int ssidConfigured = 0x08;
+  static const int measLogging = 0x10;
 
   factory BleOperationalStatusFlags.fromByte(int b) => BleOperationalStatusFlags(b);
 
@@ -37,6 +38,7 @@ class BleOperationalStatusFlags {
   bool get hasWifiFailure => (raw & wifiFailure) != 0;
   bool get hasNoSensor => (raw & noSensor) != 0;
   bool get hasSsidConfigured => (raw & ssidConfigured) != 0;
+  bool get isMeasLoggingActive => (raw & measLogging) != 0;
 }
 
 enum BleNoticeSeverity { warning, error }
@@ -135,10 +137,12 @@ void applyDeviceStatusBytes(BleDevice device, List<int> raw) {
   );
   if (raw.length >= 5) {
     device.wifiDetailOnDevice = BleWifiDetailCode.fromByte(raw[3]);
-    device.wifiSsidConfiguredOnDevice =
-        BleOperationalStatusFlags.fromByte(raw[4]).hasSsidConfigured;
+    final flags = BleOperationalStatusFlags.fromByte(raw[4]);
+    device.wifiSsidConfiguredOnDevice = flags.hasSsidConfigured;
+    device.isMeasLoggingActive = flags.isMeasLoggingActive;
   } else {
     device.wifiDetailOnDevice = BleWifiDetailCode.ok;
     device.wifiSsidConfiguredOnDevice = false;
+    device.isMeasLoggingActive = false;
   }
 }

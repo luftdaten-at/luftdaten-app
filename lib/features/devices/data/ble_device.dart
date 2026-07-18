@@ -31,6 +31,7 @@ class BleDevice extends ChangeNotifier {
       _operationalNotices = [];
       wifiSsidConfiguredOnDevice = false;
       wifiDetailOnDevice = BleWifiDetailCode.ok;
+      isMeasLoggingActive = false;
     }
     notifyListeners();
     getIt<BatteryInfoAggregator>().onConnectionStatusUpdated();
@@ -140,6 +141,9 @@ class BleDevice extends ChangeNotifier {
 
   /// From BLE `device_status` Wi‑Fi detail byte (index 3).
   BleWifiDetailCode wifiDetailOnDevice = BleWifiDetailCode.ok;
+
+  /// From BLE `device_status` byte 4 bit `0x10` (Badge measurement mode active).
+  bool isMeasLoggingActive = false;
 
   List<BleDeviceNotice> get operationalNotices => _operationalNotices;
 

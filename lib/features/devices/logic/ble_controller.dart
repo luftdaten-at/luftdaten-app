@@ -3,6 +3,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/logic/ble_controller_v1.dart';
 import 'package:luftdaten.at/features/devices/logic/ble_controller_v2.dart';
+import 'package:luftdaten.at/features/devices/logic/badge_meas_log_export.dart';
+import 'package:luftdaten.at/features/devices/logic/badge_meas_log_parser.dart';
 import 'package:luftdaten.at/features/devices/logic/mock_ble_devices.dart';
 import 'package:luftdaten.at/features/devices/logic/mock_ble_gatt.dart';
 import 'package:luftdaten.at/features/devices/logic/sd_ble_export.dart';
@@ -150,6 +152,65 @@ class BleController {
       return SdBleImportResult.error('SD-Import benötigt Firmware-Protokoll 2.');
     }
     return BleControllerV2().importSdJsonlLines(device, onProgress: onProgress);
+  }
+
+  /// Idle peek: badge measurement log has records (Badge only).
+  Future<BadgeMeasLogPeekInfo?> peekBadgeMeasLog(BleDevice device) async {
+    if (device.model != LDDeviceModel.badge) return null;
+    if (device.state != BleDeviceState.connected || device.bleId == null) return null;
+    final client = BadgeMeasLogExportClient(
+      transport: MockBleDevices.canUseMockBle(device)
+          ? MockBleGattTransport.instance
+          : null,
+    );
+    return client.peekStatus(device);
+  }
+
+  /// Download badge measurement log over BLE and parse to Datahub JSON lines.
+  Future<BadgeMeasLogImportResult> importBadgeMeasLogFromBle(
+    BleDevice device, {
+    void Function(BadgeMeasLogExportProgress progress)? onProgress,
+    Future<bool> Function()? shouldCancel,
+  }) async {
+    if (device.model != LDDeviceModel.badge) {
+      return BadgeMeasLogImportResult.error('Nur für Air Badge verfügbar.');
+    }
+    if (device.state != BleDeviceState.connected) {
+      return BadgeMeasLogImportResult.error('Bluetooth nicht verbunden.');
+    }
+
+    final client = BadgeMeasLogExportClient(
+      transport: MockBleDevices.canUseMockBle(device)
+          ? MockBleGattTransport.instance
+          : null,
+    );
+    final export = await client.export(
+      device: device,
+      onProgress: onProgress,
+      shouldCancel: shouldCancel,
+    );
+    if (!export.ok) {
+      if (export.cancelled) {
+        return BadgeMeasLogImportResult.error('Import abgebrochen.');
+      }
+      return BadgeMeasLogImportResult.error(export.errorMessage ?? 'Import fehlgeschlagen.');
+    }
+
+    return parseBadgeMeasLogToDatahubJson(
+      bytes: export.bytes!,
+      device: device,
+    );
+  }
+
+  /// Erase badge flash log after successful import.
+  Future<bool> eraseBadgeMeasLog(BleDevice device) {
+    if (device.model != LDDeviceModel.badge) return Future.value(false);
+    final client = BadgeMeasLogExportClient(
+      transport: MockBleDevices.canUseMockBle(device)
+          ? MockBleGattTransport.instance
+          : null,
+    );
+    return client.eraseLog(device);
   }
 }
 

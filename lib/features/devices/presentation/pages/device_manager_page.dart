@@ -194,7 +194,11 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
                   );
                 },
               ),
-              Expanded(child: _buildDeviceList()),
+              Expanded(
+                child: Consumer<DeviceManager>(
+                  builder: (context, manager, _) => _buildDeviceList(manager.devices),
+                ),
+              ),
             ],
           );
         },
@@ -292,8 +296,7 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
     );
   }
 
-  Widget _buildDeviceList() {
-    final devices = getIt<DeviceManager>().devices;
+  Widget _buildDeviceList(List<BleDevice> devices) {
     final sections = <Widget>[];
 
     void addSection(

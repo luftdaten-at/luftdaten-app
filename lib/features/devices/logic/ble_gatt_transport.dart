@@ -12,6 +12,10 @@ abstract final class BleGattUuids {
   static final airStationConfiguration =
       Uuid.parse('b47b0cdf-0ced-49a9-86a5-d78a03ea7674');
   static final sdLogExport = Uuid.parse('51d2f8a4-91c6-53b2-a6e5-71829304a505');
+  static final otaControl = Uuid.parse('6d7f8a9b-0c1d-4e2f-a3b4-c5d6e7f80910');
+  static final otaData = Uuid.parse('6d7f8a9b-0c1d-4e2f-a3b4-c5d6e7f80911');
+  static final logControl = Uuid.parse('6d7f8a9b-0c1d-4e2f-a3b4-c5d6e7f80920');
+  static final logData = Uuid.parse('6d7f8a9b-0c1d-4e2f-a3b4-c5d6e7f80921');
 }
 
 /// Abstraction over real BLE reads/writes (used by [BleControllerV2] and mock GATT).
@@ -27,5 +31,24 @@ abstract class BleGattTransport {
     required Uuid serviceId,
     required Uuid characteristicId,
     required List<int> value,
+  });
+
+  Future<void> writeCharacteristicWithResponse({
+    required String deviceId,
+    required Uuid serviceId,
+    required Uuid characteristicId,
+    required List<int> value,
+  });
+
+  Stream<List<int>> subscribeCharacteristic({
+    required String deviceId,
+    required Uuid serviceId,
+    required Uuid characteristicId,
+  });
+
+  /// Negotiate ATT MTU; returns negotiated size (platform may cap below [mtu]).
+  Future<int> requestMtu({
+    required String deviceId,
+    required int mtu,
   });
 }
