@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
+import 'package:luftdaten.at/features/map/logic/device_heading_stream.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:luftdaten.at/features/devices/logic/air_station_config_wizard_controller.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.i18n.dart';
@@ -103,7 +104,11 @@ class MapScreenState extends State<MapScreen> {
                       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.pmble.app',
                     ),
-                    IgnorePointer(child: CurrentLocationLayer()),
+                    IgnorePointer(
+                      child: CurrentLocationLayer(
+                        headingStream: deviceHeadingStream(),
+                      ),
+                    ),
                     if (selectedPosition != null)
                       MarkerLayer(
                         markers: [

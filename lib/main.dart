@@ -30,6 +30,7 @@ import 'package:luftdaten.at/core/config/app_settings.dart';
 import 'package:luftdaten.at/core/background_services/background_service.dart';
 import 'package:luftdaten.at/core/app/device_info.dart';
 import 'package:luftdaten.at/core/di/di.dart';
+import 'package:luftdaten.at/core/io/app_file_saver.dart';
 import 'package:luftdaten.at/core/config/env.dart';
 import 'package:luftdaten.at/features/dashboard/logic/news_controller.dart';
 import 'package:luftdaten.at/core/app/preferences_handler.dart';
@@ -97,6 +98,7 @@ void main() async {
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
 
+    getIt.registerSingleton<AppFileSaver>(AppFileSaver());
     getIt.registerSingleton<DeviceManager>(DeviceManager()..init());
     getIt.registerSingleton<TripController>(TripController()..init());
     getIt.registerSingleton<MeasurementDisconnectHandler>(MeasurementDisconnectHandler());

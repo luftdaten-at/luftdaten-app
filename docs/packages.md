@@ -29,20 +29,19 @@ Tables below mirror **`dart pub deps --json`** (direct production and dev roots)
 | `flutter` | `0.0.0` | Flutter SDK |
 | `flutter_background_service` | `5.1.0` | pub.dev |
 | `flutter_displaymode` | `0.6.0` | pub.dev |
-| `flutter_file_dialog` | `3.0.2` | pub.dev |
 | `flutter_local_notifications` | `19.0.0` | pub.dev |
 | `flutter_localizations` | `0.0.0` | Flutter SDK |
-| `flutter_map` | `7.0.2` | pub.dev |
-| `flutter_map_animations` | `0.8.0` | pub.dev |
-| `flutter_map_location_marker` | `9.1.1` | pub.dev |
-| `flutter_map_marker_cluster` | `1.4.0` | pub.dev |
+| `flutter_map` | `8.3.1` | pub.dev |
+| `flutter_map_animations` | `0.10.0` | pub.dev |
+| `flutter_map_location_marker` | `10.3.0` | pub.dev |
+| `flutter_map_marker_cluster` | `8.2.2` | pub.dev |
 | `flutter_native_splash` | `2.4.4` | pub.dev |
 | `flutter_reactive_ble` | `5.4.0` | pub.dev |
 | `flutter_spinkit` | `5.2.1` | pub.dev |
 | `flutter_svg` | `2.0.17` | pub.dev |
 | `fluttertoast` | `8.2.12` | pub.dev |
 | `geocoding` | `3.0.0` | pub.dev |
-| `geolocator` | `13.0.4` | pub.dev |
+| `geolocator` | `14.0.2` | pub.dev |
 | `get_it` | `8.0.3` | pub.dev |
 | `get_storage` | `2.1.1` | pub.dev |
 | `google_fonts` | `6.3.3` | pub.dev |

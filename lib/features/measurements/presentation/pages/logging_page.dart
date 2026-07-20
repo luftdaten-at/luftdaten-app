@@ -1,15 +1,16 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_file_dialog/flutter_file_dialog.dart';
-import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:luftdaten.at/core/app/logging.dart';
+import 'package:luftdaten.at/core/core.dart';
+import 'package:luftdaten.at/core/io/app_file_saver.dart';
+import 'package:luftdaten.at/core/io/log_exporter.dart';
 import 'package:luftdaten.at/features/measurements/presentation/pages/logging_page.i18n.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
+import 'package:intl/intl.dart';
 
 class LoggingPage extends StatefulWidget {
   const LoggingPage({super.key});
@@ -31,51 +32,38 @@ class _LoggingPageState extends State<LoggingPage> {
 
   Future<void> _exportLog(BuildContext context) async {
     final logger = LdLogger.I;
-    if (logger.messages.isEmpty) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Keine Log-Einträge zum Exportieren.'.i18n)),
-      );
-      return;
-    }
-
-    try {
-      final stamp = DateFormat('yyyyMMdd-HHmmss').format(DateTime.now());
-      final fileName = 'luftdaten-log-$stamp.txt';
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/$fileName');
-      await file.writeAsString(logger.toExportText());
-
-      if (!context.mounted) return;
-
-      if (Platform.isAndroid) {
-        final savedPath = await FlutterFileDialog.saveFile(
-          params: SaveFileDialogParams(
-            sourceFilePath: file.path,
-            fileName: fileName,
-            mimeTypesFilter: ['text/plain'],
-          ),
+    final result = await exportLogFile(
+      exportText: logger.toExportText(),
+      tryAndroidSaveDialog: Platform.isAndroid,
+      fileSaver: getIt<AppFileSaver>(),
+      shareFile: (filePath, fileName) async {
+        final box = context.findRenderObject() as RenderBox?;
+        await Share.shareXFiles(
+          [XFile(filePath, mimeType: 'text/plain', name: fileName)],
+          subject: 'Luftdaten.at log',
+          sharePositionOrigin:
+              box != null ? box.localToGlobal(Offset.zero) & box.size : null,
         );
-        if (!context.mounted) return;
-        if (savedPath != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(savedPath)),
-          );
-          return;
-        }
-      }
+      },
+    );
 
-      final box = context.findRenderObject() as RenderBox?;
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'text/plain', name: fileName)],
-        subject: 'Luftdaten.at log',
-        sharePositionOrigin: box != null ? box.localToGlobal(Offset.zero) & box.size : null,
-      );
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Log konnte nicht exportiert werden.'.i18n)),
-      );
+    if (!context.mounted) return;
+
+    switch (result.outcome) {
+      case LogExportOutcome.empty:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Keine Log-Einträge zum Exportieren.'.i18n)),
+        );
+      case LogExportOutcome.saved:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.savedPath!)),
+        );
+      case LogExportOutcome.shared:
+        break;
+      case LogExportOutcome.failed:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Log konnte nicht exportiert werden.'.i18n)),
+        );
     }
   }
 

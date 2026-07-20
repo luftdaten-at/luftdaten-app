@@ -4,11 +4,12 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:luftdaten.at/core/core.dart';
+import 'package:luftdaten.at/core/io/app_file_saver.dart';
 import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/measurements/data/trip.dart';
@@ -310,10 +311,12 @@ class _AnnotatedPicturePageState extends State<AnnotatedPicturePage> with Widget
                   if (Platform.isAndroid)
                     OutlinedButton.icon(
                       onPressed: () async {
-                        final params = SaveFileDialogParams(
-                          sourceFilePath: '${cache.path}/annotated.png',
+                        final imagePath = '${cache.path}/annotated.png';
+                        await getIt<AppFileSaver>().saveBytes(
+                          fileName: 'annotated.png',
+                          bytes: File(imagePath).readAsBytesSync(),
+                          type: FileType.image,
                         );
-                        await FlutterFileDialog.saveFile(params: params);
                       },
                       icon: const Icon(Icons.save_alt),
                       label: Text('Foto speichern'.i18n),

@@ -19,6 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_animations/flutter_map_animations.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
+import 'package:luftdaten.at/features/map/logic/device_heading_stream.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -460,7 +461,9 @@ class _MapPageState extends State<MapPage>
                   ),
                 );
               }),
-          IgnorePointer(child: CurrentLocationLayer()),
+          IgnorePointer(
+            child: CurrentLocationLayer(headingStream: deviceHeadingStream()),
+          ),
           Consumer<TripController>(
             builder: (ctx, tripController, _) {
               Trip? current = tripController.primaryTripToDisplay; // TODO support multiple trips

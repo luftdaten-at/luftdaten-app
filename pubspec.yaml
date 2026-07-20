@@ -19,14 +19,14 @@ dependencies:
   permission_handler: ^12.0.3
   flutter_reactive_ble: ^5.5.0
   another_flushbar: ^1.12.30
-  flutter_map: ^7.0.2
-  geolocator: ^13.0.1
+  flutter_map: ^8.3.1
+  geolocator: ^14.0.2
   json_annotation: ^4.8.1
   syncfusion_flutter_charts: ^29.1.37+1
   flutter_background_service: ^5.1.0
   flutter_local_notifications: ^19.0.0
   flutter_native_splash: ^2.3.2
-  flutter_map_location_marker: ^9.1.1
+  flutter_map_location_marker: ^10.3.0
   path_provider: ^2.1.1
   share_plus: ^10.0.2
   package_info_plus: ^8.0.0
@@ -54,7 +54,6 @@ dependencies:
   camera: ^0.11.0
   flutter_displaymode: ^0.6.0
   screenshot: ^3.0.0
-  flutter_file_dialog: ^3.0.3
   vibration: ^3.1.5
   get_it: ^8.0.0
   logger: ^2.0.2+1
@@ -68,10 +67,10 @@ dependencies:
   crypto: ^3.0.6
   geocoding: ^4.0.0
   fluttertoast: ^9.1.0
-  flutter_map_marker_cluster: ^1.3.4
+  flutter_map_marker_cluster: ^8.2.2
   lottie: ^3.0.0
   collection_providers: ^0.2.1
-  flutter_map_animations: ^0.8.0
+  flutter_map_animations: ^0.10.0
   just_audio: ^0.9.37
   mobile_scanner: ^7.2.0
 
