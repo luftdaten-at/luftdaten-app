@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:i18n_extension/i18n_extension.dart';
+import 'package:luftdaten.at/core/config/env.dart';
 import 'package:luftdaten.at/core/config/app_settings.dart';
 import 'package:luftdaten.at/core/di/di.dart';
 import 'package:luftdaten.at/features/devices/logic/battery_info_aggregator.dart';
@@ -97,7 +98,8 @@ Future<void> setUpDeviceWidgetTests({
     await _ensureStorageBucket(bucket);
   }
   GetIt.instance.reset();
-  getIt.registerSingleton<DeviceManager>(DeviceManager());
+  final deviceManager = DeviceManager()..skipAutoRefreshScanForTest = true;
+  getIt.registerSingleton<DeviceManager>(deviceManager);
   getIt.registerSingleton<BatteryInfoAggregator>(BatteryInfoAggregator());
   if (registerBleController) {
     getIt.registerSingleton<BleController>(BleController());
@@ -116,11 +118,17 @@ Widget buildDeviceTestApp(
   DeviceManager? manager,
 }) {
   final deviceManager = manager ?? getIt<DeviceManager>();
+  if (manager != null) {
+    manager.skipAutoRefreshScanForTest = true;
+  }
   return I18n(
     initialLocale: const Locale('de'),
     child: ChangeNotifierProvider<DeviceManager>.value(
       value: deviceManager,
-      child: MaterialApp(home: child),
+      child: MaterialApp(
+        navigatorObservers: [routeObserver],
+        home: child,
+      ),
     ),
   );
 }

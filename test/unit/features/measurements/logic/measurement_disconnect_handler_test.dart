@@ -122,6 +122,28 @@ void main() {
       expect(connectCalls, greaterThanOrEqualTo(1));
     });
 
+    test('handleReconnect resumes trip when device is already connected', () {
+      handler.handleDisconnect(device);
+      expect(trips.isPausedForDisconnect, isTrue);
+
+      device.setConnectionStateForTest(BleDeviceState.connected);
+      handler.handleReconnect(device);
+
+      expect(trips.isPausedForDisconnect, isFalse);
+      expect(trips.elapsedBeforePause, isNull);
+    });
+
+    test('handleReconnect ignores a different device', () {
+      handler.handleDisconnect(device);
+      final other = _testDevice()..bleName = 'Luftdaten.at-OTHER-1';
+
+      other.setConnectionStateForTest(BleDeviceState.connected);
+      handler.handleReconnect(other);
+
+      expect(trips.isPausedForDisconnect, isTrue);
+      expect(trips.disconnectPausedDevice, same(device));
+    });
+
     test('stopMeasurementFromDialog stops trip and cancels reconnect', () {
       handler.handleDisconnect(device);
 

@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'package:luftdaten.at/core/config/app_settings.dart';
 import 'package:luftdaten.at/features/devices/logic/mock_ble_devices.dart';
+import 'package:luftdaten.at/features/measurements/logic/measurement_disconnect_handler.dart';
 import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
 
 import '../data/air_station_config.dart';
@@ -17,6 +18,9 @@ import '../data/chip_id.dart';
 import 'device_config_store.dart';
 
 class DeviceManager extends ChangeNotifier {
+  static const _autoRefreshInterval = Duration(seconds: 8);
+  static const _scanDurationMs = 2000;
+
   final List<BleDevice> _devices = [];
 
   List<BleDevice> get devices => _devices;
@@ -33,6 +37,17 @@ class DeviceManager extends ChangeNotifier {
   }
 
   StreamSubscription? _deviceScanner;
+  Timer? _autoRefreshTimer;
+  bool _devicePageVisible = false;
+
+  @visibleForTesting
+  bool get hasAutoRefreshTimerForTest => _autoRefreshTimer != null;
+
+  @visibleForTesting
+  bool get isDevicePageVisibleForTest => _devicePageVisible;
+
+  @visibleForTesting
+  bool skipAutoRefreshScanForTest = false;
 
   Future<void> init() async {
     await GetStorage.init('devices');
@@ -40,9 +55,42 @@ class DeviceManager extends ChangeNotifier {
     for (dynamic element in raw) {
       devices.add(BleDevice.fromJson(element as Map<String, dynamic>));
     }
-    if(devices.isNotEmpty) {
-      Future.delayed(const Duration(seconds: 1)).then((_) => scanForDevices(3000));
+  }
+
+  /// Starts or stops periodic BLE scans while the Geräte page/tab is visible.
+  void setDevicePageVisible(bool visible) {
+    if (_devicePageVisible == visible) return;
+    _devicePageVisible = visible;
+    if (visible) {
+      unawaited(_runAutoRefreshCycle());
+      _autoRefreshTimer?.cancel();
+      _autoRefreshTimer = Timer.periodic(_autoRefreshInterval, (_) {
+        unawaited(_runAutoRefreshCycle());
+      });
+    } else {
+      _autoRefreshTimer?.cancel();
+      _autoRefreshTimer = null;
     }
+  }
+
+  Future<void> _runAutoRefreshCycle() async {
+    if (!_devicePageVisible || _scanning) return;
+    if (!skipAutoRefreshScanForTest) {
+      await scanForDevices(_scanDurationMs);
+    }
+    _nudgePausedMeasurementReconnect();
+  }
+
+  void _nudgePausedMeasurementReconnect() {
+    if (!getIt.isRegistered<MeasurementDisconnectHandler>() ||
+        !getIt.isRegistered<TripController>()) {
+      return;
+    }
+    final trips = getIt<TripController>();
+    final pausedDevice = trips.disconnectPausedDevice;
+    if (!trips.isPausedForDisconnect || pausedDevice == null) return;
+    getIt<MeasurementDisconnectHandler>()
+        .checkPausedDeviceConnection(pausedDevice);
   }
 
   void saveDeviceList() {

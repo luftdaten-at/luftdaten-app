@@ -159,7 +159,7 @@ SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_background_service_ios: 00d31bdff7b4bfe06d32375df358abe0329cf87e
   flutter_local_notifications: a5a732f069baa862e728d839dd2ebb904737effb
-  flutter_rotation_sensor: c982fce7b59849b614b2131ec93b43bdb94310ae
+  flutter_rotation_sensor: 730fdea4b26a5b812ae12232c780564a377e4195
   flutter_secure_storage_darwin: acdb3f316ed05a3e68f856e0353b133eec373a23
   fluttertoast: fe6790210fdba20801685be946e3a2124b72eef5
   geocoding_ios: 33776c9ebb98d037b5e025bb0e7537f6dd19646e
@@ -179,6 +179,6 @@ SPEC CHECKSUMS:
   vibration: ca8104a8875b9c493e15b21b04e456befd0ff6eb
   wakelock_plus: e29112ab3ef0b318e58cfa5c32326458be66b556
 
-PODFILE CHECKSUM: d7784a0b84927987ee2b9227dd62aa1cc267ae70
+PODFILE CHECKSUM: 1215f5ee1cde94c67447e6d27bc362f9f0b8a24f
 
 COCOAPODS: 1.17.0

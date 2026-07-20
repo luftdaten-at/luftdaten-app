@@ -11,7 +11,6 @@ import 'package:luftdaten.at/features/devices/presentation/pages/air_station_con
 import 'package:luftdaten.at/core/widgets/dashboard_list_tile.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/device_detail_page.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/device_list_tile.dart';
-import 'package:luftdaten.at/core/widgets/rotating_widget.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
@@ -34,7 +33,6 @@ class DeviceManagerPage extends StatefulWidget {
 
   @visibleForTesting
   static void resetForTests() {
-    _DeviceManagerPageState.initialScan = false;
     debugBleStatus = null;
   }
 
@@ -42,11 +40,10 @@ class DeviceManagerPage extends StatefulWidget {
   State<DeviceManagerPage> createState() => _DeviceManagerPageState();
 }
 
-class _DeviceManagerPageState extends State<DeviceManagerPage> {
-  static bool initialScan = false;
-  RotatingWidgetController syncIconController = RotatingWidgetController();
+class _DeviceManagerPageState extends State<DeviceManagerPage> with RouteAware {
   bool _airRoundSortAscending = true;
   bool _airStationSortAscending = true;
+  ModalRoute<void>? _routeSubscription;
 
   void connectTo(BleDevice device) async {
     logger.d("Connecting to ${device.bleName}");
@@ -85,6 +82,49 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
     return;
   }
 
+  bool get _isEmbeddedInHomeTab =>
+      context.findAncestorWidgetOfExactType<PageView>() != null;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_isEmbeddedInHomeTab) return;
+
+    final route = ModalRoute.of(context);
+    if (route == _routeSubscription) return;
+    if (_routeSubscription != null) {
+      routeObserver.unsubscribe(this);
+    }
+    if (route is PageRoute<void>) {
+      _routeSubscription = route;
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_routeSubscription != null) {
+      routeObserver.unsubscribe(this);
+      getIt<DeviceManager>().setDevicePageVisible(false);
+    }
+    super.dispose();
+  }
+
+  @override
+  void didPush() {
+    getIt<DeviceManager>().setDevicePageVisible(true);
+  }
+
+  @override
+  void didPop() {
+    getIt<DeviceManager>().setDevicePageVisible(false);
+  }
+
+  @override
+  void didPopNext() {
+    getIt<DeviceManager>().setDevicePageVisible(true);
+  }
+
   @override
   Widget build(BuildContext context) {
     String? errorMsg;
@@ -117,12 +157,6 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
                 child: Center(child: Text(errorMsg!, textAlign: TextAlign.center)),
               );
             }
-          } else if (!initialScan) {
-            // TODO move this higher-up, scanning shouldn't only happen when we open Device Manager
-            initialScan = true;
-            //Future.delayed(const Duration(milliseconds: 500)).then((_) {
-            //  getIt<BleController>().scanForDevices(3000);
-            //});
           }
 
           if (getIt<DeviceManager>().devices.isEmpty) {
@@ -165,64 +199,8 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
               ),
             );
           }
-          return Column(
-            children: [
-              Consumer<DeviceManager>(
-                builder: (context, manager, _) {
-                  if (!manager.scanning) return const SizedBox.shrink();
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Suche Bluetooth-Geräte…'.i18n,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-              Expanded(
-                child: Consumer<DeviceManager>(
-                  builder: (context, manager, _) => _buildDeviceList(manager.devices),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-      floatingActionButton: Consumer<DeviceManager>(
-        builder: (ctx, provider, _) {
-          logger.d('Rebuilt with status ${provider.scanning}');
-          if (provider.scanning) {
-            syncIconController.start();
-          } else {
-            syncIconController.stop();
-          }
-          return FloatingActionButton(
-            heroTag: "devManMain",
-            onPressed: provider.scanning ? null : () => provider.scanForDevices(2000),
-            backgroundColor: Colors.white,
-            elevation: 2,
-            tooltip: 'Nach Bluetooth-Geräten scannen'.i18n,
-            child: RotatingWidget(
-              controller: syncIconController,
-              duration: const Duration(milliseconds: 600),
-              activeChild: Icon(Icons.sync, color: Colors.grey.shade400),
-              child: const Icon(Icons.sync, color: Colors.black),
-            ),
+          return Consumer<DeviceManager>(
+            builder: (context, manager, _) => _buildDeviceList(manager.devices),
           );
         },
       ),

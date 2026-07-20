@@ -29,6 +29,7 @@ class BleDevice extends ChangeNotifier {
   BleDeviceState get state => _state;
 
   set state(BleDeviceState state) {
+    final wasConnected = _state == BleDeviceState.connected;
     _state = state;
     if (state != BleDeviceState.connected) {
       _operationalNotices = [];
@@ -38,6 +39,11 @@ class BleDevice extends ChangeNotifier {
     }
     notifyListeners();
     getIt<BatteryInfoAggregator>().onConnectionStatusUpdated();
+    if (state == BleDeviceState.connected && !wasConnected) {
+      if (getIt.isRegistered<MeasurementDisconnectHandler>()) {
+        getIt<MeasurementDisconnectHandler>().handleReconnect(this);
+      }
+    }
   }
 
   /// Updates [state] without touching GetIt — for unit tests only.

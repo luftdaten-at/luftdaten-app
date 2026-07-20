@@ -107,6 +107,7 @@ class _LDAppState extends State<LDApp> with WidgetsBindingObserver {
           },
           initialRoute: widget.initialRoute,
           debugShowCheckedModeBanner: false,
+          navigatorObservers: [routeObserver],
           routes: <String, WidgetBuilder>{
             '/': (ctx) => const PageViewerPage(),
             DeviceManagerPage.route: (ctx) => const DeviceManagerPage(),

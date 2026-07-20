@@ -28,6 +28,19 @@ This repo disables SPM **per project** so iOS deps use CocoaPods consistently:
 
 If Xcode already partially added **`FlutterGeneratedPluginSwiftPackage`**, turn SPM off as above, then run `flutter clean`, open **`ios/Runner.xcworkspace`**, remove that local package and any related **Runner** frameworks / scheme **Pre-actions**, as in [remove SPM integration](https://docs.flutter.dev/packages-and-plugins/swift-package-manager/for-app-developers#how-to-remove-swift-package-manager-integration), then **`cd ios && pod install`**.
 
+### `flutter_rotation_sensor` / “Module not found” when archiving
+
+[`flutter_rotation_sensor`](https://pub.dev/packages/flutter_rotation_sensor) (used by `flutter_map_location_marker` 10.x for map heading) ships SPM sources under `ios/flutter_rotation_sensor/Sources/`, but its CocoaPods podspec still points at empty `Classes/**/*` when SPM is off. Xcode then fails with **`Module 'flutter_rotation_sensor' not found`** in `GeneratedPluginRegistrant.m`.
+
+This repo patches the plugin podspec in [`ios/Podfile`](../ios/Podfile) (`patch_flutter_rotation_sensor_podspec!`) before `pod install`. After pulling changes, run:
+
+```bash
+flutter pub get
+cd ios && pod install
+```
+
+Then archive again from Xcode or `flutter build ipa`.
+
 ## Bluetooth and background
 
 BLE behavior differs between **simulator** (limited/no real BLE) and **device**. For protocol work, use a physical device.

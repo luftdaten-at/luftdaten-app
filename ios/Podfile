@@ -25,6 +25,26 @@ end
 
 require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
 
+# flutter_rotation_sensor 0.3.x podspec lists Classes/**/* but sources live under
+# flutter_rotation_sensor/Sources/ (SPM layout). With project SPM disabled, CocoaPods
+# installs an empty pod and archive fails with "Module 'flutter_rotation_sensor' not found".
+def patch_flutter_rotation_sensor_podspec!
+  podspec_path = File.expand_path(
+    '.symlinks/plugins/flutter_rotation_sensor/ios/flutter_rotation_sensor.podspec',
+    __dir__,
+  )
+  return unless File.exist?(podspec_path)
+
+  contents = File.read(podspec_path)
+  fixed = "s.source_files = 'flutter_rotation_sensor/Sources/flutter_rotation_sensor/**/*'"
+  return if contents.include?(fixed)
+
+  updated = contents.gsub("s.source_files = 'Classes/**/*'", fixed)
+  File.write(podspec_path, updated) if updated != contents
+end
+
+patch_flutter_rotation_sensor_podspec!
+
 flutter_ios_podfile_setup
 
 Pod::PICKER_MEDIA = false

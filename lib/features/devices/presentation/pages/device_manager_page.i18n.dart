@@ -220,14 +220,6 @@ extension Localization on String {
         "en": "Firmware version: ",
       } +
       {
-        "de": "Nach Bluetooth-Geräten scannen",
-        "en": "Scan for nearby Bluetooth devices",
-      } +
-      {
-        "de": "Suche Bluetooth-Geräte…",
-        "en": "Searching for Bluetooth devices…",
-      } +
-      {
         "de": "Fehler",
         "en": "Error",
       } +

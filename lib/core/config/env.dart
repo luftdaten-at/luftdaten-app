@@ -20,6 +20,9 @@ import 'package:fluttertoast/fluttertoast.dart';
 
 GlobalKey globalKey = GlobalKey();
 
+final RouteObserver<ModalRoute<void>> routeObserver =
+    RouteObserver<ModalRoute<void>>();
+
 String appVersion = 'error';
 String buildNumber = 'error';
 String? locale;

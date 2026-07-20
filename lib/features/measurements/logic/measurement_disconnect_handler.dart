@@ -53,6 +53,26 @@ class MeasurementDisconnectHandler {
     _dismissDialog();
   }
 
+  /// Resumes a paused trip when [device] reconnects (manual or automatic).
+  void handleReconnect(BleDevice device) {
+    if (!_trips.isPausedForDisconnect || _trips.disconnectPausedDevice != device) {
+      return;
+    }
+    _onReconnectSuccess();
+  }
+
+  /// Called while the device page is visible to resume or retry a paused trip.
+  void checkPausedDeviceConnection(BleDevice device) {
+    if (!_trips.isPausedForDisconnect || _trips.disconnectPausedDevice != device) {
+      return;
+    }
+    if (device.state == BleDeviceState.connected) {
+      _onReconnectSuccess();
+      return;
+    }
+    unawaited(_attemptReconnect(device));
+  }
+
   void _startReconnectLoop(BleDevice device) {
     _reconnectTimer?.cancel();
     _reconnectTimer = Timer.periodic(_reconnectInterval, (_) {

@@ -142,5 +142,21 @@ void main() {
       expect(manager.addDeviceByCode('invalid'), isNull);
       expect(manager.addDeviceByCode('too;few'), isNull);
     });
+
+    test('setDevicePageVisible starts and stops auto refresh timer', () {
+      manager.skipAutoRefreshScanForTest = true;
+      expect(manager.hasAutoRefreshTimerForTest, isFalse);
+
+      manager.setDevicePageVisible(true);
+      expect(manager.hasAutoRefreshTimerForTest, isTrue);
+      expect(manager.isDevicePageVisibleForTest, isTrue);
+
+      manager.setDevicePageVisible(true);
+      expect(manager.hasAutoRefreshTimerForTest, isTrue);
+
+      manager.setDevicePageVisible(false);
+      expect(manager.hasAutoRefreshTimerForTest, isFalse);
+      expect(manager.isDevicePageVisibleForTest, isFalse);
+    });
   });
 }

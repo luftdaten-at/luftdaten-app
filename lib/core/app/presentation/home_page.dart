@@ -26,6 +26,7 @@ import 'package:luftdaten.at/features/devices/presentation/widgets/home_page_bat
 import 'package:luftdaten.at/features/measurements/presentation/pages/chart_page.dart';
 import 'package:luftdaten.at/features/measurements/presentation/pages/logging_page.dart';
 import 'package:luftdaten.at/features/dashboard/presentation/pages/dashboard_page.dart';
+import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
 import 'package:luftdaten.at/features/devices/presentation/pages/device_manager_page.dart';
 import 'package:luftdaten.at/features/map/presentation/pages/map_page.dart';
 
@@ -39,6 +40,8 @@ class PageViewerPage extends StatefulWidget {
 }
 
 class _PageViewerPageState extends State<PageViewerPage> {
+  static const int devicesTabIndex = 3;
+
   late PageController _pageController;
   int currentPage = 0;
   bool _skipNextNavigationSelection = false;
@@ -70,6 +73,13 @@ class _PageViewerPageState extends State<PageViewerPage> {
   void initState() {
     _pageController = getIt<PageController>();
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateDevicePageVisibility(currentPage);
+    });
+  }
+
+  void _updateDevicePageVisibility(int pageIndex) {
+    getIt<DeviceManager>().setDevicePageVisible(pageIndex == devicesTabIndex);
   }
 
   AppBar ldAppBar(BuildContext context, String title) {
@@ -268,6 +278,7 @@ class _PageViewerPageState extends State<PageViewerPage> {
 
   @override
   void dispose() {
+    getIt<DeviceManager>().setDevicePageVisible(false);
     _pageController.dispose();
     super.dispose();
   }
@@ -286,6 +297,7 @@ class _PageViewerPageState extends State<PageViewerPage> {
             setState(() {
               currentPage = pageIndex;
             });
+            _updateDevicePageVisibility(pageIndex);
           },
           children: _pages,
         ),
@@ -318,6 +330,7 @@ class _PageViewerPageState extends State<PageViewerPage> {
                 print("$currentPage => $idx");
               }
               setState(() => currentPage = idx);
+              _updateDevicePageVisibility(idx);
             },
             backgroundColor: const Color(0xff2e88c1),
             indicatorColor: Colors.white,
