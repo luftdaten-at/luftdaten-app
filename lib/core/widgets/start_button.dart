@@ -65,7 +65,9 @@ class _StartButtonState extends State<StartButton> {
                 ? Row(
                     children: [
                       Material(
-                        color: Colors.white,
+                        color: trips.isPausedForDisconnect
+                            ? Colors.orange.shade50
+                            : Colors.white,
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(15),
                           bottomLeft: Radius.circular(15),
@@ -75,28 +77,28 @@ class _StartButtonState extends State<StartButton> {
                           child: SizedBox(
                             width: 74,
                             child: Center(
-                              child: DurationWidget(
-                                initialTime: trips.currentTripStartedAt!,
-                                builder: (_, duration) {
-                                  String time = '';
-                                  int totalSecs = duration.inSeconds;
-                                  int hours = (totalSecs / 3600).floor();
-                                  totalSecs -= hours * 3600;
-                                  int minutes = (totalSecs / 60).floor();
-                                  totalSecs -= minutes * 60;
-                                  int seconds = totalSecs;
-                                  if (hours > 0) time += '$hours:';
-                                  time += minutes < 10 ? '0$minutes:' : '$minutes:';
-                                  time += seconds < 10 ? '0$seconds' : '$seconds';
-                                  return Text(
-                                    time,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                              child: trips.isPausedForDisconnect &&
+                                      trips.elapsedBeforePause != null
+                                  ? Text(
+                                      _formatDuration(trips.elapsedBeforePause!),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: Colors.orange.shade900,
+                                      ),
+                                    )
+                                  : DurationWidget(
+                                      initialTime: trips.currentTripStartedAt!,
+                                      builder: (_, duration) {
+                                        return Text(
+                                          _formatDuration(duration),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        );
+                                      },
                                     ),
-                                  );
-                                },
-                              ),
                             ),
                           ),
                         ),
@@ -282,6 +284,19 @@ class _StartButtonState extends State<StartButton> {
   }
 
   void stopTrip() => context.read<TripController>().stopTrip();
+
+  String _formatDuration(Duration duration) {
+    var totalSecs = duration.inSeconds;
+    final hours = totalSecs ~/ 3600;
+    totalSecs -= hours * 3600;
+    final minutes = totalSecs ~/ 60;
+    final seconds = totalSecs - minutes * 60;
+    var time = '';
+    if (hours > 0) time += '$hours:';
+    time += minutes < 10 ? '0$minutes:' : '$minutes:';
+    time += seconds < 10 ? '0$seconds' : '$seconds';
+    return time;
+  }
 
   IconData iconForMobilityMode(MobilityModes mode) {
     switch (mode) {

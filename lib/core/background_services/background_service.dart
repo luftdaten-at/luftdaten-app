@@ -104,6 +104,7 @@ abstract class BackgroundService {
 
   Future<void> _measureAndHandleForDevice(
       BleDevice device, TripController tripController, Position? position) async {
+    if (tripController.isPausedForDisconnect) return;
     Trip trip = tripController.ongoingTrips[device]!;
     logger.d('About to read data points');
     List<dynamic> tup;

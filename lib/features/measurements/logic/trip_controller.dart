@@ -8,6 +8,7 @@ import 'package:luftdaten.at/features/measurements/data/trip.dart';
 import 'package:luftdaten.at/features/measurements/logic/mock_measurement_devices.dart';
 import 'package:luftdaten.at/features/measurements/logic/mock_measurement_factory.dart';
 import 'package:luftdaten.at/features/measurements/logic/mock_measurement_telemetry.dart';
+import 'package:luftdaten.at/features/measurements/logic/measurement_disconnect_handler.dart';
 
 class TripController extends ChangeNotifier {
   TripController();
@@ -31,6 +32,11 @@ class TripController extends ChangeNotifier {
 
   bool isOngoing = false;
   DateTime? currentTripStartedAt;
+
+  /// Measurement paused because the BLE link dropped; reads are skipped until reconnect.
+  bool isPausedForDisconnect = false;
+  Duration? elapsedBeforePause;
+  BleDevice? disconnectPausedDevice;
 
   bool get isMockLiveActive =>
       ongoingTrips.keys.any(MockMeasurementDevices.isLiveMeasurementDevice);
@@ -90,7 +96,34 @@ class TripController extends ChangeNotifier {
     }
     isOngoing = false;
     currentTripStartedAt = null;
+    _clearPauseForDisconnect();
+    if (getIt.isRegistered<MeasurementDisconnectHandler>()) {
+      getIt<MeasurementDisconnectHandler>().cancelReconnect();
+    }
     notifyListeners();
+  }
+
+  void pauseForBleDisconnect(BleDevice device) {
+    if (!isOngoing || isPausedForDisconnect || currentTripStartedAt == null) {
+      return;
+    }
+    elapsedBeforePause = DateTime.now().difference(currentTripStartedAt!);
+    disconnectPausedDevice = device;
+    isPausedForDisconnect = true;
+    notifyListeners();
+  }
+
+  void resumeAfterBleReconnect() {
+    if (!isPausedForDisconnect || elapsedBeforePause == null) return;
+    currentTripStartedAt = DateTime.now().subtract(elapsedBeforePause!);
+    _clearPauseForDisconnect();
+    notifyListeners();
+  }
+
+  void _clearPauseForDisconnect() {
+    isPausedForDisconnect = false;
+    elapsedBeforePause = null;
+    disconnectPausedDevice = null;
   }
 
   Trip? get primaryTripToDisplay => ongoingTrips.values.firstOrNull ?? loadedTrips.firstOrNull;

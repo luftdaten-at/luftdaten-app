@@ -41,6 +41,7 @@ import 'package:luftdaten.at/features/dashboard/logic/favorites_manager.dart';
 import 'package:luftdaten.at/features/map/logic/http_provider.dart';
 import 'package:luftdaten.at/features/map/logic/station_name_resolver.dart';
 import 'package:luftdaten.at/features/measurements/logic/file_handler.dart';
+import 'package:luftdaten.at/features/measurements/logic/measurement_disconnect_handler.dart';
 import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
 import 'package:luftdaten.at/features/measurements/logic/workshop_controller.dart';
 import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
@@ -98,6 +99,7 @@ void main() async {
 
     getIt.registerSingleton<DeviceManager>(DeviceManager()..init());
     getIt.registerSingleton<TripController>(TripController()..init());
+    getIt.registerSingleton<MeasurementDisconnectHandler>(MeasurementDisconnectHandler());
     getIt.registerSingleton<BackgroundService>(BackgroundService.forPlatform()..init());
     getIt.registerSingleton<MapHttpProvider>(MapHttpProvider()..fetch());
     getIt.registerSingleton<StationNameResolver>(StationNameResolver());

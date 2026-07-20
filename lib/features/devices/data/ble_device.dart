@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:luftdaten.at/features/devices/logic/battery_info_aggregator.dart';
@@ -19,6 +20,7 @@ import 'package:luftdaten.at/core/config/app_settings.dart';
 import 'package:luftdaten.at/features/devices/logic/mock_ble_gatt.dart';
 import 'package:luftdaten.at/features/devices/logic/badge_datahub_registration.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/ble_device_notices_presenter.dart';
+import 'package:luftdaten.at/features/measurements/logic/measurement_disconnect_handler.dart';
 
 class BleDevice extends ChangeNotifier {
   // Device state
@@ -36,6 +38,13 @@ class BleDevice extends ChangeNotifier {
     }
     notifyListeners();
     getIt<BatteryInfoAggregator>().onConnectionStatusUpdated();
+  }
+
+  /// Updates [state] without touching GetIt — for unit tests only.
+  @visibleForTesting
+  void setConnectionStateForTest(BleDeviceState state) {
+    _state = state;
+    notifyListeners();
   }
 
   StreamSubscription<ConnectionStateUpdate>? _connection;
@@ -312,20 +321,10 @@ class BleDevice extends ChangeNotifier {
           _connection?.cancel();
           _connection = null;
           state = BleDeviceState.disconnected;
-          if (globalKey.currentContext != null &&
+          if (getIt.isRegistered<MeasurementDisconnectHandler>() &&
               getIt<TripController>().isOngoing &&
-              getIt<TripController>().ongoingTrips.containsKey(this) &&
-              !completer.isCompleted) {
-            getIt<TripController>().stopTrip();
-            try {
-              showLDDialog(
-                globalKey.currentContext!,
-                text: 'Verbindung zu Bluetooth-Gerät wurde getrennt.'.i18n,
-                title: 'Verbindung getrennt'.i18n,
-                icon: Icons.nearby_error,
-                color: Colors.red,
-              );
-            } catch (_) {}
+              getIt<TripController>().ongoingTrips.containsKey(this)) {
+            getIt<MeasurementDisconnectHandler>().handleDisconnect(this);
           }
           if (!completer.isCompleted) completer.complete(false);
           break;
