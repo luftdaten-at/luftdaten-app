@@ -86,7 +86,7 @@ Writes use `writeCharacteristicWithResponse` for Air Station config.
 |------|---------|
 | `8d473240-13cb-1776-b1f2-823711b3ffff` | Device details (JSON or binary; API key may appear in JSON or trailing binary) |
 | `13fa8751-57af-4597-a0bb-b202f6111ae6` | Sensor details (split binary segments) |
-| `030ff8b1-1e45-4ae6-bf36-3bca4c38cdba` | Command: `0x01` measure, `0x02` measure + battery readout; also used for Air Station config **without** response |
+| `030ff8b1-1e45-4ae6-bf36-3bca4c38cdba` | Command: `0x01` measure, `0x02` measure + battery readout; `0x06` Air Station TLV config; `0x09` portable API key (TLV flag `20`); also used for Air Station config **without** response |
 | `4b439140-73cb-4776-b1f2-8f3711b3bb4f` | Sensor data after command |
 | `77db81d9-9773-49b4-aa17-16a2f93e95f2` | Device status: 5 bytes (battery + Wi‑Fi detail + operational flags) |
 | `b47b0cdf-0ced-49a9-86a5-d78a03ea7674` | Read Air Station configuration blob |
@@ -119,14 +119,32 @@ Air Badge stores offline measurement records on external flash while the on-devi
 | Piece | Role |
 |-------|------|
 | `BadgeMeasLogExportClient` | `LOG_STATUS` / `START_EXPORT` / chunked `log_data` NOTIFY / `LOG_ERASE` |
-| `parseBadgeMeasLogToDatahubJson` | LDLG binary → firmware-style `{device, sensors}` JSON for Datahub |
-| `showBadgeMeasLogBleImportFlow` | Device detail UI: confirm → BLE export → local JSONL cache → Datahub POST → erase log on full success |
+| `parseBadgeMeasLogToDatahubJson` | LDLG binary → firmware-style `{device, sensors}` JSON lines |
+| `badgeMeasLogLinesToTrip` | Parsed lines → `Trip` for Messwerte |
+| `showBadgeMeasLogBleImportFlow` | Device detail UI: confirm → BLE export → Trip in Messwerte → optional LOG_ERASE |
 
 **Preconditions:** `device_status` operational flag `0x10` clear (measurement mode stopped); `record_count > 0`.
 
-**App flow:** subscribe `log_control` + `log_data` → write `LOG_STATUS` → write `START_EXPORT` → reassemble NOTIFY payloads (skip 2-byte sequence prefix) until `log_control` state `DONE` and byte count matches → parse → upload → write `LOG_ERASE` when all Datahub POSTs succeed.
+**App flow:** subscribe `log_control` + `log_data` → write `LOG_STATUS` → write `START_EXPORT` → reassemble NOTIFY payloads (skip 2-byte sequence prefix) until `log_control` state `DONE` and byte count matches → parse → convert to `Trip` → add to `TripController.loadedTrips` → optionally write `LOG_ERASE` after user confirmation.
 
-**UI entry:** Badge device detail → **Messprotokoll importieren (BLE)** when connected and log non-empty; blocked during active measurement trips. Recording indicator when flag `0x10` is set.
+**UI entry:** Badge device detail → tap **Messungen** strip (or **Messungen importieren** in list dialog) when connected and log non-empty; blocked during active measurement trips. Recording indicator when flag `0x10` is set.
+
+**BMV080 particulate sensor (model 31):** PM1 / PM2.5 / PM10 over existing `sensor_values` encoding; see [firmware-badge `app-bmv080-sensor.md`](https://github.com/luftdaten-at/firmware-badge/blob/main/docs/app-bmv080-sensor.md).
+
+### Air Badge Datahub registration and API key provisioning
+
+On first connect, [`BadgeDatahubRegistration`](lib/features/devices/logic/badge_datahub_registration.dart) checks Datahub and registers unregistered badges. If the badge has no API key, the app generates one, registers the device, and writes the key over BLE.
+
+| Piece | Role |
+|-------|------|
+| `DatahubDeviceRegistrationClient` | `GET /api/v1/devices/name/` + `POST /api/v1/devices/status/` |
+| `DatahubApiKeyGenerator` | 32-char `a-z0-9` key (matches firmware) |
+| `PortableApiKeyBleCodec` | Encodes command `0x09` + TLV flag `20` |
+| `BleController.sendPortableApiKey` | Writes command characteristic |
+
+**BLE command:** `0x09` `SET_PORTABLE_CONFIGURATION` with TLV flag **`20` (`API_KEY`)** — same flag byte as Air Station `0x06`, different command byte for portable models.
+
+Firmware contract (persist to `settings.toml` / NVS key `api_key`, refresh `device_info`): [firmware-portable-api-key-ble.md](firmware-portable-api-key-ble.md).
 
 ---
 
@@ -169,6 +187,8 @@ Aligned with firmware [`enums.py` SensorModel](https://github.com/luftdaten-at/f
 | 27 | `sen62` | Sensirion SEN62 |
 | 28 | `bmp581` | Bosch Sensortec BMP581 |
 | 29 | `shtc3` | Sensirion SHTC3 |
+| 30 | `as7331` | ams OSRAM AS7331 (Badge UV) |
+| 31 | `bmv080` | Bosch Sensortec BMV080 (Badge PM) |
 
 Dimension IDs 1–35 map to `MeasurableQuantity` (same numbering as firmware `Dimension`).
 
@@ -202,7 +222,7 @@ Parsed by [`BleDeviceStatusParser`](lib/features/devices/data/ble_device_status.
 In **debug** builds with **Mock-BLE aktiv**, mock devices do not use `FlutterReactiveBle`. Instead, [`MockBleGattTransport`](lib/features/devices/logic/mock_ble_gatt.dart) serves the same v2 characteristic UUIDs (`BleGattUuids` in [`ble_gatt_transport.dart`](lib/features/devices/logic/ble_gatt_transport.dart)) with firmware-shaped payloads from [`MockBleGattCodec`](lib/features/devices/logic/mock_ble_gatt_codec.dart).
 
 - **Reads:** `device_info` (JSON), `sensor_info`, `device_status`, `sensor_values`, `air_station_configuration` (Air Station only), `log_control` (Badge meas log status).
-- **Writes (command char):** `0x01` / `0x02` refresh telemetry (+ battery on `0x02`); `0x06` merges Air Station TLV into read-back state.
+- **Writes (command char):** `0x01` / `0x02` refresh telemetry (+ battery on `0x02`); `0x06` merges Air Station TLV into read-back state; `0x09` sets portable `api_key` (TLV flag `20`, updates mock `device_info` JSON).
 - **Badge meas log:** `log_control` commands with NOTIFY progress; chunked `log_data` NOTIFY during export (mock uses sample LDLG blob from `MockBleGattCodec.encodeBadgeMeasLogBlob()`).
 - **Parsing:** [`BleController`](lib/features/devices/logic/ble_controller.dart) delegates mock paths to [`BleControllerV2`](lib/features/devices/logic/ble_controller_v2.dart) with the mock transport, so connect and measurement loops exercise the same parsers as real devices.
 - **Not mocked:** SD log export (`0x08` / `51d2f8a4-…`); protocol v1 mock path.

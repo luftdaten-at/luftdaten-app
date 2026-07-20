@@ -208,7 +208,8 @@ class BleOtaClient {
         characteristicId: BleGattUuids.otaControl,
       );
 
-      final completer = Completer<BleOtaStatusFrame?>();
+      final startCompleter = Completer<BleOtaStatusFrame?>();
+      final finishCompleter = Completer<BleOtaStatusFrame?>();
       BleOtaStatusFrame? lastFrame;
 
       notifySub = notifyStream.listen((raw) {
@@ -222,9 +223,15 @@ class BleOtaClient {
           bytesReceived: frame.bytesReceived,
           totalBytes: image.size,
         ));
-        if (frame.state == BleOtaState.rebooting ||
-            (frame.state == BleOtaState.error && frame.error != BleOtaError.none)) {
-          if (!completer.isCompleted) completer.complete(frame);
+        if (frame.state == BleOtaState.ready || frame.state == BleOtaState.receiving) {
+          if (!startCompleter.isCompleted) startCompleter.complete(frame);
+        }
+        if (frame.state == BleOtaState.error && frame.error != BleOtaError.none) {
+          if (!startCompleter.isCompleted) startCompleter.complete(frame);
+          if (!finishCompleter.isCompleted) finishCompleter.complete(frame);
+        }
+        if (frame.state == BleOtaState.rebooting) {
+          if (!finishCompleter.isCompleted) finishCompleter.complete(frame);
         }
       });
 
@@ -235,16 +242,16 @@ class BleOtaClient {
         value: buildBleOtaStartPayload(image: image),
       );
 
-      await _waitForState(
-        notifyStream: notifyStream,
-        accept: (frame) =>
-            frame.state == BleOtaState.ready || frame.state == BleOtaState.receiving,
-        reject: (frame) =>
-            frame.state == BleOtaState.error && frame.error != BleOtaError.none,
-        timeout: const Duration(seconds: 15),
-        onProgress: onProgress,
-        totalBytes: image.size,
+      final startFrame = await startCompleter.future.timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => null,
       );
+      if (startFrame == null) {
+        return BleOtaResult.failure('Zeitüberschreitung beim Firmware-Update.');
+      }
+      if (startFrame.state == BleOtaState.error && startFrame.error != BleOtaError.none) {
+        return BleOtaResult.failure(bleOtaErrorMessage(startFrame.error));
+      }
 
       var offset = 0;
       while (offset < image.bytes.length) {
@@ -274,7 +281,7 @@ class BleOtaClient {
         value: const [BleOtaCommand.finish],
       );
 
-      final finishFrame = await completer.future.timeout(
+      final finishFrame = await finishCompleter.future.timeout(
         const Duration(seconds: 60),
         onTimeout: () => lastFrame,
       );
@@ -346,35 +353,4 @@ class BleOtaClient {
     return shouldCancel();
   }
 
-  Future<BleOtaStatusFrame> _waitForState({
-    required Stream<List<int>> notifyStream,
-    required bool Function(BleOtaStatusFrame frame) accept,
-    required bool Function(BleOtaStatusFrame frame) reject,
-    required Duration timeout,
-    void Function(BleOtaProgress progress)? onProgress,
-    required int totalBytes,
-  }) async {
-    final frame = await notifyStream
-        .map(BleOtaStatusFrame.parse)
-        .where((f) => f != null)
-        .cast<BleOtaStatusFrame>()
-        .firstWhere(
-          (f) => accept(f) || reject(f),
-          orElse: () => throw TimeoutException('OTA status timeout'),
-        )
-        .timeout(timeout);
-
-    onProgress?.call(BleOtaProgress(
-      state: frame.state,
-      error: frame.error,
-      progressPct: frame.progressPct,
-      bytesReceived: frame.bytesReceived,
-      totalBytes: totalBytes,
-    ));
-
-    if (reject(frame)) {
-      throw StateError(bleOtaErrorMessage(frame.error));
-    }
-    return frame;
-  }
 }

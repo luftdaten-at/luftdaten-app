@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:convert/convert.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:luftdaten.at/features/devices/logic/ble_controller.dart';
 import 'package:luftdaten.at/features/devices/logic/ble_gatt_transport.dart';
@@ -18,6 +17,8 @@ import 'package:luftdaten.at/core/config/app_settings.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device_status.dart';
 import 'package:luftdaten.at/features/devices/logic/device_api_key_ble_sync.dart';
 import 'package:luftdaten.at/features/devices/logic/device_api_key_resolver.dart';
+import 'package:luftdaten.at/features/devices/logic/portable_api_key_ble_codec.dart';
+import 'package:luftdaten.at/features/devices/logic/ble_sensor_info_parser.dart';
 
 class BleControllerV2 implements BleControllerForProtocol {
   BleControllerV2._(this._transport);
@@ -43,6 +44,7 @@ class BleControllerV2 implements BleControllerForProtocol {
       characteristicId: BleGattUuids.deviceInfo,
     );
     logger.d('getDeviceDetails: rawDeviceDetails len=${rawDeviceDetails.length}, hex=${rawDeviceDetails.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}, raw=$rawDeviceDetails');
+    var sensorsFromDeviceInfo = <SensorDetails>[];
     bool usedJsonFormat = false;
     if (rawDeviceDetails.isNotEmpty && rawDeviceDetails[0] == 0x7B) {
       try {
@@ -53,6 +55,7 @@ class BleControllerV2 implements BleControllerForProtocol {
           info,
           logSource: 'device_info_json',
         );
+        sensorsFromDeviceInfo = parseSensorsFromDeviceInfoJson(info);
         final station = info['station'];
         final deviceBlock = info['device'];
         device.firmwareVersion =
@@ -87,6 +90,7 @@ class BleControllerV2 implements BleControllerForProtocol {
           logger.d('Sensor $sensor successfully initialised');
         }
       }
+      sensorsFromDeviceInfo = parseSensorsFromDeviceInfoBinary(rawDeviceDetails);
       // Binary format may append api_key: 1 byte length + N bytes UTF-8
       if (rawDeviceDetails.length >= sensorBlockEnd + 1) {
         int apiKeyLen = rawDeviceDetails[sensorBlockEnd];
@@ -119,38 +123,21 @@ class BleControllerV2 implements BleControllerForProtocol {
       logger.d('getDeviceDetails: apiKey loaded (hydrated from secure storage or BLE)');
     }
     try {
-      List<int> rawSensorDetails = await _transport.readCharacteristic(
+      final rawSensorDetails = await _transport.readCharacteristic(
         deviceId: device.bleId!,
         serviceId: BleGattUuids.service,
         characteristicId: BleGattUuids.sensorInfo,
       );
-      List<List<int>> sensorDetailsParts = rawSensorDetails.split(0xff);
-      device.availableSensors = [];
-      for (int i = 0; i < sensorDetailsParts.length / 2; i++) {
-        List<int> sensorSpec = sensorDetailsParts[i * 2];
-        List<int> sensorDetails = sensorDetailsParts[i * 2 + 1];
-        if (sensorSpec.isEmpty) continue;
-        LDSensor model = LDSensor.fromId(sensorSpec[0]);
-        if ((model == LDSensor.sen5x || model == LDSensor.sen66) && sensorDetails.length >= 6) {
-          device.availableSensors!.add(SensorDetails(
-            model,
-            firmwareVersion: '${sensorDetails[0]}.${sensorDetails[1]}',
-            hardwareVersion: '${sensorDetails[2]}.${sensorDetails[3]}',
-            protocolVersion: '${sensorDetails[4]}.${sensorDetails[5]}',
-            serialNumber: sensorDetails.length > 6 ? utf8.decode(sensorDetails.sublist(6)) : '',
-          ));
-        } else if (model == LDSensor.sht4x) {
-          device.availableSensors!.add(SensorDetails(
-            model,
-            serialNumber: hex.encode(sensorDetails),
-          ));
-        } else {
-          device.availableSensors!.add(SensorDetails(model));
-        }
+      if (isBleSensorInfoStub(rawSensorDetails)) {
+        device.availableSensors = sensorsFromDeviceInfo;
+      } else {
+        final fromSensorInfo = parseSensorsFromSensorInfoCharacteristic(rawSensorDetails);
+        device.availableSensors =
+            fromSensorInfo.isNotEmpty ? fromSensorInfo : sensorsFromDeviceInfo;
       }
     } catch (e) {
-      logger.d('getDeviceDetails: sensor_info read failed ($e), continuing with empty sensor list');
-      device.availableSensors = [];
+      logger.d('getDeviceDetails: sensor_info read failed ($e), using device_info sensors');
+      device.availableSensors = sensorsFromDeviceInfo;
     }
     // Get battery status. This does not trigger a new battery readout!
     // Ideally, turn BLE device off & on again before connecting to get up-to-date battery status
@@ -322,6 +309,29 @@ class BleControllerV2 implements BleControllerForProtocol {
       return true;
     } catch (e) {
       logger.d(e);
+      return false;
+    }
+  }
+
+  /// Writes Datahub API key to portable models via command `0x09` + TLV flag `20`.
+  Future<bool> sendPortableApiKey(BleDevice device, String apiKey) async {
+    if (device.state != BleDeviceState.connected || device.bleId == null) {
+      return false;
+    }
+    try {
+      final payload = PortableApiKeyBleCodec.encodeSetApiKeyCommand(apiKey);
+      await _transport.writeCharacteristicWithoutResponse(
+        deviceId: device.bleId!,
+        serviceId: BleGattUuids.service,
+        characteristicId: BleGattUuids.command,
+        value: payload,
+      );
+      logger.d(
+        'sendPortableApiKey: wrote ${payload.length} bytes for ${device.chipIdForApi}',
+      );
+      return true;
+    } catch (e) {
+      logger.d('sendPortableApiKey failed: $e');
       return false;
     }
   }
@@ -555,22 +565,5 @@ class _SensorDataParser {
     if (!AppSettings.I.measureTotalVoc) {
       original.remove(MeasurableQuantity.totalVoc);
     }
-  }
-}
-
-extension _Split on List<int> {
-  List<List<int>> split(int on) {
-    List<List<int>> result = [];
-    List<int> current = [];
-    for (int i in this) {
-      if (i == on) {
-        result.add(current);
-        current = [];
-      } else {
-        current.add(i);
-      }
-    }
-    if (current.isNotEmpty) result.add(current);
-    return result;
   }
 }

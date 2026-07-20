@@ -150,13 +150,27 @@ Controlled by `AppSettings.I.useStagingServer`:
 
 **Class:** `WorkshopController` (`lib/features/measurements/logic/workshop_controller.dart`)
 
+### Air Badge device registration (first connect)
+
+When an Air Badge connects for the first time in the app, [`BadgeDatahubRegistration`](lib/features/devices/logic/badge_datahub_registration.dart) runs in the background:
+
+| Step | API / action |
+|------|----------------|
+| Lookup | `GET https://<host>/api/v1/devices/name/?device=<chip_id>` — `200` = already registered |
+| Register | `POST https://<host>/api/v1/devices/status/` — creates device via Datahub `get_or_create_station` |
+| Provision key | If the badge has no `api_key`, app generates a 32-char key, registers with it, then writes it over BLE (`0x09` + TLV flag `20`) |
+
+- **Client:** `DatahubDeviceRegistrationClient` (`lib/features/devices/logic/datahub_device_registration_client.dart`)
+- **BLE write:** `BleController.sendPortableApiKey` — see [firmware-portable-api-key-ble.md](firmware-portable-api-key-ble.md)
+- **Persistence in app:** `datahubRegistrationChecked` on saved `BleDevice`; API key in `StationSecretsStore` after successful BLE write
+
 ### Upload trip measurements (workshop campaigns)
 
 - **URL:** `POST https://<host>/api/v1/devices/data/`
 - **Headers:** `Content-Type: application/json`
 - **Client:** `WorkshopController.attemptSendData` → `DatahubMeasurementClient.postWorkshopMeasurement` → `WorkshopDatahubPayload.build` (`lib/features/measurements/logic/workshop_datahub_payload.dart`)
 - **Prerequisites:** active ongoing trip, phone GPS on each point (`AppSettings.recordLocation`, enabled automatically while a workshop is joined), **Datahub device API key** (required in `device.apikey`)
-- **API key resolution** (`DeviceApiKeyResolver`): BLE JSON metadata (`station.api.key`, `device.api.key`, …) → in-memory `BleDevice.apiKey` (synced on connect via `DeviceApiKeyBleSync`) → `StationSecretsStore` (secure cache, keyed by BLE broadcast name). Keys are read from firmware only ([`ble-characteristics.md`](https://github.com/luftdaten-at/firmware/blob/main/docs/ble-characteristics.md)): `device_info` JSON/binary, Air Station TLV `20` on `air_station_configuration`, or sensor JSON wrapper. The app does not accept manual API key entry; if the device exposes no key, configure `api_key` on the device and reconnect.
+- **API key resolution** (`DeviceApiKeyResolver`): BLE JSON metadata (`station.api.key`, `device.api.key`, …) → in-memory `BleDevice.apiKey` (synced on connect via `DeviceApiKeyBleSync`) → `StationSecretsStore` (secure cache, keyed by BLE broadcast name). Keys are read from firmware ([`ble-characteristics.md`](https://github.com/luftdaten-at/firmware/blob/main/docs/ble-characteristics.md)) or **provisioned on first Air Badge connect** ([firmware-portable-api-key-ble.md](firmware-portable-api-key-ble.md)). If the device exposes no key and is not an Air Badge in the provisioning flow, workshop uploads are skipped (`pendingMissingApiKeyHint` toast).
 - **Body (per measurement):** Datahub requires **paired** top-level `workshop` and `location` when tagging a campaign; omitting either stores a plain device measurement without workshop map coordinates.
 
 ```json

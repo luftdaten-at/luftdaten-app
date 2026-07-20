@@ -12,6 +12,7 @@ void main() {
       expect(LDSensor.fromId(23), LDSensor.sen66);
       expect(LDSensor.fromId(29), LDSensor.shtc3);
       expect(LDSensor.fromId(30), LDSensor.as7331);
+      expect(LDSensor.fromId(31), LDSensor.bmv080);
     });
 
     test('fromId returns unknown for invalid id', () {
@@ -47,6 +48,18 @@ void main() {
           MeasurableQuantity.uva,
           MeasurableQuantity.uvb,
           MeasurableQuantity.uvc,
+        ],
+      );
+    });
+
+    test('bmv080 measures PM1 PM25 PM10', () {
+      expect(LDSensor.bmv080.id, 31);
+      expect(
+        LDSensor.bmv080.measures,
+        [
+          MeasurableQuantity.pm1,
+          MeasurableQuantity.pm25,
+          MeasurableQuantity.pm10,
         ],
       );
     });

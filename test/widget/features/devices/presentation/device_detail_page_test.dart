@@ -152,4 +152,28 @@ void main() {
     expect(find.textContaining('MOCK-SEN5X'), findsOneWidget);
     expect(find.byType(Dialog), findsNothing);
   });
+
+  testWidgets('connected mock badge shows measurements strip and opens list dialog', (tester) async {
+    final device = MockBleDevices.buildMockDevice(
+      LDDeviceModel.badge,
+      existingBleNames: const [],
+    );
+    MockBleProfile.apply(device);
+    device.state = BleDeviceState.connected;
+
+    await pumpDeviceApp(tester, DeviceDetailPage(device: device, isStation: false));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+
+    expect(find.text('2 Messungen'), findsOneWidget);
+    expect(find.textContaining('Messprotokoll'), findsNothing);
+
+    await tester.tap(find.text('2 Messungen'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Messungen'), findsWidgets);
+    expect(find.text('Messungen importieren'), findsOneWidget);
+    expect(find.text('Messung 1'), findsOneWidget);
+    expect(find.text('Messung 2'), findsOneWidget);
+  });
 }

@@ -1,16 +1,13 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/logic/badge_meas_log_export.dart';
+import 'package:luftdaten.at/features/devices/logic/badge_meas_log_parser.dart';
 import 'package:luftdaten.at/features/devices/logic/ble_controller.dart';
-import 'package:luftdaten.at/features/devices/logic/sd_ble_import_storage.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/badge_meas_log_ble_import.i18n.dart';
-import 'package:luftdaten.at/features/measurements/logic/datahub_measurement_client.dart';
 import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
 
-/// Confirms security copy, imports badge LDLG log over BLE, saves locally, POSTs to Datahub, erases log.
+/// Confirms security copy, imports badge LDLG log over BLE, loads as Messreihe in Messwerte.
 Future<void> showBadgeMeasLogBleImportFlow({
   required BuildContext context,
   required BleDevice device,
@@ -45,14 +42,13 @@ Future<void> showBadgeMeasLogBleImportFlow({
   final go = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text('Messprotokoll importieren?'.i18n),
+      title: Text('Messungen importieren?'.i18n),
       content: SingleChildScrollView(
         child: Text(
-          'Der Import liest das offline gespeicherte Messprotokoll deines Air Badge über Bluetooth (%s Datensätze).\n\n'
+          'Der Import liest die offline gespeicherten Messungen deines Air Badge über Bluetooth (%s Datensätze).\n\n'
                   'Messmodus muss beendet sein. Übertragung erfolgt unverschlüsselt wie bei BLE üblich — nutze wenn '
                   'möglich keine öffentliche Umgebung.\n\n'
-                  'Danach werden die Rohzeilen lokal gespeichert und nacheinander an den Luftdaten-Datahub gesendet. '
-                  'Bei vollständigem Erfolg wird das Protokoll auf dem Badge gelöscht.'
+                  'Danach werden die Messungen als Messreihe in Messwerte geladen.'
               .i18n
               .fill([recordCount]),
         ),
@@ -76,7 +72,7 @@ Future<void> showBadgeMeasLogBleImportFlow({
       valueListenable: progressNotifier,
       builder: (context, progressPct, _) {
         return AlertDialog(
-          title: Text('Messprotokoll wird über Bluetooth geladen…'.i18n),
+          title: Text('Messungen werden über Bluetooth geladen…'.i18n),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -101,7 +97,7 @@ Future<void> showBadgeMeasLogBleImportFlow({
   );
 
   final controller = getIt<BleController>();
-  var result = await controller.importBadgeMeasLogFromBle(
+  final result = await controller.importBadgeMeasLogFromBle(
     device,
     onProgress: (BadgeMeasLogExportProgress progress) {
       progressNotifier.value = progress.progressPct;
@@ -131,64 +127,56 @@ Future<void> showBadgeMeasLogBleImportFlow({
     return;
   }
 
-  final rawLines = result.lines.map((m) => jsonEncode(m)).toList();
-  try {
-    await getIt<SdBleImportStorage>().appendBatch(
-      bleName: device.bleName,
-      rawJsonLines: rawLines,
-    );
-  } catch (e, st) {
-    logger.d('Badge log import local save failed: $e $st');
-    if (!context.mounted) return;
+  final trip = badgeMeasLogLinesToTrip(lines: result.lines, device: device);
+  if (trip == null) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Lokales Speichern fehlgeschlagen: $e')),
+      SnackBar(content: Text('Keine gültigen Messzeilen gefunden.'.i18n)),
     );
     return;
   }
 
-  final client = getIt<DatahubMeasurementClient>();
-  var uploadOk = 0;
-  var uploadFail = 0;
-  for (final m in result.lines) {
-    try {
-      final code = await client.postFirmwareStyleMeasurement(m);
-      if (code == 200) {
-        uploadOk++;
-      } else {
-        uploadFail++;
-        logger.e('Datahub POST status $code');
-      }
-    } catch (e, st) {
-      uploadFail++;
-      logger.e('Datahub POST failed: $e');
-      logger.d('$st');
-    }
+  if (!getIt.isRegistered<TripController>()) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Import fehlgeschlagen: Messwerte nicht verfügbar.'.i18n)),
+    );
+    return;
   }
 
+  await getIt<TripController>().addImportedTrip(trip);
   if (!context.mounted) return;
-
-  if (uploadFail == 0) {
-    final erased = await controller.eraseBadgeMeasLog(device);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          erased
-              ? 'Import: ${result.lines.length} Zeilen. Datahub: $uploadOk ok. Messprotokoll auf dem Badge gelöscht.'
-                  .i18n
-              : 'Import: ${result.lines.length} Zeilen. Datahub: $uploadOk ok. '
-                      'Messprotokoll konnte auf dem Badge nicht gelöscht werden.'
-                  .i18n,
-        ),
-      ),
-    );
-    return;
-  }
 
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Text(
-        'Import: ${result.lines.length} Zeilen. Datahub: $uploadOk ok, $uploadFail Fehler.'.i18n,
+        '%s Messpunkte importiert — in Messwerte anzeigen.'.i18n.fill([trip.data.length]),
+      ),
+    ),
+  );
+
+  final erase = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text('Messungen auf dem Badge löschen?'.i18n),
+      content: Text(
+        'Die Messungen wurden in Messwerte geladen. Sollen sie auch vom Badge gelöscht werden?'.i18n,
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Behalten'.i18n)),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Löschen'.i18n)),
+      ],
+    ),
+  );
+  if (erase != true || !context.mounted) return;
+
+  final erased = await controller.eraseBadgeMeasLog(device);
+  if (!context.mounted) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        erased
+            ? 'Messungen auf dem Badge gelöscht.'.i18n
+            : 'Messungen konnten auf dem Badge nicht gelöscht werden.'.i18n,
       ),
     ),
   );

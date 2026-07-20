@@ -459,6 +459,14 @@ extension Localization on String {
         "en": "Sensirion SHTC3",
       } +
       {
+        "de": "ams OSRAM AS7331",
+        "en": "ams OSRAM AS7331",
+      } +
+      {
+        "de": "Bosch Sensortec BMV080",
+        "en": "Bosch Sensortec BMV080",
+      } +
+      {
         "de": "Aufsteigend",
         "en": "Ascending",
       } +

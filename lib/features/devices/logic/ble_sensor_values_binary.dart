@@ -23,6 +23,7 @@ SensorDataPoint _parseSensorBlock(List<int> sensorData) {
   for (var i = 0; i < (sensorData.length - 2) ~/ 3; i++) {
     final dimId = sensorData[2 + i * 3];
     final rawVal = (sensorData[2 + i * 3 + 1] << 8) | sensorData[2 + i * 3 + 2];
+    if (rawVal == 0) continue;
     values[MeasurableQuantity.fromId(dimId)] = rawVal / 10.0;
   }
   _filterUsingSettings(values);

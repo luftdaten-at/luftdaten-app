@@ -47,6 +47,7 @@ import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
 import 'package:luftdaten.at/features/devices/logic/sd_ble_import_storage.dart';
 import 'package:luftdaten.at/features/measurements/logic/chart_series_preferences.dart';
 import 'package:luftdaten.at/features/measurements/logic/measurement_values_preferences.dart';
+import 'package:luftdaten.at/features/devices/logic/datahub_device_registration_client.dart';
 import 'package:luftdaten.at/features/measurements/logic/datahub_measurement_client.dart';
 import 'package:luftdaten.at/core/app/presentation/welcome_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -110,6 +111,7 @@ void main() async {
     getIt.registerSingleton<WorkshopController>(WorkshopController()..init());
     getIt.registerSingleton<SdBleImportStorage>(SdBleImportStorage());
     getIt.registerSingleton<DatahubMeasurementClient>(DatahubMeasurementClient());
+    getIt.registerSingleton<DatahubDeviceRegistrationClient>(DatahubDeviceRegistrationClient());
     getIt.registerSingleton<BatteryInfoAggregator>(BatteryInfoAggregator());
     getIt.registerSingleton<ChartSeriesPreferences>(ChartSeriesPreferences()..init());
     getIt.registerSingleton<MeasurementValuesPreferences>(MeasurementValuesPreferences()..init());

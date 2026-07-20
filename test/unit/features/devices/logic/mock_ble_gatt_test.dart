@@ -72,6 +72,38 @@ void main() {
       expect(after[MeasurableQuantity.pm25], isNot(equals(before[MeasurableQuantity.pm25])));
     });
 
+    test('command 0x09 sets portable api key and device_info read-back', () {
+      final badge = BleDevice(
+        model: LDDeviceModel.badge,
+        bleName: 'Luftdaten.at-Badge-ABCD1234EF56',
+        bleMacAddress: 'ABCD1234EF56',
+        deviceOriginalDisplayName: 'ABCD1234EF56',
+        isMock: true,
+        bleId: 'mock:badge-api-key',
+      );
+      MockBleGatt.initForDevice(badge);
+
+      const key = 'mockbadgeapikey012345678901234';
+      MockBleGatt.writeCommand(
+        badge,
+        [
+          MockBleGattCodec.cmdSetPortableConfiguration,
+          AirStationConfigFlags.API_KEY.value,
+          key.length,
+          ...key.codeUnits,
+        ],
+      );
+
+      expect(badge.apiKey, key);
+
+      final deviceInfoJson = String.fromCharCodes(
+        MockBleGatt.readCharacteristic(badge, BleGattUuids.deviceInfo),
+      );
+      expect(deviceInfoJson, contains(key));
+
+      MockBleGatt.removeDevice(badge);
+    });
+
     test('command 0x06 merges air station configuration TLV', () {
       final writePayload = AirStationConfig(
         id: device.chipIdForApi,

@@ -301,6 +301,12 @@ enum LDSensor {
     'ams OSRAM AS7331',
     'AS7331',
   ),
+  bmv080(
+    31,
+    _pmsMeasures,
+    'Bosch Sensortec BMV080',
+    'BMV080',
+  ),
   unknown(
     999,
     [],

@@ -94,6 +94,17 @@ class BleController {
     return BleControllerForProtocol(device.protocolVersion!).sendAirStationConfig(device, bytes);
   }
 
+  /// Provisions Datahub API key on portable BLE devices (command `0x09`, protocol v2).
+  Future<bool> sendPortableApiKey(BleDevice device, String apiKey) async {
+    if (MockBleDevices.canUseMockBle(device)) {
+      device.protocolVersion = 2;
+      return _mockV2.sendPortableApiKey(device, apiKey);
+    }
+    await getProtocolVersion(device);
+    if (device.protocolVersion != 2) return false;
+    return BleControllerV2().sendPortableApiKey(device, apiKey);
+  }
+
   Future<List<int>?> readAirStationConfiguration(BleDevice device) async {
     if (MockBleDevices.canUseMockBle(device)) {
       device.protocolVersion = 2;
@@ -166,7 +177,7 @@ class BleController {
     return client.peekStatus(device);
   }
 
-  /// Download badge measurement log over BLE and parse to Datahub JSON lines.
+  /// Download badge measurement log over BLE and parse to firmware-style JSON lines.
   Future<BadgeMeasLogImportResult> importBadgeMeasLogFromBle(
     BleDevice device, {
     void Function(BadgeMeasLogExportProgress progress)? onProgress,

@@ -13,6 +13,7 @@ import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
 
 import '../data/air_station_config.dart';
 import '../data/ble_device.dart';
+import '../data/chip_id.dart';
 import 'device_config_store.dart';
 
 class DeviceManager extends ChangeNotifier {
@@ -119,11 +120,16 @@ class DeviceManager extends ChangeNotifier {
     if (code == null) return null;
     try {
       List<String> parts = code.split(';');
+      final displayName = parts[0].trim();
+      final bleName = parts[1].trim();
+      final bleMacAddress = BleDevice.chipIdPattern.hasMatch(displayName)
+          ? displayName.mac
+          : _bleMacFromBroadcastName(bleName);
       BleDevice device = BleDevice(
         model: LDDeviceModel.fromId(int.parse(parts[2])),
-        bleName: parts[1],
-        bleMacAddress: parts[1].split('-')[1],
-        deviceOriginalDisplayName: parts[0],
+        bleName: bleName,
+        bleMacAddress: bleMacAddress,
+        deviceOriginalDisplayName: displayName,
         autoReconnect: LDDeviceModel.fromId(int.parse(parts[2])).portable,
       );
       if(devices.map((e) => e.bleName).contains(device.bleName)) {
@@ -166,5 +172,13 @@ class DeviceManager extends ChangeNotifier {
   @override
   void notifyListeners() {
     super.notifyListeners();
+  }
+
+  /// MAC segment from BLE broadcast names like `Luftdaten.at-AABBCCDDEEFF-1` or `Luftdaten.at-372D`.
+  static String _bleMacFromBroadcastName(String bleName) {
+    final segments = bleName.split('-');
+    if (segments.length >= 3) return segments[1];
+    if (segments.length >= 2) return segments.last;
+    return bleName;
   }
 }

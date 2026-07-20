@@ -13,6 +13,7 @@ abstract final class MockBleGattCodec {
   static const int cmdReadSensorData = 0x01;
   static const int cmdReadSensorDataAndBattery = 0x02;
   static const int cmdSetAirStationConfiguration = 0x06;
+  static const int cmdSetPortableConfiguration = 0x09;
 
   static List<int> encodeDeviceInfoJson(BleDevice device) {
     final sensorList = <Map<String, dynamic>>[
@@ -39,18 +40,29 @@ abstract final class MockBleGattCodec {
             'serial': 'MOCK-SHTC3',
           },
           {
+            'model': LDSensor.bmv080.id,
+            'dimensions': LDSensor.bmv080.measures.map((q) => q.id).toList(),
+            'serial': 'MOCK-BMV080',
+          },
+          {
             'model': LDSensor.as7331.id,
             'dimensions': LDSensor.as7331.measures.map((q) => q.id).toList(),
             'serial': 'MOCK-AS7331',
           },
         ]);
     }
+    final firmware = device.firmwareVersion?.toString() ?? '1.0.0';
+    final deviceBlock = <String, dynamic>{
+      'firmware': firmware,
+      'device': device.chipIdForApi,
+      'model': device.model.name,
+    };
+    final apiKey = device.apiKey?.trim();
+    if (apiKey != null && apiKey.isNotEmpty) {
+      deviceBlock['apikey'] = apiKey;
+    }
     final payload = <String, dynamic>{
-      'device': {
-        'firmware': '1.0.0',
-        'device': device.chipIdForApi,
-        'model': device.model.name,
-      },
+      'device': deviceBlock,
       'sensor_list': sensorList,
     };
     return utf8.encode(jsonEncode(payload));
@@ -66,7 +78,21 @@ abstract final class MockBleGattCodec {
     if (device.model == LDDeviceModel.badge) {
       out
         ..clear()
-        ..addAll([LDSensor.shtc3.id, 0xFF, 0xFF, LDSensor.as7331.id, 0xFF, 0xFF]);
+        ..addAll([
+          LDSensor.shtc3.id,
+          0xFF,
+          0xFF,
+          LDSensor.bmv080.id,
+          3,
+          MeasurableQuantity.pm1.id,
+          MeasurableQuantity.pm25.id,
+          MeasurableQuantity.pm10.id,
+          0xFF,
+          0xFF,
+          LDSensor.as7331.id,
+          0xFF,
+          0xFF,
+        ]);
     }
     return out;
   }
@@ -105,10 +131,16 @@ abstract final class MockBleGattCodec {
       };
     }
     if (device.model == LDDeviceModel.badge) {
+      final pm25 = 12.3;
       return {
         LDSensor.shtc3: {
           MeasurableQuantity.temperature: 22.5,
           MeasurableQuantity.humidity: 45.0,
+        },
+        LDSensor.bmv080: {
+          MeasurableQuantity.pm1: pm25 * 0.8,
+          MeasurableQuantity.pm25: pm25,
+          MeasurableQuantity.pm10: pm25 * 1.2,
         },
         LDSensor.as7331: {
           MeasurableQuantity.uva: 1.0,
@@ -203,8 +235,9 @@ abstract final class MockBleGattCodec {
       for (var i = 0; i < numEntries; i++) {
         final base = 2 + i * 3;
         if (base + 3 > block.length) break;
-        values[MeasurableQuantity.fromId(block[base])] =
-            ((block[base + 1] << 8) | block[base + 2]) / 10.0;
+        final rawVal = (block[base + 1] << 8) | block[base + 2];
+        if (rawVal == 0) continue;
+        values[MeasurableQuantity.fromId(block[base])] = rawVal / 10.0;
       }
       out[sensor] = values;
       offset += numBytes;
@@ -344,6 +377,11 @@ abstract final class MockBleGattCodec {
       LDSensor.shtc3: {
         MeasurableQuantity.temperature: 22.5,
         MeasurableQuantity.humidity: 45.0,
+      },
+      LDSensor.bmv080: {
+        MeasurableQuantity.pm1: 8.4,
+        MeasurableQuantity.pm25: 12.3,
+        MeasurableQuantity.pm10: 15.0,
       },
       LDSensor.as7331: {
         MeasurableQuantity.uva: 1.0,

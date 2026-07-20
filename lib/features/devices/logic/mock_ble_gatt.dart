@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -269,8 +270,13 @@ class MockBleGattState {
   int _telemetryTick = 0;
   final MockBleOtaSession ota = MockBleOtaSession();
   final MockBleMeasLogSession measLog;
+  bool _badgeSensorInfoReady = false;
 
   void refreshTelemetry() {
+    if (device.model == LDDeviceModel.badge) {
+      _badgeSensorInfoReady = true;
+    }
+    _telemetryTick++;
     sensorValues = MockBleGattCodec.encodeSensorValuesForDevice(
       device,
       timeSeconds: _telemetryTick * 30.0,
@@ -283,7 +289,12 @@ class MockBleGattState {
 
   List<int> deviceInfoBytes() => MockBleGattCodec.encodeDeviceInfoJson(device);
 
-  List<int> sensorInfoBytes() => MockBleGattCodec.encodeSensorInfo(device);
+  List<int> sensorInfoBytes() {
+    if (device.model == LDDeviceModel.badge && !_badgeSensorInfoReady) {
+      return const [0x06];
+    }
+    return MockBleGattCodec.encodeSensorInfo(device);
+  }
 
   List<int> deviceStatusBytes({bool refreshBatteryOnRead = false}) {
     if (refreshBatteryOnRead) refreshBattery();
@@ -369,9 +380,24 @@ class MockBleGattState {
         refreshBattery();
       case MockBleGattCodec.cmdSetAirStationConfiguration:
         _mergeAirStationConfiguration(value);
+      case MockBleGattCodec.cmdSetPortableConfiguration:
+        _applyPortableApiKey(value);
       default:
         break;
     }
+  }
+
+  void _applyPortableApiKey(List<int> payload) {
+    if (payload.length < 4 ||
+        payload.first != MockBleGattCodec.cmdSetPortableConfiguration) {
+      return;
+    }
+    if (payload[1] != AirStationConfigFlags.API_KEY.value) return;
+    final len = payload[2];
+    if (len <= 0 || payload.length < 3 + len) return;
+    final key = utf8.decode(payload.sublist(3, 3 + len));
+    if (key.trim().length < 16) return;
+    device.apiKey = key.trim();
   }
 
   void _mergeAirStationConfiguration(List<int> payload) {

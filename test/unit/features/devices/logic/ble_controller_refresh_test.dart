@@ -73,4 +73,29 @@ void main() {
       'MOCK-SEN5X',
     );
   });
+
+  test('refreshDeviceInfo loads badge sensors from device_info when sensor_info is stub', () async {
+    if (!getIt.isRegistered<BatteryInfoAggregator>()) {
+      getIt.registerSingleton<BatteryInfoAggregator>(BatteryInfoAggregator());
+    }
+
+    final device = MockBleDevices.buildMockDevice(
+      LDDeviceModel.badge,
+      existingBleNames: const [],
+    );
+    device.state = BleDeviceState.connected;
+    device.availableSensors = [];
+
+    MockBleGatt.initForDevice(device);
+    await BleController().refreshDeviceInfo(device);
+
+    expect(device.availableSensors, hasLength(3));
+    expect(device.availableSensors!.map((s) => s.model), contains(LDSensor.shtc3));
+    expect(device.availableSensors!.map((s) => s.model), contains(LDSensor.bmv080));
+    expect(device.availableSensors!.map((s) => s.model), contains(LDSensor.as7331));
+    expect(
+      device.availableSensors!.firstWhere((s) => s.model == LDSensor.shtc3).serialNumber,
+      'MOCK-SHTC3',
+    );
+  });
 }

@@ -62,6 +62,24 @@ void main() {
       expect(sensorList[1]['model'], LDSensor.shtc3.id);
     });
 
+    test('encodeDeviceInfoJson lists SHTC3 BMV080 AS7331 for badge', () {
+      final device = BleDevice(
+        model: LDDeviceModel.badge,
+        bleName: 'Luftdaten.at-Badge-000000000001',
+        bleMacAddress: '000000000001',
+        deviceOriginalDisplayName: 'Mock Badge',
+        isMock: true,
+        bleId: 'mock:Luftdaten.at-Badge-000000000001',
+      );
+      final json = jsonDecode(utf8.decode(MockBleGattCodec.encodeDeviceInfoJson(device)))
+          as Map<String, dynamic>;
+      final sensorList = json['sensor_list'] as List<dynamic>;
+      expect(sensorList, hasLength(3));
+      expect(sensorList[0]['model'], LDSensor.shtc3.id);
+      expect(sensorList[1]['model'], LDSensor.bmv080.id);
+      expect(sensorList[2]['model'], LDSensor.as7331.id);
+    });
+
     test('encodeSensorValuesForDevice round-trips two blocks for aRound', () {
       final device = BleDevice(
         model: LDDeviceModel.aRound,
@@ -80,6 +98,27 @@ void main() {
       expect(decoded[LDSensor.sen5x]![MeasurableQuantity.humidity], closeTo(50, 0.1));
       expect(decoded[LDSensor.shtc3]![MeasurableQuantity.temperature], closeTo(20, 0.1));
       expect(decoded[LDSensor.shtc3]![MeasurableQuantity.humidity], closeTo(58, 0.1));
+    });
+
+    test('encodeSensorValuesForDevice round-trips three blocks for badge', () {
+      final device = BleDevice(
+        model: LDDeviceModel.badge,
+        bleName: 'Luftdaten.at-Badge-000000000001',
+        bleMacAddress: '000000000001',
+        deviceOriginalDisplayName: 'Mock Badge',
+        isMock: true,
+        bleId: 'mock:Luftdaten.at-Badge-000000000001',
+      );
+      final encoded = MockBleGattCodec.encodeSensorValuesForDevice(device, timeSeconds: 0);
+      final decoded = MockBleGattCodec.decodeAllSensorBlocks(encoded);
+
+      expect(
+        decoded.keys,
+        containsAll([LDSensor.shtc3, LDSensor.bmv080, LDSensor.as7331]),
+      );
+      expect(decoded[LDSensor.bmv080]![MeasurableQuantity.pm25], closeTo(12.3, 0.1));
+      expect(decoded[LDSensor.bmv080]![MeasurableQuantity.pm1], closeTo(9.84, 0.1));
+      expect(decoded[LDSensor.bmv080]![MeasurableQuantity.pm10], closeTo(14.76, 0.1));
     });
 
     test('mergeTlvRecords overwrites same flag', () {

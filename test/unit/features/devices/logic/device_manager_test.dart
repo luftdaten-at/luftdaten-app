@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:luftdaten.at/core/di/di.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
+import 'package:luftdaten.at/features/devices/data/chip_id.dart';
 import 'package:luftdaten.at/features/devices/logic/battery_info_aggregator.dart';
 import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
 import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
@@ -117,6 +118,15 @@ void main() {
       expect(device.deviceOriginalDisplayName, 'Luftdaten.at-AABBCCDDEEFF-1');
       expect(device.model, LDDeviceModel.aRound);
       expect(device.bleMacAddress, 'AABBCCDDEEFF');
+    });
+
+    test('addDeviceByCode uses chip id from QR part 0 for bleMacAddress', () {
+      final code = 'D3AF9DCA73B0F32C;Luftdaten.at-372D;3';
+      final device = manager.addDeviceByCode(code);
+      expect(device, isNotNull);
+      expect(device!.deviceOriginalDisplayName, 'D3AF9DCA73B0F32C');
+      expect(device.chipIdForApi, 'D3AF9DCA73B0F32C');
+      expect(device.bleMacAddress, 'D3AF9DCA73B0F32C'.mac);
     });
 
     test('addDeviceByCode returns existing device when bleName matches', () {

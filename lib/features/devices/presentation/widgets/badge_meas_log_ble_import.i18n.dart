@@ -3,46 +3,62 @@ import 'package:i18n_extension/i18n_extension.dart';
 extension Localization on String {
   static final _t = Translations.byText("de") +
       {
-        "de": "Messprotokoll importieren (BLE)",
-        "en": "Import measurement log (BLE)",
-      } +
-      {
-        "de": "Messprotokoll importieren?",
-        "en": "Import measurement log?",
+        "de": "Messungen importieren?",
+        "en": "Import measurements?",
       } +
       {
         "de":
-            "Der Import liest das offline gespeicherte Messprotokoll deines Air Badge über Bluetooth (%s Datensätze).\n\n"
+            "Der Import liest die offline gespeicherten Messungen deines Air Badge über Bluetooth (%s Datensätze).\n\n"
                 "Messmodus muss beendet sein. Übertragung erfolgt unverschlüsselt wie bei BLE üblich — nutze wenn "
                 "möglich keine öffentliche Umgebung.\n\n"
-                "Danach werden die Rohzeilen lokal gespeichert und nacheinander an den Luftdaten-Datahub gesendet. "
-                "Bei vollständigem Erfolg wird das Protokoll auf dem Badge gelöscht.",
+                "Danach werden die Messungen als Messreihe in Messwerte geladen.",
         "en":
-            "This import reads the offline measurement log from your Air Badge over Bluetooth (%s records).\n\n"
+            "This import reads the offline measurements from your Air Badge over Bluetooth (%s records).\n\n"
                 "Measurement mode must be stopped. Transfer is unencrypted as usual for BLE — avoid public "
                 "environments when possible.\n\n"
-                "Raw lines are saved locally and sent to the Luftdaten Datahub one by one. "
-                "On full success the log on the badge is erased.",
+                "The measurements are then loaded as a measurement series in Messwerte.",
       } +
       {
-        "de": "Messprotokoll wird über Bluetooth geladen…",
-        "en": "Loading measurement log over Bluetooth…",
+        "de": "Messungen werden über Bluetooth geladen…",
+        "en": "Loading measurements over Bluetooth…",
       } +
       {
         "de": "Import während einer laufenden Messung nicht möglich.",
         "en": "Import is not possible during an ongoing measurement trip.",
       } +
       {
-        "de": "Messmodus aktiv — Aufzeichnung läuft auf dem Badge.",
-        "en": "Measurement mode active — recording on the badge.",
+        "de": "%s Messpunkte importiert — in Messwerte anzeigen.",
+        "en": "%s measurement points imported — view in Messwerte.",
       } +
       {
-        "de": "Messprotokoll auf dem Badge gelöscht.",
-        "en": "Measurement log erased on badge.",
+        "de": "Import fehlgeschlagen: Messwerte nicht verfügbar.",
+        "en": "Import failed: Messwerte not available.",
       } +
       {
-        "de": "Messprotokoll konnte auf dem Badge nicht gelöscht werden.",
-        "en": "Could not erase measurement log on badge.",
+        "de": "Messungen auf dem Badge löschen?",
+        "en": "Delete measurements on badge?",
+      } +
+      {
+        "de":
+            "Die Messungen wurden in Messwerte geladen. Sollen sie auch vom Badge gelöscht werden?",
+        "en":
+            "The measurements were loaded into Messwerte. Should they also be deleted from the badge?",
+      } +
+      {
+        "de": "Behalten",
+        "en": "Keep",
+      } +
+      {
+        "de": "Löschen",
+        "en": "Delete",
+      } +
+      {
+        "de": "Messungen auf dem Badge gelöscht.",
+        "en": "Measurements deleted on badge.",
+      } +
+      {
+        "de": "Messungen konnten auf dem Badge nicht gelöscht werden.",
+        "en": "Could not delete measurements on badge.",
       };
 
   String get i18n => localize(this, _t);

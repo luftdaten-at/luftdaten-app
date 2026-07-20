@@ -107,6 +107,12 @@ class TripController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> addImportedTrip(Trip trip) async {
+    loadedTrips.insert(0, trip);
+    await trip.save();
+    notifyListeners();
+  }
+
   void clearMockTrips() {
     if (isMockLiveActive) {
       stopMockLiveMeasurement();

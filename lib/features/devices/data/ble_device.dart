@@ -17,6 +17,7 @@ import 'package:luftdaten.at/features/devices/data/sensor_details.dart';
 import 'package:luftdaten.at/core/widgets/ui.dart';
 import 'package:luftdaten.at/core/config/app_settings.dart';
 import 'package:luftdaten.at/features/devices/logic/mock_ble_gatt.dart';
+import 'package:luftdaten.at/features/devices/logic/badge_datahub_registration.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/ble_device_notices_presenter.dart';
 
 class BleDevice extends ChangeNotifier {
@@ -51,6 +52,17 @@ class BleDevice extends ChangeNotifier {
 
   int? _measurementInterval;
   String? _userAssignedName;
+  bool _datahubRegistrationChecked = false;
+
+  bool get datahubRegistrationChecked => _datahubRegistrationChecked;
+
+  void markDatahubRegistrationChecked() {
+    if (_datahubRegistrationChecked) return;
+    _datahubRegistrationChecked = true;
+    if (getIt.isRegistered<DeviceManager>()) {
+      getIt<DeviceManager>().saveDeviceList();
+    }
+  }
 
   int get measurementInterval => _measurementInterval ?? 10;
 
@@ -86,6 +98,9 @@ class BleDevice extends ChangeNotifier {
       deviceOriginalDisplayName.substring(deviceOriginalDisplayName.length - 4);
 
   static final _chipIdPattern = RegExp(r'^[0-9A-Fa-f]{12,16}$');
+
+  /// Exposed for QR parsing ([DeviceManager.addDeviceByCode]).
+  static RegExp get chipIdPattern => _chipIdPattern;
 
   /// Device ID for workshop API and elsewhere. bleMacAddress (no colons) + "AAA".
   String get id => '${bleMacAddress}AAA';
@@ -169,11 +184,13 @@ class BleDevice extends ChangeNotifier {
       bool autoReconnect = true,
       String? userAssignedName,
       int? measurementInterval,
+      bool datahubRegistrationChecked = false,
       this.bleId,
       this.isMock = false})
       : _autoReconnect = autoReconnect,
         _userAssignedName = userAssignedName,
-        _measurementInterval = measurementInterval;
+        _measurementInterval = measurementInterval,
+        _datahubRegistrationChecked = datahubRegistrationChecked;
 
   // Serialize & de-serialize properties
   Map<String, dynamic> toJson() {
@@ -185,6 +202,7 @@ class BleDevice extends ChangeNotifier {
       'autoConnect': autoReconnect,
       if (_measurementInterval != null) 'measurementInterval': _measurementInterval,
       if (_userAssignedName != null) 'userAssignedName': _userAssignedName,
+      if (_datahubRegistrationChecked) 'datahubRegistrationChecked': true,
       if (isMock) 'isMock': true,
     };
   }
@@ -200,6 +218,7 @@ class BleDevice extends ChangeNotifier {
       measurementInterval: json['measurementInterval'],
       userAssignedName: json['userAssignedName'],
       deviceOriginalDisplayName: json['deviceOriginalName'],
+      datahubRegistrationChecked: json['datahubRegistrationChecked'] == true,
       isMock: json['isMock'] == true,
       bleId: json['isMock'] == true ? 'mock:${json['deviceBleName']}' : null,
     );
@@ -217,6 +236,7 @@ class BleDevice extends ChangeNotifier {
       try {
         await getIt<BleController>().getDeviceDetailsAndCheckProtocol(this);
         state = BleDeviceState.connected;
+        unawaited(BadgeDatahubRegistration.ensureRegistered(this));
         if (showNoticesOnConnect) {
           BleDeviceNoticesPresenter.showAfterConnectIfNeeded(this);
         }
@@ -260,6 +280,7 @@ class BleDevice extends ChangeNotifier {
             await Future<void>.delayed(const Duration(milliseconds: 800));
             await ble.getDeviceDetailsAndCheckProtocol(this);
             state = BleDeviceState.connected;
+            unawaited(BadgeDatahubRegistration.ensureRegistered(this));
             if (showNoticesOnConnect) {
               BleDeviceNoticesPresenter.showAfterConnectIfNeeded(this);
             }

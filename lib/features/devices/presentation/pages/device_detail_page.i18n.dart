@@ -179,6 +179,14 @@ extension Localization on String {
         "en": "Sensirion SHTC3",
       } +
       {
+        "de": "ams OSRAM AS7331",
+        "en": "ams OSRAM AS7331",
+      } +
+      {
+        "de": "Bosch Sensortec BMV080",
+        "en": "Bosch Sensortec BMV080",
+      } +
+      {
         "de": "Umbenennen",
         "en": "Rename",
       } +
@@ -500,12 +508,20 @@ extension Localization on String {
         "en": "Firmware update is not available during an active measurement.",
       } +
       {
-        "de": "Messprotokoll importieren (BLE)",
-        "en": "Import measurement log (BLE)",
-      } +
-      {
         "de": "Messmodus aktiv — Aufzeichnung läuft auf dem Badge.",
         "en": "Measurement mode active — recording on the badge.",
+      } +
+      {
+        "de": "%s Messungen",
+        "en": "%s measurements",
+      } +
+      {
+        "de": "Keine Messungen auf dem Gerät",
+        "en": "No measurements on device",
+      } +
+      {
+        "de": "Messungen werden geprüft…",
+        "en": "Checking measurements…",
       };
 
   String get i18n => localize(this, _t);
