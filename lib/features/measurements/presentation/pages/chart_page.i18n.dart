@@ -72,6 +72,14 @@ extension Localization on String {
         "en": "Latest measurements",
       } +
       {
+        "de": "Gemessen:",
+        "en": "Measured:",
+      } +
+      {
+        "de": "Messwerte konfigurieren",
+        "en": "Configure measurements",
+      } +
+      {
         "de": "Batteriespannung (V)",
         "en": "Battery voltage (V)",
       } +
@@ -130,6 +138,14 @@ extension Localization on String {
       {
         "de": "UVC",
         "en": "UVC",
+      } +
+      {
+        "de": "UV-Index",
+        "en": "UV Index",
+      } +
+      {
+        "de": "Feinstaub",
+        "en": "Particulate Matter",
       } +
       {
         "de": "Unbekanntes Gerät",
