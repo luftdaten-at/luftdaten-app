@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:luftdaten.at/features/measurements/data/environment_context_reading.dart';
+import 'package:luftdaten.at/features/measurements/data/thermal_comfort_reading.dart';
+import 'package:luftdaten.at/features/weather/data/weather_snapshot.dart';
 import 'package:luftdaten.at/features/measurements/data/latlng_with_precision.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.i18n.dart';
 
@@ -394,6 +397,16 @@ class MeasuredDataPoint {
   MobilityModes? mode;
   Map<String, dynamic>? j;
 
+  /// Indoor/outdoor classification derived from the light and UV readings of
+  /// this measurement. Null when the device carries no light and UV sensors.
+  EnvironmentContextReading? environment;
+
+  /// Weather snapshot used for UTCI at recording time.
+  WeatherSnapshot? weather;
+
+  /// Computed thermal comfort (UTCI outdoors, PMV indoors).
+  ThermalComfortReading? thermal;
+
   MeasuredDataPoint({
     required this.timestamp,
     required this.sensorData,
@@ -401,6 +414,9 @@ class MeasuredDataPoint {
     this.annotation,
     this.mode,
     this.j,
+    this.environment,
+    this.weather,
+    this.thermal,
   });
 
   FlattenedDataPoint get flatten {
@@ -425,6 +441,9 @@ class MeasuredDataPoint {
         if (location != null) 'location': location!.toJson(),
         'sensorData': sensorData.map((e) => e.toJson).toList(),
         if (mode != null) 'mode': mode!.name,
+        if (environment != null) 'environment': environment!.toJson(),
+        if (weather != null) 'weather': weather!.toJson(),
+        if (thermal != null) 'thermal': thermal!.toJson(),
       };
 
   factory MeasuredDataPoint.fromJson(Map<String, dynamic> json) {
@@ -432,6 +451,21 @@ class MeasuredDataPoint {
       timestamp: DateTime.parse(json['timestamp']),
       annotation: json['annotation'],
       location: json['location'] != null ? LatLngWithPrecision.fromJson(json['location']) : null,
+      environment: json['environment'] != null
+          ? EnvironmentContextReading.fromJson(
+              (json['environment'] as Map).cast<String, dynamic>(),
+            )
+          : null,
+      weather: json['weather'] != null
+          ? WeatherSnapshot.fromJson(
+              (json['weather'] as Map).cast<String, dynamic>(),
+            )
+          : null,
+      thermal: json['thermal'] != null
+          ? ThermalComfortReading.fromJson(
+              (json['thermal'] as Map).cast<String, dynamic>(),
+            )
+          : null,
       sensorData: (json['sensorData'] as List).map((e) => e as Map<String, dynamic>).map((e) {
         LDSensor sensor = LDSensor.fromName(e['sensor']);
         switch (sensor) {
@@ -463,14 +497,54 @@ class MeasuredDataPoint {
 
   List<String> toCsv() {
     List<String> csv = [];
+    List<String> header = [
+      timestamp.toIso8601String(),
+      location?.latitude.toString() ?? '',
+      location?.longitude.toString() ?? '',
+    ];
     for(SensorDataPoint sensorDataPoint in sensorData) {
-      csv.addAll(sensorDataPoint.toCsv([
-        timestamp.toIso8601String(),
-        location?.latitude.toString() ?? '',
-        location?.longitude.toString() ?? '',
-      ]));
+      csv.addAll(sensorDataPoint.toCsv(header));
     }
+    csv.addAll(_environmentCsv(header));
+    csv.addAll(_thermalCsv(header));
     return csv;
+  }
+
+  /// Derived rows, marked with `environment` in the sensor column so they stay
+  /// distinguishable from actual sensor readings.
+  List<String> _environmentCsv(List<String> header) {
+    final environment = this.environment;
+    if (environment == null) return const [];
+    final flags = environment.flags;
+    return [
+      for (final row in [
+        ('Indoor/Outdoor', '', environment.state.name),
+        ('Indoor/Outdoor Score', '', environment.score.toString()),
+        ('Indoor/Outdoor Confidence', '', environment.confidence.toString()),
+        if (flags.isNotEmpty) ('Indoor/Outdoor Flags', '', flags.join(';')),
+      ])
+        [...header, 'environment', row.$1, row.$2, row.$3].join(','),
+    ];
+  }
+
+  List<String> _thermalCsv(List<String> header) {
+    final thermal = this.thermal;
+    if (thermal == null) return const [];
+    return [
+      for (final row in [
+        ('Thermal Model', '', thermal.model),
+        ('Thermal Quality', '', thermal.quality.name),
+        if (thermal.utciC != null) ('UTCI', '°C', thermal.utciC.toString()),
+        if (thermal.tMrtC != null) ('T_mrt', '°C', thermal.tMrtC.toString()),
+        if (thermal.pmv != null) ('PMV', '', thermal.pmv.toString()),
+        if (thermal.ppd != null) ('PPD', '%', thermal.ppd.toString()),
+        if (thermal.fSun != null) ('f_sun', '', thermal.fSun.toString()),
+        if (thermal.v10Ms != null) ('v10', 'm/s', thermal.v10Ms.toString()),
+        if (thermal.clampFlags.isNotEmpty)
+          ('Thermal Flags', '', thermal.clampFlags.join(';')),
+      ])
+        [...header, 'thermal', row.$1, row.$2, row.$3].join(','),
+    ];
   }
 }
 

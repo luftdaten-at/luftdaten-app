@@ -15,11 +15,9 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 
-import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:luftdaten.at/core/config/app_settings.dart';
 import 'package:luftdaten.at/core/background_services/background_service.dart';
@@ -27,11 +25,24 @@ import 'background_service.i18n.dart';
 import 'package:luftdaten.at/core/app/logging.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+const _foregroundServiceId = 888;
+const _notificationIconMetaData = 'at.luftdaten.service.NOTIFICATION_ICON';
+
 class BackgroundServiceAndroid extends BackgroundService {
-  @override
-  void init() {
-    service = FlutterBackgroundService();
+  BackgroundServiceAndroid() {
+    _taskDataCallback = _onTaskData;
   }
+
+  late final void Function(Object data) _taskDataCallback;
+
+  void _onTaskData(Object data) {
+    if (data is Map && data['type'] == 'mainHandler') {
+      mainHandler(data);
+    }
+  }
+
+  @override
+  void init() {}
 
   @override
   Future<bool> startTrip(int interval) async {
@@ -39,9 +50,31 @@ class BackgroundServiceAndroid extends BackgroundService {
     if (!serviceInitialized) {
       await initializeService();
     }
-    service.invoke("startTrip", {
-      "seconds": interval,
-    });
+
+    final permission = await FlutterForegroundTask.checkNotificationPermission();
+    if (permission != NotificationPermission.granted) {
+      await FlutterForegroundTask.requestNotificationPermission();
+    }
+
+    final running = await FlutterForegroundTask.isRunningService;
+    await FlutterForegroundTask.updateService(
+      foregroundTaskOptions: _taskOptions(interval),
+    );
+
+    if (running) {
+      mainHandler(null);
+    } else {
+      await FlutterForegroundTask.startService(
+        serviceId: _foregroundServiceId,
+        serviceTypes: const [ForegroundServiceTypes.connectedDevice],
+        notificationTitle: 'Luftdaten.at',
+        notificationText: 'Messung gestartet'.i18n,
+        notificationIcon: const NotificationIcon(
+          metaDataName: _notificationIconMetaData,
+        ),
+        callback: startForegroundTaskCallback,
+      );
+    }
     startedTrip = true;
     if (AppSettings.I.wakelock) {
       WakelockPlus.enable();
@@ -52,92 +85,86 @@ class BackgroundServiceAndroid extends BackgroundService {
   @override
   void stopTrip() {
     startedTrip = false;
-    service.invoke("stopTrip");
+    FlutterForegroundTask.updateService(
+      foregroundTaskOptions: ForegroundTaskOptions(
+        eventAction: ForegroundTaskEventAction.nothing(),
+        autoRunOnBoot: false,
+        autoRunOnMyPackageReplaced: false,
+        allowWakeLock: true,
+        stopWithTask: true,
+      ),
+    );
     WakelockPlus.disable();
   }
 
   @override
   void exit() {
-    service.invoke("stop");
+    FlutterForegroundTask.stopService();
+    FlutterForegroundTask.removeTaskDataCallback(_taskDataCallback);
     serviceInitialized = false;
-    serviceHandlerInitialized = false;
     logger.d('Service: exit() called');
   }
 
-  void serviceHandler() {
-    serviceHandlerInitialized = true;
-    service.on("mainHandler").listen((evt) => mainHandler(evt));
-    logger.d('Service handler initialized');
-  }
-
   Future<void> initializeService() async {
-    logger.d('Initializing Android background service');
-    AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'ld_foreground',
-      'Hintergrund-Service'.i18n,
-      description:
-          'Informiert Dich, wenn die App im Hintergrund mit einem Messgerät kommuniziert.'.i18n,
-      enableVibration: true,
-      importance: Importance.high,
-      playSound: true,
-    );
-    if (Platform.isIOS || Platform.isAndroid) {
-      if (!notificationsInitialized) {
-        await FlutterLocalNotificationsPlugin().initialize(
-          const InitializationSettings(
-            iOS: DarwinInitializationSettings(),
-            android: AndroidInitializationSettings("ic_bg_service_small"),
-          ),
-        );
-        notificationsInitialized = true;
-      }
+    logger.d('Initializing Android foreground task');
+    if (Platform.isAndroid && !notificationsInitialized) {
+      await FlutterLocalNotificationsPlugin().initialize(
+        const InitializationSettings(
+          iOS: DarwinInitializationSettings(),
+          android: AndroidInitializationSettings('ic_bg_service_small'),
+        ),
+      );
+      notificationsInitialized = true;
     }
 
-    await FlutterLocalNotificationsPlugin()
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
-    await service.configure(
-      androidConfiguration: AndroidConfiguration(
-        onStart: onStart,
-        autoStart: true,
-        autoStartOnBoot: false,
-        isForegroundMode: true,
-        notificationChannelId: 'ld_foreground',
-        initialNotificationTitle: 'Luftdaten.at',
-        initialNotificationContent: 'Messung gestartet'.i18n,
-        foregroundServiceNotificationId: 888,
+    FlutterForegroundTask.addTaskDataCallback(_taskDataCallback);
+    FlutterForegroundTask.init(
+      androidNotificationOptions: AndroidNotificationOptions(
+        channelId: 'ld_foreground',
+        channelName: 'Hintergrund-Service'.i18n,
+        channelDescription:
+            'Informiert Dich, wenn die App im Hintergrund mit einem Messgerät kommuniziert.'.i18n,
+        channelImportance: NotificationChannelImportance.HIGH,
+        enableVibration: true,
+        playSound: true,
       ),
-      iosConfiguration: IosConfiguration(
-        autoStart: true,
-        onForeground: onStart,
+      iosNotificationOptions: const IOSNotificationOptions(
+        showNotification: false,
+        playSound: false,
       ),
+      foregroundTaskOptions: _taskOptions(60),
     );
-
-    await service.startService();
-    if (!serviceHandlerInitialized) serviceHandler();
     serviceInitialized = true;
-    logger.d('Background service initialized and started');
+    logger.d('Foreground task initialized');
+  }
+
+  ForegroundTaskOptions _taskOptions(int intervalSeconds) {
+    return ForegroundTaskOptions(
+      eventAction: ForegroundTaskEventAction.repeat(intervalSeconds * 1000),
+      autoRunOnBoot: false,
+      autoRunOnMyPackageReplaced: false,
+      allowWakeLock: true,
+      stopWithTask: true,
+    );
   }
 }
 
-Timer? tripTimer;
-
 @pragma('vm:entry-point')
-void onStart(ServiceInstance service) async {
-  DartPluginRegistrant.ensureInitialized();
+void startForegroundTaskCallback() {
+  FlutterForegroundTask.setTaskHandler(_LdForegroundTaskHandler());
+}
 
-  service.on('stop').listen((_) => service.stopSelf());
-  service.on('stopTrip').listen((_) {
-    tripTimer?.cancel();
-    tripTimer = null;
-  });
-  service.on('startTrip').listen((event) {
-    tripTimer?.cancel();
-    logger.d('Service isolate: startTrip event received');
-    int duration = event!['seconds'];
-    service.invoke("mainHandler", event);
-    tripTimer = Timer.periodic(Duration(seconds: duration), (timer) async {
-      service.invoke("mainHandler", event);
-    });
-  });
+class _LdForegroundTaskHandler extends TaskHandler {
+  @override
+  Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
+    FlutterForegroundTask.sendDataToMain(const {'type': 'mainHandler'});
+  }
+
+  @override
+  void onRepeatEvent(DateTime timestamp) {
+    FlutterForegroundTask.sendDataToMain(const {'type': 'mainHandler'});
+  }
+
+  @override
+  Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {}
 }

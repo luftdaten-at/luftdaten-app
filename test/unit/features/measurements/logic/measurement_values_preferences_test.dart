@@ -4,6 +4,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/measurements/logic/measurement_display_defaults.dart';
 import 'package:luftdaten.at/features/measurements/logic/measurement_values_preferences.dart';
+import 'package:luftdaten.at/features/measurements/presentation/widgets/latest_measurement_layout.dart';
 
 void main() {
   late MeasurementValuesPreferences prefs;
@@ -22,6 +23,7 @@ void main() {
   setUp(() async {
     await GetStorage.init('settings');
     GetStorage('settings').remove('measurementValuesVisibility');
+    GetStorage('settings').remove('measurementTileVisibility');
     prefs = MeasurementValuesPreferences()..init();
   });
 
@@ -82,5 +84,30 @@ void main() {
       ),
       sen5xTempKey,
     );
+  });
+
+  test('tiles default visible', () {
+    expect(prefs.isTileVisible(MeasurementTileId.climate), isTrue);
+    expect(prefs.isTileVisible(MeasurementTileId.thermal), isTrue);
+  });
+
+  test('tile visibility persists across reload', () {
+    prefs.setTileVisible(MeasurementTileId.uv, false);
+
+    final reloaded = MeasurementValuesPreferences()..init();
+    expect(reloaded.isTileVisible(MeasurementTileId.uv), isFalse);
+    expect(reloaded.isTileVisible(MeasurementTileId.climate), isTrue);
+  });
+
+  test('setAllTiles updates multiple tiles', () {
+    prefs.setAllTiles({
+      MeasurementTileId.particulate: false,
+      MeasurementTileId.climate: true,
+      MeasurementTileId.uv: false,
+    });
+
+    expect(prefs.isTileVisible(MeasurementTileId.particulate), isFalse);
+    expect(prefs.isTileVisible(MeasurementTileId.climate), isTrue);
+    expect(prefs.isTileVisible(MeasurementTileId.uv), isFalse);
   });
 }

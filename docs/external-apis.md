@@ -178,10 +178,16 @@ When an Air Badge connects for the first time in the app, [`BadgeDatahubRegistra
   "device": { "time": "<ISO8601 UTC>", "id": "<device id>", "firmware": "…", "model": 1, "apikey": "…" },
   "workshop": { "id": "<workshop slug>", "participant": "<uuid>", "mode": "walking" },
   "location": { "lat": 48.17, "lon": 16.36 },
+  "environment": { "state": "outdoor", "score": 0.62, "confidence": 0.62, "flags": ["saturated"] },
+  "weather": { "observed_at": "2026-07-28T15:30:00Z", "fetched_at": "2026-07-28T15:31:02Z", "lat": 48.21, "lon": 16.37, "t2m": 30.4, "rh2m": 24, "v10": 2.2, "v10_source": "tawes", "cloud": 0, "g_h": 445, "i_n": 686.7, "d_h": 99, "radiation_source": "open_meteo", "tawes_station": "11035", "tawes_distance_km": 4.2 },
+  "thermal": { "model": "utci", "quality": "a", "utci": 32.1, "t_mrt": 45.2, "f_sun": 0.85, "v10": 1.1, "t_a": 28.5, "driver": "sun" },
   "sensors": { "1": { "type": 1, "data": { "3": 12.5 } } }
 }
 ```
 
+- **`environment` (optional):** indoor/outdoor classification computed **in the app** from the AS7331 UV bands and TSL2591 light channels — see [innen-aussen-erkennung.md](../innen-aussen-erkennung.md). Present only for devices that carry both sensors. `state` is one of `outdoor`, `indoor`, `indoorWindow`, `unknown`; `score` is the evidence score in `[-1, +1]` (positive = outdoors, always `0` for `indoorWindow`); `confidence` is `0..1`; `flags` is omitted when empty and may contain `saturated` and `uvc_anomaly`. A classification supplied by firmware in the same key is not overwritten. Built by `WorkshopDatahubPayload.build`; the raw features behind the decision travel as ordinary `sensors` dimensions.
+- **`weather` (optional):** snapshot of external weather inputs used for UTCI at recording time — see [utci-tile-berechnung.md](../utci-tile-berechnung.md). Wind from GeoSphere TAWES when in Austria (`v10_source`: `tawes`), otherwise Open-Meteo (`open_meteo`) or constant fallback (`fallback`). Radiation from Open-Meteo (`radiation_source`: `open_meteo`). Stored per measurement so logs can be recomputed later with better reanalysis data.
+- **`thermal` (optional):** computed thermal comfort for the measurement. Outdoors: `model` = `utci` with `utci`, `t_mrt`, `f_sun`, `v10`, `t_a`, `quality` (`a`–`d`), optional `driver` (`sun`, `wind`, `humidity`, `temperature`) and `flags` when inputs were clamped. Indoors: `model` = `pmv` with `pmv`, `ppd`, `quality` = `c`. Not overwritten when firmware already supplies a `thermal` block.
 - **Legacy:** the app no longer posts flat arrays to `/api/workshop/data/add/`; workshop maps use the `Measurement` model via `/api/v1/devices/data/`.
 - **Upload cursor:** `lastSent` is the latest **measurement timestamp** successfully uploaded (not wall-clock time).
 
@@ -242,6 +248,17 @@ These URLs are opened with `url_launcher` or shown as links, not as structured A
 
 ---
 
+## Weather APIs (UTCI tile)
+
+Used by `WeatherService` (`lib/features/weather/logic/weather_service.dart`) during active measurements when GPS is available. Refreshed at most every **15 minutes**. Both sources are **CC BY 4.0** — attribution links in Settings.
+
+| Source | URL | Role |
+|--------|-----|------|
+| **Open-Meteo** | `https://api.open-meteo.com/v1/forecast` | Global radiation (`direct_normal_irradiance`, `diffuse_radiation`, `shortwave_radiation`), cloud cover, fallback wind/T/RH |
+| **GeoSphere TAWES** | `https://dataset.api.hub.geosphere.at/v1/station/current/tawes-v1-10min` | Primary wind (`FFAM`) and T/RH fallback at nearest active station (Austria only) |
+
+---
+
 ## Summary table
 
 | Service | Base / URL | Method | Primary Dart location |
@@ -249,5 +266,7 @@ These URLs are opened with `url_launcher` or shown as links, not as structured A
 | Luftdaten API | `api.luftdaten.at` (map: **`/v1/station/current/all`**; per-station history: **`/v1/station/historical`**) | GET | `lib/features/map/logic/http_provider.dart` |
 | WordPress | `luftdaten.at/wp-json/...` | GET | `lib/features/dashboard/logic/news_controller.dart` |
 | Datahub | `datahub.luftdaten.at` / `staging.datahub.luftdaten.at` (`/api/v1/devices/data/` workshops + SD BLE import) | GET, POST | `workshop_controller.dart`, **`datahub_measurement_client.dart`** (SD BLE JSONL replay) |
+| Open-Meteo | `api.open-meteo.com/v1/forecast` | GET | `lib/features/weather/logic/open_meteo_client.dart` |
+| GeoSphere TAWES | `dataset.api.hub.geosphere.at/v1/station/current/tawes-v1-10min` | GET | `lib/features/weather/logic/geosphere_client.dart` |
 | OSM tiles | `tile.openstreetmap.org` | GET (tile library) | `map_page.dart`, `map_select_marker.dart`, … |
 | Registration (dormant) | `dev.luftdaten.at` | POST (commented) | `registration_page.dart` (commented) |

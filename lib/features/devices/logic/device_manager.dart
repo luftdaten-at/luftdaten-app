@@ -110,7 +110,6 @@ class DeviceManager extends ChangeNotifier {
     _deviceScanner = FlutterReactiveBle()
         .scanForDevices(withServices: serviceIds ?? [])
         .listen((dev) {
-      logger.d("Found device: $dev -> ${dev.id}");
       if(dev.name.startsWith('Luftdaten.at')) {
         if(!deviceNamesFoundAtLastScan.contains(dev.name)) {
           deviceNamesFoundAtLastScan.add(dev.name);

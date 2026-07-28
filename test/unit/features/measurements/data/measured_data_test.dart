@@ -1,5 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:luftdaten.at/features/measurements/data/environment_context_reading.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
+import 'package:luftdaten.at/features/measurements/data/thermal_comfort_reading.dart';
+import 'package:luftdaten.at/features/measurements/logic/thermal/thermal_bands.dart';
+import 'package:luftdaten.at/features/weather/data/weather_snapshot.dart';
 
 void main() {
   group('LDSensor', () {
@@ -110,6 +114,147 @@ void main() {
       expect(sp.sensor, LDSensor.sen5x);
       expect(sp.values[MeasurableQuantity.pm25], 10.5);
       expect(sp.values.length, greaterThanOrEqualTo(1));
+    });
+  });
+
+  group('EnvironmentContextReading', () {
+    test('round-trips through JSON including flags', () {
+      const reading = EnvironmentContextReading(
+        state: EnvironmentContextState.indoorWindow,
+        score: -0.25,
+        confidence: 1,
+        saturated: true,
+        uvcAnomaly: true,
+      );
+
+      final restored = EnvironmentContextReading.fromJson(reading.toJson());
+
+      expect(restored.state, EnvironmentContextState.indoorWindow);
+      expect(restored.score, -0.25);
+      expect(restored.confidence, 1);
+      expect(restored.saturated, isTrue);
+      expect(restored.uvcAnomaly, isTrue);
+    });
+
+    test('omits flags when none are set', () {
+      const reading = EnvironmentContextReading(
+        state: EnvironmentContextState.indoor,
+        score: -0.6,
+        confidence: 0.6,
+      );
+
+      expect(reading.toJson().containsKey('flags'), isFalse);
+    });
+
+    test('an unknown state name degrades to unknown', () {
+      final restored = EnvironmentContextReading.fromJson({'state': 'somewhere_else'});
+      expect(restored.state, EnvironmentContextState.unknown);
+    });
+  });
+
+  group('MeasuredDataPoint with a classification', () {
+    MeasuredDataPoint point({EnvironmentContextReading? environment}) {
+      return MeasuredDataPoint(
+        timestamp: DateTime.utc(2026, 1, 1, 12),
+        sensorData: [
+          SensorDataPoint(
+            sensor: LDSensor.tsl2591,
+            values: {MeasurableQuantity.lux: 1234.5},
+          ),
+        ],
+        environment: environment,
+      );
+    }
+
+    test('round-trips the classification through JSON', () {
+      final original = point(
+        environment: const EnvironmentContextReading(
+          state: EnvironmentContextState.outdoor,
+          score: 0.81,
+          confidence: 0.81,
+        ),
+      );
+
+      final restored = MeasuredDataPoint.fromJson(original.toJson());
+
+      expect(restored.environment!.state, EnvironmentContextState.outdoor);
+      expect(restored.environment!.score, 0.81);
+    });
+
+    test('omits the classification when there is none', () {
+      expect(point().toJson().containsKey('environment'), isFalse);
+      expect(MeasuredDataPoint.fromJson(point().toJson()).environment, isNull);
+    });
+
+    test('exports classification rows marked as derived in CSV', () {
+      final rows = point(
+        environment: const EnvironmentContextReading(
+          state: EnvironmentContextState.outdoor,
+          score: 0.5,
+          confidence: 0.5,
+          saturated: true,
+        ),
+      ).toCsv();
+
+      final derived = rows.where((e) => e.contains(',environment,')).toList();
+      expect(derived, hasLength(4));
+      expect(derived[0], endsWith('environment,Indoor/Outdoor,,outdoor'));
+      expect(derived[3], endsWith('environment,Indoor/Outdoor Flags,,saturated'));
+      // Sensor readings are still exported unchanged.
+      expect(rows.any((e) => e.contains(',tsl2591,')), isTrue);
+    });
+
+    test('adds no CSV rows without a classification', () {
+      expect(point().toCsv().any((e) => e.contains(',environment,')), isFalse);
+    });
+  });
+
+  group('MeasuredDataPoint with thermal comfort', () {
+    final weather = WeatherSnapshot(
+      observedAt: DateTime.utc(2026, 7, 28, 15, 30),
+      fetchedAt: DateTime.utc(2026, 7, 28, 15, 31),
+      latitude: 48.21,
+      longitude: 16.37,
+      v10Ms: 2.2,
+      v10Source: 'tawes',
+    );
+
+    final thermal = ThermalComfortReading(
+      model: 'utci',
+      quality: ThermalComfortQuality.a,
+      utciC: 32.1,
+      tMrtC: 45.2,
+      fSun: 0.85,
+      v10Ms: 1.1,
+      tAirC: 28.5,
+      computedAt: DateTime.utc(2026, 7, 28, 15, 30),
+    );
+
+    test('round-trips weather and thermal through JSON', () {
+      final original = MeasuredDataPoint(
+        timestamp: DateTime.utc(2026, 1, 1, 12),
+        sensorData: const [
+          SensorDataPoint(sensor: LDSensor.shtc3, values: {}),
+        ],
+        weather: weather,
+        thermal: thermal,
+      );
+
+      final restored = MeasuredDataPoint.fromJson(original.toJson());
+      expect(restored.weather!.v10Ms, 2.2);
+      expect(restored.thermal!.utciC, 32.1);
+    });
+
+    test('exports thermal rows in CSV', () {
+      final rows = MeasuredDataPoint(
+        timestamp: DateTime.utc(2026, 1, 1, 12),
+        sensorData: const [
+          SensorDataPoint(sensor: LDSensor.shtc3, values: {}),
+        ],
+        thermal: thermal,
+      ).toCsv();
+
+      expect(rows.any((e) => e.contains(',thermal,UTCI,')), isTrue);
     });
   });
 }

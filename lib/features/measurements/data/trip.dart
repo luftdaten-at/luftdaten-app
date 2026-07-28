@@ -5,7 +5,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:luftdaten.at/core/app/device_info.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
+import 'package:luftdaten.at/features/measurements/logic/environment_context.dart';
+import 'package:luftdaten.at/features/measurements/logic/thermal/thermal_comfort_tracker.dart';
 import 'package:luftdaten.at/features/measurements/logic/mock_measurement_devices.dart';
+import 'package:luftdaten.at/features/weather/data/weather_snapshot.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/data/chip_id.dart';
 import 'package:luftdaten.at/features/devices/data/sensor_details.dart';
@@ -40,16 +43,40 @@ class Trip extends ChangeNotifier {
     required this.deviceChipId,
     required List<MeasuredDataPoint> data,
     this.sensorDetails,
-  }) : _data = data;
+  }) : _data = data {
+    EnvironmentContextClassifier.stampAll(_data);
+  }
+
+  /// Hysteresis state of the indoor/outdoor detection. One tracker per trip,
+  /// advanced as measurements come in.
+  final EnvironmentContextTracker _environmentTracker = EnvironmentContextTracker();
+
+  final ThermalComfortTracker _thermalTracker = ThermalComfortTracker();
 
   set data(List<MeasuredDataPoint> value) {
     _data = value;
+    EnvironmentContextClassifier.stampAll(_data);
     notifyListeners();
   }
 
   List<MeasuredDataPoint> get data => _data;
 
-  void addDataPoint(MeasuredDataPoint dataPoint) {
+  void addDataPoint(
+    MeasuredDataPoint dataPoint, {
+    WeatherSnapshot? weather,
+    bool hasGpsFix = false,
+  }) {
+    dataPoint.environment ??= _environmentTracker.add(dataPoint)?.reading;
+    final thermalSample = _thermalTracker.add(
+      point: dataPoint,
+      environment: dataPoint.environment,
+      weather: weather,
+      hasGpsFix: hasGpsFix,
+    );
+    if (thermalSample != null) {
+      dataPoint.weather ??= thermalSample.weather;
+      dataPoint.thermal ??= thermalSample.reading;
+    }
     _data.add(dataPoint);
     notifyListeners();
   }
@@ -92,7 +119,11 @@ class Trip extends ChangeNotifier {
             ?.map((e) => SensorDetails.fromJson((e as Map).cast<String, dynamic>()))
             .toList(),
         _data = (json['data'] as List).map((e) => MeasuredDataPoint.fromJson(e)).toList(),
-        isImported = true;
+        isImported = true {
+    // Trip files written before the classification existed carry the raw light
+    // and UV readings but no result, so it is derived on load.
+    EnvironmentContextClassifier.stampAll(_data);
+  }
 
   // File saving
   String get fileName => '$deviceDisplayName-${start?.toIso8601String()}.json';

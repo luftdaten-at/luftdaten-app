@@ -19,7 +19,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:luftdaten.at/core/config/app_settings.dart';
@@ -30,9 +29,11 @@ import 'package:luftdaten.at/features/devices/logic/ble_controller.dart';
 import 'package:luftdaten.at/features/measurements/logic/mock_measurement_telemetry.dart';
 import 'package:luftdaten.at/features/measurements/logic/workshop_controller.dart';
 import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
+import 'package:luftdaten.at/features/weather/logic/weather_service.dart';
 import 'package:luftdaten.at/features/measurements/data/latlng_with_precision.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/measurements/data/trip.dart';
+import 'package:luftdaten.at/features/weather/data/weather_snapshot.dart';
 import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:vibration/vibration.dart';
 
@@ -40,7 +41,6 @@ import 'background_service_android.dart';
 import 'background_service_ios.dart';
 
 abstract class BackgroundService {
-  late FlutterBackgroundService service;
   bool startedTrip = true;
   bool serviceInitialized = false;
   bool serviceHandlerInitialized = false;
@@ -91,10 +91,27 @@ abstract class BackgroundService {
     } else {
       logger.d('Not recording location');
     }
+
+    if (position != null) {
+      await getIt<WeatherService>().refreshIfStale(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+    }
+
+    final weatherSnapshot = getIt<WeatherService>().latest;
+    final hasGpsFix = position != null;
+
     TripController tripController = getIt<TripController>();
     await Future.wait([
       for (BleDevice device in tripController.ongoingTrips.keys)
-        _measureAndHandleForDevice(device, tripController, position)
+        _measureAndHandleForDevice(
+          device,
+          tripController,
+          position,
+          weatherSnapshot,
+          hasGpsFix,
+        )
     ]);
     WorkshopController workshopController = getIt<WorkshopController>();
     if (workshopController.currentWorkshop != null) {
@@ -103,7 +120,12 @@ abstract class BackgroundService {
   }
 
   Future<void> _measureAndHandleForDevice(
-      BleDevice device, TripController tripController, Position? position) async {
+    BleDevice device,
+    TripController tripController,
+    Position? position,
+    WeatherSnapshot? weatherSnapshot,
+    bool hasGpsFix,
+  ) async {
     if (tripController.isPausedForDisconnect) return;
     Trip trip = tripController.ongoingTrips[device]!;
     logger.d('About to read data points');
@@ -126,13 +148,17 @@ abstract class BackgroundService {
             position.accuracy > 0 ? position.accuracy : null)
         : MockMeasurementTelemetry.locationFromMetadata(j);
     logger.d('Converted Position to LatLng');
-    trip.addDataPoint(MeasuredDataPoint(
-      timestamp: timestamp,
-      sensorData: dataPoints,
-      location: location,
-      mode: tripController.mobilityMode,
-      j: j,
-    ));
+    trip.addDataPoint(
+      MeasuredDataPoint(
+        timestamp: timestamp,
+        sensorData: dataPoints,
+        location: location,
+        mode: tripController.mobilityMode,
+        j: j,
+      ),
+      weather: weatherSnapshot,
+      hasGpsFix: hasGpsFix,
+    );
     logger.d('Added data point');
     if (trip.data.length % 5 == 2) {
       trip.save();

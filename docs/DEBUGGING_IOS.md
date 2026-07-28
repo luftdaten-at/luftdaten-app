@@ -45,7 +45,7 @@ Then archive again from Xcode or `flutter build ipa`.
 
 BLE behavior differs between **simulator** (limited/no real BLE) and **device**. For protocol work, use a physical device.
 
-Background measurement uses `flutter_background_service` with an iOS-specific implementation (`lib/core/background_services/background_service_ios.dart`). If background tasks misbehave, verify:
+Background measurement on iOS uses a dedicated implementation in [`background_service_ios.dart`](../lib/core/background_services/background_service_ios.dart): a `Timer` plus silent audio keep-alive (not `flutter_background_service_ios`). Android uses `flutter_foreground_task` (Corkscrews fork with SPM support). If background tasks misbehave, verify:
 
 - Appropriate **Background Modes** / notifications setup in the iOS project (as required by the plugins in use).
 - That the app has been run at least once with permissions granted.

@@ -1,4 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:luftdaten.at/features/measurements/data/environment_context_reading.dart';
+import 'package:luftdaten.at/features/measurements/data/thermal_comfort_reading.dart';
+import 'package:luftdaten.at/features/measurements/logic/thermal/thermal_bands.dart';
+import 'package:luftdaten.at/features/weather/data/weather_snapshot.dart';
 import 'package:luftdaten.at/features/measurements/data/latlng_with_precision.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/measurements/logic/workshop_datahub_payload.dart';
@@ -8,6 +12,7 @@ void main() {
   MeasuredDataPoint samplePoint({
     LatLngWithPrecision? location,
     Map<String, dynamic>? j,
+    EnvironmentContextReading? environment,
   }) {
     return MeasuredDataPoint(
       timestamp: DateTime.utc(2025, 1, 7, 11, 23, 23),
@@ -20,8 +25,16 @@ void main() {
       location: location,
       mode: MobilityModes.walking,
       j: j,
+      environment: environment,
     );
   }
+
+  const outdoorReading = EnvironmentContextReading(
+    state: EnvironmentContextState.outdoor,
+    score: 0.62,
+    confidence: 0.62,
+    saturated: true,
+  );
 
   group('WorkshopDatahubPayload.build', () {
     test('includes workshop, location, device, and sensors', () {
@@ -114,6 +127,126 @@ void main() {
       expect(device['id'], 'NEWID');
       expect(device['apikey'], 'app-key');
       expect(payload.containsKey('station'), isFalse);
+    });
+
+    test('sends the indoor/outdoor classification as its own block', () {
+      final payload = WorkshopDatahubPayload.build(
+        dataPoint: samplePoint(
+          location: LatLngWithPrecision(48.0, 16.0, null),
+          environment: outdoorReading,
+        ),
+        deviceChipId: 'dev',
+        deviceModelId: 1,
+        firmware: '2.0.0',
+        workshopId: 'homrh8',
+        apikey: 'k',
+        participant: 'p',
+      );
+
+      expect(payload!['environment'], {
+        'state': 'outdoor',
+        'score': 0.62,
+        'confidence': 0.62,
+        'flags': ['saturated'],
+      });
+    });
+
+    test('omits the environment block when there is no classification', () {
+      final payload = WorkshopDatahubPayload.build(
+        dataPoint: samplePoint(location: LatLngWithPrecision(48.0, 16.0, null)),
+        deviceChipId: 'dev',
+        deviceModelId: 1,
+        firmware: '2.0.0',
+        workshopId: 'homrh8',
+        apikey: 'k',
+        participant: 'p',
+      );
+
+      expect(payload!.containsKey('environment'), isFalse);
+    });
+
+    test('adds the classification to firmware-style payloads too', () {
+      final payload = WorkshopDatahubPayload.build(
+        dataPoint: samplePoint(
+          location: LatLngWithPrecision(48.0, 16.0, null),
+          environment: outdoorReading,
+          j: <String, dynamic>{
+            'device': {'device': 'OLDID'},
+            'sensors': {
+              '1': {'type': 1, 'data': {'3': 6.0}},
+            },
+          },
+        ),
+        deviceChipId: 'dev',
+        deviceModelId: 1,
+        firmware: '2.0.0',
+        workshopId: 'homrh8',
+        apikey: 'k',
+        participant: 'p',
+      );
+
+      expect(payload!['environment']['state'], 'outdoor');
+    });
+
+    test('a firmware-supplied classification is not overwritten', () {
+      final payload = WorkshopDatahubPayload.build(
+        dataPoint: samplePoint(
+          location: LatLngWithPrecision(48.0, 16.0, null),
+          environment: outdoorReading,
+          j: <String, dynamic>{
+            'device': {'device': 'OLDID'},
+            'sensors': {
+              '1': {'type': 1, 'data': {'3': 6.0}},
+            },
+            'environment': {'state': 'indoor', 'score': -0.8, 'confidence': 0.8},
+          },
+        ),
+        deviceChipId: 'dev',
+        deviceModelId: 1,
+        firmware: '2.0.0',
+        workshopId: 'homrh8',
+        apikey: 'k',
+        participant: 'p',
+      );
+
+      expect(payload!['environment']['state'], 'indoor');
+    });
+
+    test('sends thermal and weather blocks when present', () {
+      final payload = WorkshopDatahubPayload.build(
+        dataPoint: MeasuredDataPoint(
+          timestamp: DateTime.utc(2025, 1, 7, 11, 23, 23),
+          sensorData: [
+            SensorDataPoint(
+              sensor: LDSensor.sen5x,
+              values: {MeasurableQuantity.pm25: 12.5},
+            ),
+          ],
+          location: LatLngWithPrecision(48.0, 16.0, null),
+          weather: WeatherSnapshot(
+            observedAt: DateTime.utc(2025, 1, 7, 11, 20),
+            fetchedAt: DateTime.utc(2025, 1, 7, 11, 21),
+            latitude: 48.0,
+            longitude: 16.0,
+            v10Ms: 2.0,
+            v10Source: 'tawes',
+          ),
+          thermal: const ThermalComfortReading(
+            model: 'utci',
+            quality: ThermalComfortQuality.a,
+            utciC: 30.5,
+          ),
+        ),
+        deviceChipId: 'dev',
+        deviceModelId: 1,
+        firmware: '2.0.0',
+        workshopId: 'homrh8',
+        apikey: 'k',
+        participant: 'p',
+      );
+
+      expect(payload!['thermal']['model'], 'utci');
+      expect(payload['weather']['v10'], 2.0);
     });
   });
 

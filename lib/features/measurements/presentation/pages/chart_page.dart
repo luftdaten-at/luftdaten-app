@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:luftdaten.at/core/config/app_settings.dart';
+import 'package:luftdaten.at/features/devices/logic/battery_info_aggregator.dart';
 import 'package:luftdaten.at/features/devices/logic/device_manager.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/features/measurements/logic/chart_series_preferences.dart';
 import 'package:luftdaten.at/features/measurements/logic/trip_controller.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/measurements/presentation/pages/chart_page.i18n.dart';
+import 'package:luftdaten.at/features/measurements/presentation/widgets/latest_measurement_layout.dart';
 import 'package:luftdaten.at/features/measurements/presentation/widgets/latest_measurement_panel.dart';
+import 'package:luftdaten.at/features/measurements/presentation/widgets/measurement_metric_entry.dart';
+import 'package:luftdaten.at/features/measurements/presentation/widgets/measurement_values_config_dialog.dart';
 import 'package:luftdaten.at/features/measurements/presentation/widgets/sensor_data_point_with_timestamp.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 import 'package:luftdaten.at/core/widgets/start_button.dart';
@@ -71,6 +76,14 @@ class _ChartPageState extends State<ChartPage> {
             final deviceLabel = trip.deviceDisplayName?.trim().isNotEmpty == true
                 ? trip.deviceDisplayName!.trim()
                 : trip.deviceFourLetterCode ?? 'Unbekanntes Gerät'.i18n;
+            final allMetricEntries = MeasurementMetricParser.fromDataPoint(points.last);
+            final layout = LatestMeasurementLayout.group(allMetricEntries);
+            final batteryData = getIt<BatteryInfoAggregator>().collectedBatteryDetails;
+            final availableTiles = LatestMeasurementLayout.availableTiles(
+              layout,
+              showBattery: AppSettings.I.showBatteryGraph,
+              hasBattery: batteryData.isNotEmpty,
+            );
             return ChangeNotifierBuilder(
               notifier: getIt<ChartSeriesPreferences>(),
               builder: (context, chartPrefs) {
@@ -79,12 +92,32 @@ class _ChartPageState extends State<ChartPage> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                        child: Text(
-                          deviceLabel,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 48),
+                            Expanded(
+                              child: Text(
+                                deviceLabel,
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                textAlign: TextAlign.center,
                               ),
-                          textAlign: TextAlign.center,
+                            ),
+                            SizedBox(
+                              width: 48,
+                              child: availableTiles.length >= 2
+                                  ? IconButton(
+                                      icon: const Icon(Icons.tune),
+                                      tooltip: 'Messwerte konfigurieren'.i18n,
+                                      onPressed: () => showMeasurementTileConfigDialog(
+                                        context,
+                                        availableTiles: availableTiles,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                          ],
                         ),
                       ),
                       Padding(

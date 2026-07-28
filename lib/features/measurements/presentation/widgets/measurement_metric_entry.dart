@@ -184,6 +184,20 @@ class MeasurementMetricParser {
         return GradientColor.gasResistance().getColor(value);
       case MeasurableQuantity.uvi:
         return dim.Dimension.getColor(dim.Dimension.UVI, value) as Color? ?? Colors.grey.shade700;
+      case MeasurableQuantity.uva:
+        return const Color(0xFF7B1FA2);
+      case MeasurableQuantity.uvb:
+        return const Color(0xFFF57C00);
+      case MeasurableQuantity.uvc:
+        return const Color(0xFF1976D2);
+      case MeasurableQuantity.lux:
+        return const Color(0xFFFFA000);
+      case MeasurableQuantity.visible:
+        return const Color(0xFFC0CA33);
+      case MeasurableQuantity.infrared:
+        return const Color(0xFFC62828);
+      case MeasurableQuantity.fullSpectrum:
+        return const Color(0xFF546E7A);
       case MeasurableQuantity.adjustedTempCube:
         return dim.Dimension.getColor(dim.Dimension.ADJUSTED_TEMP_CUBE, value) as Color? ??
             Colors.grey.shade700;

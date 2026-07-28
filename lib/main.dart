@@ -20,6 +20,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:i18n_extension/i18n_extension.dart';
 import 'package:get_storage/get_storage.dart';
@@ -49,8 +50,10 @@ import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
 import 'package:luftdaten.at/features/devices/logic/sd_ble_import_storage.dart';
 import 'package:luftdaten.at/features/measurements/logic/chart_series_preferences.dart';
 import 'package:luftdaten.at/features/measurements/logic/measurement_values_preferences.dart';
+import 'package:luftdaten.at/features/measurements/logic/thermal/body_heat_calibration.dart';
 import 'package:luftdaten.at/features/devices/logic/datahub_device_registration_client.dart';
 import 'package:luftdaten.at/features/measurements/logic/datahub_measurement_client.dart';
+import 'package:luftdaten.at/features/weather/logic/weather_service.dart';
 import 'package:luftdaten.at/core/app/presentation/welcome_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -73,6 +76,7 @@ void main() async {
     };
 
     WidgetsFlutterBinding.ensureInitialized();
+    FlutterForegroundTask.initCommunicationPort();
 
     // Suppress i18n missing translation warnings (e.g. de-AT fallback to de)
     Translations.missingKeyCallback = (_, __) {};
@@ -85,6 +89,8 @@ void main() async {
     await GoogleFonts.pendingFonts([GoogleFonts.nunitoSansTextTheme()]);
     await GetStorage.init('currentTrip');
     await GetStorage.init('preferences');
+    await GetStorage.init('bodyHeatCalibration');
+    await GetStorage.init('geosphere');
     await SdBleImportStorage.ensureInitialized();
     await AppSettings.I.init();
     await DeviceInfo.init();
@@ -119,6 +125,8 @@ void main() async {
     getIt.registerSingleton<BatteryInfoAggregator>(BatteryInfoAggregator());
     getIt.registerSingleton<ChartSeriesPreferences>(ChartSeriesPreferences()..init());
     getIt.registerSingleton<MeasurementValuesPreferences>(MeasurementValuesPreferences()..init());
+    getIt.registerSingleton<WeatherService>(WeatherService());
+    await BodyHeatCalibrationStore().init();
 
     await AirStationConfigWizardController.init();
     await AirStationConfigManager.loadAllConfigs();

@@ -235,6 +235,33 @@ class _SettingsPageState extends State<SettingsPage> {
                         value: AppSettings.I.recordLocation,
                         onChanged: (val) => setState(() => AppSettings.I.recordLocation = val)),
                     _spacer(),
+                    _settingsButtonRow(
+                      title: 'Städtischer Windfaktor (UTCI)'.i18n,
+                      desc:
+                          '${AppSettings.I.cUrban.toStringAsFixed(2)} · ${'Reduziert Stationswind für UTCI in dicht bebauten Gebieten.'.i18n}',
+                      onTap: () => _showSliderDialog(
+                        title: 'Städtischer Windfaktor'.i18n,
+                        value: AppSettings.I.cUrban,
+                        min: 0.1,
+                        max: 1.0,
+                        onChanged: (v) => setState(() => AppSettings.I.cUrban = v),
+                      ),
+                    ),
+                    _spacer(),
+                    _settingsButtonRow(
+                      title: 'Bekleidungsisolierung (PMV)'.i18n,
+                      desc:
+                          '${AppSettings.I.pmvClothingInsulation.toStringAsFixed(2)} m²·K/W',
+                      onTap: () => _showSliderDialog(
+                        title: 'Bekleidungsisolierung'.i18n,
+                        value: AppSettings.I.pmvClothingInsulation,
+                        min: 0.0,
+                        max: 1.5,
+                        onChanged: (v) =>
+                            setState(() => AppSettings.I.pmvClothingInsulation = v),
+                      ),
+                    ),
+                    _spacer(),
                     _settingsSwitchRow(
                         title: 'Mit mehreren Geräten messen'.i18n,
                         desc: 'Auswahl mehrerer Geräte für gleichzeitige Messungen erlauben.'.i18n,
@@ -359,6 +386,20 @@ class _SettingsPageState extends State<SettingsPage> {
                       desc: 'Wir verwenden OpenStreetMap für die Luftkarte.'.i18n,
                       onTap: () =>
                           launchUrl(Uri.parse('https://www.openstreetmap.org/copyright/de')),
+                    ),
+                    _spacer(),
+                    _settingsButtonRow(
+                      title: 'GeoSphere Austria'.i18n,
+                      desc: 'Wetterdaten (TAWES) für UTCI — CC BY 4.0'.i18n,
+                      onTap: () => launchUrl(
+                        Uri.parse('https://dataset.api.hub.geosphere.at/'),
+                      ),
+                    ),
+                    _spacer(),
+                    _settingsButtonRow(
+                      title: 'Open-Meteo'.i18n,
+                      desc: 'Strahlungsdaten für UTCI — CC BY 4.0'.i18n,
+                      onTap: () => launchUrl(Uri.parse('https://open-meteo.com/')),
                     ),
                     _spacer(),
                     _settingsButtonRow(
@@ -664,6 +705,47 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         const SizedBox(width: 12),
       ],
+    );
+  }
+
+  Future<void> _showSliderDialog({
+    required String title,
+    required double value,
+    required double min,
+    required double max,
+    required ValueChanged<double> onChanged,
+  }) async {
+    var current = value;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: StatefulBuilder(
+          builder: (context, setLocal) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(current.toStringAsFixed(2)),
+              Slider(
+                value: current,
+                min: min,
+                max: max,
+                divisions: ((max - min) * 20).round(),
+                onChanged: (v) => setLocal(() => current = v),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Abbrechen'.i18n)),
+          TextButton(
+            onPressed: () {
+              onChanged(current);
+              Navigator.pop(ctx);
+            },
+            child: Text('OK'.i18n),
+          ),
+        ],
+      ),
     );
   }
 

@@ -2,10 +2,23 @@ import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/measurements/logic/chart_series_preferences.dart';
 import 'package:luftdaten.at/features/measurements/presentation/widgets/measurement_metric_entry.dart';
 
+enum MeasurementTileId {
+  particulate,
+  climate,
+  uv,
+  light,
+  environment,
+  thermal,
+  others,
+}
+
 enum LatestMeasurementExpansionKey {
   particulate,
   climate,
   uv,
+  light,
+  environment,
+  thermal,
   uva,
   uvb,
   uvc,
@@ -32,6 +45,10 @@ class LatestMeasurementLayoutResult {
     required this.uvb,
     required this.uvc,
     required this.firmwareUvi,
+    required this.lux,
+    required this.visibleLight,
+    required this.infrared,
+    required this.fullSpectrum,
     required this.gridOthers,
   });
 
@@ -44,6 +61,10 @@ class LatestMeasurementLayoutResult {
   final MeasurementMetricEntry? uvb;
   final MeasurementMetricEntry? uvc;
   final MeasurementMetricEntry? firmwareUvi;
+  final MeasurementMetricEntry? lux;
+  final MeasurementMetricEntry? visibleLight;
+  final MeasurementMetricEntry? infrared;
+  final MeasurementMetricEntry? fullSpectrum;
   final List<MeasurementMetricEntry> gridOthers;
 
   bool get hasClimatePair => temperature != null || humidity != null;
@@ -52,6 +73,16 @@ class LatestMeasurementLayoutResult {
 
   bool get hasUvComposite =>
       uva != null || uvb != null || uvc != null || firmwareUvi != null;
+
+  bool get hasLightComposite =>
+      lux != null || visibleLight != null || infrared != null;
+
+  /// Indoor/outdoor detection needs both the TSL2591 illuminance and the AS7331
+  /// UV bands; the ratios it builds are meaningless with only one of them.
+  bool get hasEnvironmentContext => lux != null && uva != null;
+
+  /// UTCI/PMV needs at least temperature and humidity from the climate sensor.
+  bool get hasThermalComfort => temperature != null && humidity != null;
 }
 
 class LatestMeasurementLayout {
@@ -69,6 +100,14 @@ class LatestMeasurementLayout {
     MeasurableQuantity.uvc,
   };
 
+  static const _lightQuantities = {
+    MeasurableQuantity.lux,
+    MeasurableQuantity.visible,
+    MeasurableQuantity.infrared,
+    MeasurableQuantity.fullSpectrum,
+    MeasurableQuantity.rawLuminosity,
+  };
+
   static const _otherPmQuantities = {
     MeasurableQuantity.pm01,
     MeasurableQuantity.pm4,
@@ -84,6 +123,10 @@ class LatestMeasurementLayout {
     MeasurementMetricEntry? uvb;
     MeasurementMetricEntry? uvc;
     MeasurementMetricEntry? firmwareUvi;
+    MeasurementMetricEntry? lux;
+    MeasurementMetricEntry? visibleLight;
+    MeasurementMetricEntry? infrared;
+    MeasurementMetricEntry? fullSpectrum;
     final gridOthers = <MeasurementMetricEntry>[];
 
     for (final entry in entries) {
@@ -106,12 +149,23 @@ class LatestMeasurementLayout {
           uvc ??= entry;
         case MeasurableQuantity.uvi:
           firmwareUvi ??= entry;
+        case MeasurableQuantity.lux:
+          lux ??= entry;
+        case MeasurableQuantity.visible:
+          visibleLight ??= entry;
+        case MeasurableQuantity.infrared:
+          infrared ??= entry;
+        case MeasurableQuantity.fullSpectrum:
+          fullSpectrum ??= entry;
+        case MeasurableQuantity.rawLuminosity:
+          break;
         case MeasurableQuantity.pm01:
         case MeasurableQuantity.pm4:
           gridOthers.add(entry);
         default:
           if (!_compositePmQuantities.contains(entry.quantity) &&
               !_uvBandQuantities.contains(entry.quantity) &&
+              !_lightQuantities.contains(entry.quantity) &&
               entry.quantity != MeasurableQuantity.uvi &&
               entry.quantity != MeasurableQuantity.temperature &&
               entry.quantity != MeasurableQuantity.humidity) {
@@ -130,6 +184,10 @@ class LatestMeasurementLayout {
       uvb: uvb,
       uvc: uvc,
       firmwareUvi: firmwareUvi,
+      lux: lux,
+      visibleLight: visibleLight,
+      infrared: infrared,
+      fullSpectrum: fullSpectrum,
       gridOthers: gridOthers,
     );
   }
@@ -145,6 +203,11 @@ class LatestMeasurementLayout {
       MeasurableQuantity.uvc ||
       MeasurableQuantity.uvi =>
         LatestMeasurementExpansionKey.uv,
+      MeasurableQuantity.lux ||
+      MeasurableQuantity.visible ||
+      MeasurableQuantity.infrared ||
+      MeasurableQuantity.fullSpectrum =>
+        LatestMeasurementExpansionKey.light,
       MeasurableQuantity.voc => LatestMeasurementExpansionKey.voc,
       MeasurableQuantity.totalVoc => LatestMeasurementExpansionKey.totalVoc,
       MeasurableQuantity.nox => LatestMeasurementExpansionKey.nox,
@@ -160,7 +223,12 @@ class LatestMeasurementLayout {
   static ChartSeriesChartId? chartIdForExpansion(LatestMeasurementExpansionKey key) {
     return switch (key) {
       LatestMeasurementExpansionKey.particulate => ChartSeriesChartId.particulate,
-      LatestMeasurementExpansionKey.climate || LatestMeasurementExpansionKey.uv => null,
+      LatestMeasurementExpansionKey.climate ||
+      LatestMeasurementExpansionKey.uv ||
+      LatestMeasurementExpansionKey.light ||
+      LatestMeasurementExpansionKey.environment ||
+      LatestMeasurementExpansionKey.thermal =>
+        null,
       LatestMeasurementExpansionKey.uva => ChartSeriesChartId.uva,
       LatestMeasurementExpansionKey.uvb => ChartSeriesChartId.uvb,
       LatestMeasurementExpansionKey.uvc => ChartSeriesChartId.uvc,
@@ -193,5 +261,35 @@ class LatestMeasurementLayout {
       LatestMeasurementExpansionKey.gasResistance => MeasurableQuantity.gasResistance,
       _ => null,
     };
+  }
+
+  static List<MeasurementTileId> availableTiles(
+    LatestMeasurementLayoutResult layout, {
+    required bool showBattery,
+    required bool hasBattery,
+  }) {
+    final tiles = <MeasurementTileId>[];
+    if (layout.hasParticulateComposite) {
+      tiles.add(MeasurementTileId.particulate);
+    }
+    if (layout.hasClimatePair) {
+      tiles.add(MeasurementTileId.climate);
+    }
+    if (layout.hasUvComposite) {
+      tiles.add(MeasurementTileId.uv);
+    }
+    if (layout.hasLightComposite) {
+      tiles.add(MeasurementTileId.light);
+    }
+    if (layout.hasEnvironmentContext) {
+      tiles.add(MeasurementTileId.environment);
+    }
+    if (layout.hasThermalComfort) {
+      tiles.add(MeasurementTileId.thermal);
+    }
+    if (layout.gridOthers.isNotEmpty || (showBattery && hasBattery)) {
+      tiles.add(MeasurementTileId.others);
+    }
+    return tiles;
   }
 }

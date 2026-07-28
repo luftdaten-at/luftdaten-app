@@ -2,12 +2,15 @@ import 'package:flutter/foundation.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/measurements/logic/measurement_display_defaults.dart';
+import 'package:luftdaten.at/features/measurements/presentation/widgets/latest_measurement_layout.dart';
 
 class MeasurementValuesPreferences extends ChangeNotifier {
   static const _storageKey = 'measurementValuesVisibility';
+  static const _tileStorageKey = 'measurementTileVisibility';
 
   final GetStorage _box = GetStorage('settings');
   Map<String, bool> _visibility = {};
+  Map<String, bool> _tileVisibility = {};
 
   void init() {
     _load();
@@ -17,13 +20,25 @@ class MeasurementValuesPreferences extends ChangeNotifier {
     final raw = _box.read(_storageKey);
     if (raw is! Map) {
       _visibility = {};
-      return;
+    } else {
+      _visibility = raw.map((key, value) => MapEntry(key.toString(), value == true));
     }
-    _visibility = raw.map((key, value) => MapEntry(key.toString(), value == true));
+
+    final tileRaw = _box.read(_tileStorageKey);
+    if (tileRaw is! Map) {
+      _tileVisibility = {};
+    } else {
+      _tileVisibility =
+          tileRaw.map((key, value) => MapEntry(key.toString(), value == true));
+    }
   }
 
   void _persist() {
     _box.write(_storageKey, _visibility);
+  }
+
+  void _persistTiles() {
+    _box.write(_tileStorageKey, _tileVisibility);
   }
 
   bool defaultVisible({
@@ -92,5 +107,23 @@ class MeasurementValuesPreferences extends ChangeNotifier {
       for (final key in seriesKeys)
         if (_visibility.containsKey(key)) key: _visibility[key]!,
     };
+  }
+
+  bool isTileVisible(MeasurementTileId tile) {
+    return _tileVisibility[tile.name] ?? true;
+  }
+
+  void setTileVisible(MeasurementTileId tile, bool visible) {
+    _tileVisibility[tile.name] = visible;
+    _persistTiles();
+    notifyListeners();
+  }
+
+  void setAllTiles(Map<MeasurementTileId, bool> values) {
+    for (final entry in values.entries) {
+      _tileVisibility[entry.key.name] = entry.value;
+    }
+    _persistTiles();
+    notifyListeners();
   }
 }

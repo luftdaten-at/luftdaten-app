@@ -299,6 +299,24 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Urban wind reduction factor for UTCI (section 6.3). 0.5 dense city, 1.0 open.
+  double _cUrban = 0.5;
+  double get cUrban => _cUrban;
+  set cUrban(double val) {
+    _cUrban = val.clamp(0.1, 1.0);
+    _box.write('cUrban', _cUrban);
+    notifyListeners();
+  }
+
+  /// PMV clothing insulation I_cl [m²·K/W] for indoor comfort tile.
+  double _pmvClothingInsulation = 0.5;
+  double get pmvClothingInsulation => _pmvClothingInsulation;
+  set pmvClothingInsulation(double val) {
+    _pmvClothingInsulation = val.clamp(0.0, 1.5);
+    _box.write('pmvClothingInsulation', _pmvClothingInsulation);
+    notifyListeners();
+  }
+
   /// In-memory only; avoids GetStorage lock contention in parallel widget tests.
   @visibleForTesting
   void setMockBleDevicesEnabledForTests(bool val) {
@@ -354,6 +372,9 @@ class AppSettings extends ChangeNotifier {
     showAirStationStartupBleInDeviceOverview =
         _box.read('showAirStationStartupBleInDeviceOverview') ?? false;
     mockBleDevicesEnabled = _box.read('mockBleDevicesEnabled') ?? false;
+    cUrban = (_box.read('cUrban') as num?)?.toDouble() ?? 0.5;
+    pmvClothingInsulation =
+        (_box.read('pmvClothingInsulation') as num?)?.toDouble() ?? 0.5;
     _box.write('opened', true);
   }
 }

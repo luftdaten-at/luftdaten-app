@@ -7,6 +7,14 @@ enum ChartSeriesChartId {
   particulate,
   temperature,
   humidity,
+  uvBands,
+  uvIndex,
+  illuminance,
+  lightChannels,
+  environmentScore,
+  environmentFeatures,
+  utci,
+  thermalDrivers,
   uva,
   uvb,
   uvc,
@@ -29,6 +37,23 @@ class ChartSeriesKeys {
   static const pm25 = 'PM2.5';
   static const pm4 = 'PM4.0';
   static const pm10 = 'PM10.0';
+  static const uva = 'UVA';
+  static const uvb = 'UVB';
+  static const uvc = 'UVC';
+  static const uvi = 'UV-Index';
+  static const lux = 'Lux';
+  static const visibleLight = 'Visible light';
+  static const infrared = 'Infrared';
+  static const fullSpectrum = 'Full spectrum';
+  static const environmentScore = 'Indoor/outdoor score';
+  static const environmentConfidence = 'Confidence';
+  static const kUv = 'k_UV';
+  static const betaUv = 'UVB/UVA';
+  static const utci = 'UTCI';
+  static const tAir = 'Air temperature';
+  static const tMrt = 'Mean radiant temperature';
+  static const fSun = 'Sun exposure';
+  static const v10 = 'Wind speed';
 }
 
 class ChartSeriesOption {

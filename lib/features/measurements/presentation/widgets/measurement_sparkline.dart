@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/measurements/logic/uv_index.dart';
+import 'package:luftdaten.at/features/measurements/logic/light_metrics.dart';
 import 'package:luftdaten.at/features/measurements/presentation/widgets/measurement_metric_entry.dart';
 import 'package:luftdaten.at/features/measurements/presentation/widgets/sensor_data_point_with_timestamp.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -84,6 +85,13 @@ class MeasurementSparklineData {
     required List<MeasuredDataPoint> history,
   }) {
     return UvIndex.sparklineFromHistory(history: history);
+  }
+
+  /// Lux sparkline for the light composite tile.
+  static List<MeasurementSparklinePoint> forLux({
+    required List<MeasuredDataPoint> history,
+  }) {
+    return LightMetrics.luxSparklineFromHistory(history: history);
   }
 }
 

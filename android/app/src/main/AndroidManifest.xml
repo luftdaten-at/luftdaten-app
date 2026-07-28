@@ -9,8 +9,8 @@
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
-    <!-- This is a requirement of flutter_background_service, but running a background service
-     should be achievable without this permission. Check other packages. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
@@ -45,8 +45,11 @@
             android:name="flutterEmbedding"
             android:value="2" />
         <service
-            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
             android:foregroundServiceType="connectedDevice"
-            />
+            android:exported="false" />
+        <meta-data
+            android:name="at.luftdaten.service.NOTIFICATION_ICON"
+            android:resource="@drawable/ic_bg_service_small" />
     </application>
 </manifest>

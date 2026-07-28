@@ -144,6 +144,174 @@ extension Localization on String {
         "en": "UV Index",
       } +
       {
+        "de": "UV-Bestrahlung",
+        "en": "UV irradiance",
+      } +
+      {
+        "de": "Beleuchtungsstärke",
+        "en": "Illuminance",
+      } +
+      {
+        "de": "lx",
+        "en": "lx",
+      } +
+      {
+        "de": "Lichtkanäle",
+        "en": "Light channels",
+      } +
+      {
+        "de": "IR-Anteil",
+        "en": "IR share",
+      } +
+      {
+        "de": "Sichtbares Licht",
+        "en": "Visible light",
+      } +
+      {
+        "de": "Infrarot",
+        "en": "Infrared",
+      } +
+      {
+        "de": "Vollspektrum",
+        "en": "Full spectrum",
+      } +
+      {
+        "de": "Umgebung",
+        "en": "Environment",
+      } +
+      {
+        "de": "Außen",
+        "en": "Outdoor",
+      } +
+      {
+        "de": "Innen",
+        "en": "Indoor",
+      } +
+      {
+        "de": "Fensterplatz",
+        "en": "Near window",
+      } +
+      {
+        "de": "Unbekannt",
+        "en": "Unknown",
+      } +
+      {
+        "de": "Konfidenz",
+        "en": "Confidence",
+      } +
+      {
+        "de": "Score",
+        "en": "Score",
+      } +
+      {
+        "de": "Innen/Außen-Score",
+        "en": "Indoor/outdoor score",
+      } +
+      {
+        "de": "Klassifikationsmerkmale",
+        "en": "Classification features",
+      } +
+      {
+        "de": "UV-Anteil (k_UV)",
+        "en": "UV fraction (k_UV)",
+      } +
+      {
+        "de": "Glasindikator (UVB/UVA)",
+        "en": "Glass indicator (UVB/UVA)",
+      } +
+      {
+        "de": "UTCI",
+        "en": "UTCI",
+      } +
+      {
+        "de": "Behaglichkeit",
+        "en": "Thermal comfort",
+      } +
+      {
+        "de": "Thermische Treiber",
+        "en": "Thermal drivers",
+      } +
+      {
+        "de": "Sonnenanteil",
+        "en": "Sun exposure",
+      } +
+      {
+        "de": "Treiber",
+        "en": "Driver",
+      } +
+      {
+        "de": "Vorbehalt",
+        "en": "Caveat",
+      } +
+      {
+        "de": "Stand",
+        "en": "As of",
+      } +
+      {
+        "de": "T_mrt",
+        "en": "Mean radiant temp.",
+      } +
+      {
+        "de": "Extreme Hitzebelastung",
+        "en": "Extreme heat stress",
+      } +
+      {
+        "de": "Sehr starke Hitzebelastung",
+        "en": "Very strong heat stress",
+      } +
+      {
+        "de": "Starke Hitzebelastung",
+        "en": "Strong heat stress",
+      } +
+      {
+        "de": "Mäßige Hitzebelastung",
+        "en": "Moderate heat stress",
+      } +
+      {
+        "de": "Keine thermische Belastung",
+        "en": "No thermal stress",
+      } +
+      {
+        "de": "Leichte Kältebelastung",
+        "en": "Slight cold stress",
+      } +
+      {
+        "de": "Mäßige Kältebelastung",
+        "en": "Moderate cold stress",
+      } +
+      {
+        "de": "Starke Kältebelastung",
+        "en": "Strong cold stress",
+      } +
+      {
+        "de": "Sehr starke Kältebelastung",
+        "en": "Very strong cold stress",
+      } +
+      {
+        "de": "Extreme Kältebelastung",
+        "en": "Extreme cold stress",
+      } +
+      {
+        "de": "Kalt",
+        "en": "Cold",
+      } +
+      {
+        "de": "Etwas kalt",
+        "en": "Slightly cold",
+      } +
+      {
+        "de": "Neutral",
+        "en": "Neutral",
+      } +
+      {
+        "de": "Etwas warm",
+        "en": "Slightly warm",
+      } +
+      {
+        "de": "Warm",
+        "en": "Warm",
+      } +
+      {
         "de": "Feinstaub",
         "en": "Particulate Matter",
       } +

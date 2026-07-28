@@ -27,7 +27,7 @@ Tables below mirror **`dart pub deps --json`** (direct production and dev roots)
 | `device_info_plus` | `11.3.0` | pub.dev |
 | `file_picker` | `10.3.10` | pub.dev |
 | `flutter` | `0.0.0` | Flutter SDK |
-| `flutter_background_service` | `5.1.0` | pub.dev |
+| `flutter_foreground_task` | git (Corkscrews fork, see [`pubspec.yaml`](../pubspec.yaml)) | Git |
 | `flutter_displaymode` | `0.6.0` | pub.dev |
 | `flutter_local_notifications` | `19.0.0` | pub.dev |
 | `flutter_localizations` | `0.0.0` | Flutter SDK |

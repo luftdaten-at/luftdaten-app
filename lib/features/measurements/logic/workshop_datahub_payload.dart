@@ -38,6 +38,9 @@ class WorkshopDatahubPayload {
     };
 
     final locationBlock = _locationBlock(location);
+    final environmentBlock = dataPoint.environment?.toJson();
+    final thermalBlock = dataPoint.thermal?.toJson();
+    final weatherBlock = dataPoint.weather?.toJson();
 
     final j = dataPoint.j;
     if (_isFirmwareStyleMetadata(j)) {
@@ -49,6 +52,16 @@ class WorkshopDatahubPayload {
       merged['sensors'] = sensors;
       merged['workshop'] = workshopBlock;
       merged['location'] = locationBlock;
+      // A classification supplied by the firmware wins over the app's own.
+      if (environmentBlock != null && merged['environment'] == null) {
+        merged['environment'] = environmentBlock;
+      }
+      if (thermalBlock != null && merged['thermal'] == null) {
+        merged['thermal'] = thermalBlock;
+      }
+      if (weatherBlock != null && merged['weather'] == null) {
+        merged['weather'] = weatherBlock;
+      }
       merged.remove('station');
       validate(merged);
       return merged;
@@ -58,6 +71,9 @@ class WorkshopDatahubPayload {
       'device': deviceBlock,
       'workshop': workshopBlock,
       'location': locationBlock,
+      if (environmentBlock != null) 'environment': environmentBlock,
+      if (thermalBlock != null) 'thermal': thermalBlock,
+      if (weatherBlock != null) 'weather': weatherBlock,
       'sensors': sensors,
     };
     validate(payload);

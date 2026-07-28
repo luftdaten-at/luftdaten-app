@@ -145,5 +145,156 @@ void main() {
       expect(layout.firmwareUvi, isNotNull);
       expect(layout.hasUvComposite, isTrue);
     });
+
+    test('extracts light composite entries and excludes them from grid', () {
+      final lightEntries = [
+        ...entries,
+        _entry(MeasurableQuantity.lux),
+        _entry(MeasurableQuantity.visible),
+        _entry(MeasurableQuantity.infrared),
+        _entry(MeasurableQuantity.fullSpectrum),
+        _entry(MeasurableQuantity.rawLuminosity),
+      ];
+      final layout = LatestMeasurementLayout.group(lightEntries);
+
+      expect(layout.lux, isNotNull);
+      expect(layout.visibleLight, isNotNull);
+      expect(layout.infrared, isNotNull);
+      expect(layout.fullSpectrum, isNotNull);
+      expect(layout.hasLightComposite, isTrue);
+      expect(
+        layout.gridOthers.any((e) => e.quantity == MeasurableQuantity.lux),
+        isFalse,
+      );
+      expect(
+        layout.gridOthers.any((e) => e.quantity == MeasurableQuantity.visible),
+        isFalse,
+      );
+      expect(
+        layout.gridOthers.any((e) => e.quantity == MeasurableQuantity.infrared),
+        isFalse,
+      );
+      expect(
+        layout.gridOthers.any((e) => e.quantity == MeasurableQuantity.fullSpectrum),
+        isFalse,
+      );
+      expect(
+        layout.gridOthers.any((e) => e.quantity == MeasurableQuantity.rawLuminosity),
+        isFalse,
+      );
+    });
+
+    test('light metrics share a single light expansion key', () {
+      final lux = _entry(MeasurableQuantity.lux);
+      final visible = _entry(MeasurableQuantity.visible);
+      final infrared = _entry(MeasurableQuantity.infrared);
+
+      expect(
+        LatestMeasurementLayout.expansionKeyFor(lux),
+        LatestMeasurementExpansionKey.light,
+      );
+      expect(
+        LatestMeasurementLayout.expansionKeyFor(visible),
+        LatestMeasurementExpansionKey.light,
+      );
+      expect(
+        LatestMeasurementLayout.expansionKeyFor(infrared),
+        LatestMeasurementExpansionKey.light,
+      );
+    });
+
+    test('indoor/outdoor detection needs both illuminance and UV bands', () {
+      // entries carry the UV bands but no lux.
+      expect(LatestMeasurementLayout.group(entries).hasEnvironmentContext, isFalse);
+
+      expect(
+        LatestMeasurementLayout.group([
+          _entry(MeasurableQuantity.lux),
+          _entry(MeasurableQuantity.visible),
+        ]).hasEnvironmentContext,
+        isFalse,
+      );
+
+      expect(
+        LatestMeasurementLayout.group([
+          ...entries,
+          _entry(MeasurableQuantity.lux),
+        ]).hasEnvironmentContext,
+        isTrue,
+      );
+    });
+
+    test('the environment tile owns its charts instead of the grid builder', () {
+      expect(
+        LatestMeasurementLayout.chartIdForExpansion(
+          LatestMeasurementExpansionKey.environment,
+        ),
+        isNull,
+      );
+      expect(
+        LatestMeasurementLayout.quantityForExpansion(
+          LatestMeasurementExpansionKey.environment,
+        ),
+        isNull,
+      );
+    });
+
+    test('thermal comfort needs temperature and humidity', () {
+      expect(LatestMeasurementLayout.group(entries).hasThermalComfort, isTrue);
+      expect(
+        LatestMeasurementLayout.group([
+          _entry(MeasurableQuantity.temperature),
+        ]).hasThermalComfort,
+        isFalse,
+      );
+    });
+
+    test('the thermal tile owns its charts instead of the grid builder', () {
+      expect(
+        LatestMeasurementLayout.chartIdForExpansion(
+          LatestMeasurementExpansionKey.thermal,
+        ),
+        isNull,
+      );
+    });
+
+    test('availableTiles lists composite sections present in layout', () {
+      final layout = LatestMeasurementLayout.group([
+        ...entries,
+        _entry(MeasurableQuantity.lux),
+      ]);
+
+      expect(
+        LatestMeasurementLayout.availableTiles(
+          layout,
+          showBattery: false,
+          hasBattery: false,
+        ),
+        [
+          MeasurementTileId.particulate,
+          MeasurementTileId.climate,
+          MeasurementTileId.uv,
+          MeasurementTileId.light,
+          MeasurementTileId.environment,
+          MeasurementTileId.thermal,
+          MeasurementTileId.others,
+        ],
+      );
+    });
+
+    test('availableTiles includes others when battery is shown', () {
+      final layout = LatestMeasurementLayout.group([
+        _entry(MeasurableQuantity.co2),
+      ]);
+
+      expect(
+        LatestMeasurementLayout.availableTiles(
+          layout,
+          showBattery: true,
+          hasBattery: true,
+        ),
+        [MeasurementTileId.others],
+      );
+    });
   });
 }
