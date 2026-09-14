@@ -274,9 +274,15 @@ abstract final class MockBleGattCodec {
       AirStationConfigFlags.MEASUREMENT_INTERVAL.value,
       config.measurementInterval.seconds,
     );
-    appendUtf8Tlv(AirStationConfigFlags.LONGITUDE.value, config.longitude?.toString() ?? '');
-    appendUtf8Tlv(AirStationConfigFlags.LATITUDE.value, config.latitude?.toString() ?? '');
-    appendUtf8Tlv(AirStationConfigFlags.HEIGHT.value, config.height?.toString() ?? '');
+    if (config.longitude != null) {
+      appendUtf8Tlv(AirStationConfigFlags.LONGITUDE.value, config.longitude.toString());
+    }
+    if (config.latitude != null) {
+      appendUtf8Tlv(AirStationConfigFlags.LATITUDE.value, config.latitude.toString());
+    }
+    if (config.height != null) {
+      appendUtf8Tlv(AirStationConfigFlags.HEIGHT.value, config.height.toString());
+    }
 
     final deviceId = config.deviceId?.trim();
     if (deviceId != null && deviceId.isNotEmpty) {

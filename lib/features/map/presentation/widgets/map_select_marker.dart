@@ -16,10 +16,13 @@ class MapScreen extends StatefulWidget {
 }
 
 class MapScreenState extends State<MapScreen> {
+  final MapController _mapController = MapController();
+
   LatLng? selectedPosition;
   double longitude = 0;
   double latitude = 0;
   double height = 0;
+  bool _heightEditedByUser = false;
 
   // Controller für die Eingabefelder
   final TextEditingController longitudeController = TextEditingController();
@@ -29,19 +32,87 @@ class MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
-    widget.controller.getCurrentLocation();
-    longitude = widget.controller.currentPosition.longitude;
-    latitude = widget.controller.currentPosition.latitude;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initLocation());
+  }
 
-    // Initialisiere die Controller mit den Anfangswerten
-    longitudeController.text = longitude.toString();
-    latitudeController.text = latitude.toString();
-    heightController.text = height.toString();
+  Future<void> _initLocation() async {
+    final cfg = widget.controller.config;
+    if (cfg != null &&
+        AirStationConfigWizardController.isValidGeoCoordinate(
+          cfg.latitude ?? 0,
+          cfg.longitude ?? 0,
+        )) {
+      if (cfg.height != null) {
+        height = cfg.height!;
+        _heightEditedByUser = true;
+        heightController.text = height.toString();
+      }
+      _applyCoordinates(cfg.latitude!, cfg.longitude!, markSelected: true);
+      return;
+    }
+
+    final existing = widget.controller.currentPosition;
+    if (AirStationConfigWizardController.isValidGeoCoordinate(
+      existing.latitude,
+      existing.longitude,
+    )) {
+      _applyCoordinates(
+        existing.latitude,
+        existing.longitude,
+        altitude: existing.altitude,
+        markSelected: true,
+        fromGps: true,
+      );
+      return;
+    }
+
+    await widget.controller.getCurrentLocation();
+    if (!mounted) return;
+
+    final pos = widget.controller.currentPosition;
+    if (AirStationConfigWizardController.isValidGeoCoordinate(
+      pos.latitude,
+      pos.longitude,
+    )) {
+      _applyCoordinates(
+        pos.latitude,
+        pos.longitude,
+        altitude: pos.altitude,
+        markSelected: true,
+        fromGps: true,
+      );
+    }
+  }
+
+  void _applyCoordinates(
+    double lat,
+    double lon, {
+    double? altitude,
+    bool markSelected = false,
+    bool fromGps = false,
+  }) {
+    setState(() {
+      latitude = lat;
+      longitude = lon;
+      if (markSelected) {
+        selectedPosition = LatLng(lat, lon);
+      }
+      longitudeController.text = lon.toString();
+      latitudeController.text = lat.toString();
+      if (!_heightEditedByUser &&
+          altitude != null &&
+          altitude.isFinite &&
+          (fromGps || height == 0)) {
+        height = altitude;
+        heightController.text = height.toString();
+      }
+    });
+    _mapController.move(LatLng(lat, lon), 14);
   }
 
   @override
   void dispose() {
-    // Dispose der Controller, wenn sie nicht mehr benötigt werden
+    _mapController.dispose();
     longitudeController.dispose();
     latitudeController.dispose();
     heightController.dispose();
@@ -84,6 +155,7 @@ class MapScreenState extends State<MapScreen> {
               SizedBox(
                 height: 250,
                 child: FlutterMap(
+                  mapController: _mapController,
                   options: MapOptions(
                     initialCenter: LatLng(latitude, longitude),
                     initialZoom: 10.0,
@@ -164,6 +236,7 @@ class MapScreenState extends State<MapScreen> {
                 keyboardType: TextInputType.number,
                 onChanged: (value) {
                   setState(() {
+                    _heightEditedByUser = true;
                     height = double.tryParse(value) ?? 0.0;
                   });
                 },
@@ -172,13 +245,25 @@ class MapScreenState extends State<MapScreen> {
               // Weiter-Button
               FilledButton(
                 onPressed: () {
-                  setState(() {
-                    widget.controller.config!.longitude = longitude;
-                    widget.controller.config!.latitude = latitude;
-                    widget.controller.config!.height = height;
-
-                    widget.controller.stage = AirStationConfigWizardStage.configureWifiChoice;
-                  });
+                  if (!AirStationConfigWizardController.isValidGeoCoordinate(
+                    latitude,
+                    longitude,
+                  )) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Bitte einen gültigen Standort festlegen (GPS oder Karte).'
+                              .i18n,
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+                  widget.controller.confirmLocationFromWizard(
+                    longitude: longitude,
+                    latitude: latitude,
+                    height: height,
+                  );
                 },
                 child: Text('Weiter zur WLAN-Konfiguration'.i18n),
               ),

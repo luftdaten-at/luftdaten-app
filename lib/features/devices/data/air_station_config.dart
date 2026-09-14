@@ -460,9 +460,15 @@ class AirStationConfig {
     appendInt32Tlv(0, autoUpdateMode.encoded);
     appendInt32Tlv(1, batterySaverMode.encoded);
     appendInt32Tlv(2, measurementInterval.seconds);
-    appendUtf8Tlv(3, longitude?.toString() ?? '');
-    appendUtf8Tlv(4, latitude?.toString() ?? '');
-    appendUtf8Tlv(5, height?.toString() ?? '');
+    if (longitude != null) {
+      appendUtf8Tlv(3, longitude.toString());
+    }
+    if (latitude != null) {
+      appendUtf8Tlv(4, latitude.toString());
+    }
+    if (height != null) {
+      appendUtf8Tlv(5, height.toString());
+    }
 
     final tzVal = tz?.trim() ?? '';
     if (tzVal.isNotEmpty) {

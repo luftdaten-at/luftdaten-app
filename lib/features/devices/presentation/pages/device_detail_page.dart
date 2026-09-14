@@ -21,6 +21,7 @@ import 'package:luftdaten.at/features/devices/presentation/widgets/ble_device_no
 import 'package:luftdaten.at/features/devices/presentation/widgets/device_connect_button.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/device_connection_appearance.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/device_info_section.dart';
+import 'package:luftdaten.at/features/devices/presentation/widgets/device_calibration_section.dart';
 import 'package:luftdaten.at/features/devices/presentation/widgets/device_sensors_section.dart';
 
 import 'device_manager_page.dart';
@@ -468,6 +469,10 @@ class DeviceDetailPageState extends State<DeviceDetailPage> {
                 _buildBadgeMeasLogStatusStrip(device),
                 BleDeviceNoticesBanner(device: device),
                 DeviceSensorsSection(
+                  device: device,
+                  isLoading: _isBleLoading(device),
+                ),
+                DeviceCalibrationSection(
                   device: device,
                   isLoading: _isBleLoading(device),
                 ),

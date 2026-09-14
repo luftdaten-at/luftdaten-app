@@ -3,6 +3,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:luftdaten.at/features/devices/data/air_station_config.dart';
 
+bool _tlvHasFlag(List<int> tlv, int flag) {
+  var idx = 0;
+  while (idx + 2 <= tlv.length) {
+    if (tlv[idx] == flag) return true;
+    idx += 2 + tlv[idx + 1];
+  }
+  return false;
+}
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -63,6 +72,28 @@ void main() {
       expect(config.latitude, isNull);
       expect(config.height, isNull);
       expect(config.deviceId, isNull);
+    });
+
+    test('toBytes omits geo TLV flags when coordinates are null', () {
+      final config = AirStationConfig.defaultConfig('geo-null');
+      final tlv = config.toBytes().sublist(1);
+
+      expect(_tlvHasFlag(tlv, AirStationConfigFlags.LONGITUDE.value), isFalse);
+      expect(_tlvHasFlag(tlv, AirStationConfigFlags.LATITUDE.value), isFalse);
+      expect(_tlvHasFlag(tlv, AirStationConfigFlags.HEIGHT.value), isFalse);
+    });
+
+    test('toBytes includes geo TLV when coordinates are set', () {
+      final config = AirStationConfig.defaultConfig('geo-set')
+        ..longitude = 16.37
+        ..latitude = 48.21
+        ..height = 180.0;
+      final bytes = config.toBytes();
+      final parsed = AirStationConfig.parseFromBytes('geo-set', bytes);
+
+      expect(parsed.longitude, 16.37);
+      expect(parsed.latitude, 48.21);
+      expect(parsed.height, 180.0);
     });
   });
 

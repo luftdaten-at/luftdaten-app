@@ -9,6 +9,7 @@ import 'package:luftdaten.at/features/devices/logic/mock_ble_devices.dart';
 import 'package:luftdaten.at/features/devices/logic/mock_ble_gatt.dart';
 import 'package:luftdaten.at/features/devices/logic/sd_ble_export.dart';
 import 'package:luftdaten.at/features/measurements/logic/mock_measurement_devices.dart';
+import 'package:luftdaten.at/features/devices/logic/apply_sensor_calibration.dart';
 import 'package:luftdaten.at/features/measurements/logic/mock_measurement_telemetry.dart';
 
 import 'package:luftdaten.at/core/core.dart';
@@ -74,15 +75,18 @@ class BleController {
     BleDevice device, {
     Position? position,
   }) async {
+    List<dynamic> result;
     if (MockMeasurementDevices.isLiveMeasurementDevice(device)) {
-      return MockMeasurementTelemetry.readSensorValues(device, position: position);
-    }
-    if (MockBleDevices.canUseMockBle(device)) {
+      result = MockMeasurementTelemetry.readSensorValues(device, position: position);
+    } else if (MockBleDevices.canUseMockBle(device)) {
       device.protocolVersion = 2;
-      return _mockV2.readSensorValues(device);
+      result = await _mockV2.readSensorValues(device);
+    } else {
+      await getProtocolVersion(device);
+      result =
+          await BleControllerForProtocol(device.protocolVersion!).readSensorValues(device);
     }
-    await getProtocolVersion(device);
-    return BleControllerForProtocol(device.protocolVersion!).readSensorValues(device);
+    return applySensorCalibrationToReadResult(device.bleName, result);
   }
 
   Future<bool> sendAirStationConfig(BleDevice device, List<int> bytes) async {

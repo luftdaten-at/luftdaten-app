@@ -31,6 +31,32 @@ class AirStationConfigWizardController extends ChangeNotifier {
     debugBleStatus = null;
   }
 
+  @visibleForTesting
+  Future<Position?> Function()? getCurrentPositionForTest;
+
+  static bool isValidGeoCoordinate(double latitude, double longitude) {
+    if (!latitude.isFinite || !longitude.isFinite) return false;
+    if (latitude == 0 && longitude == 0) return false;
+    if (latitude.abs() > 90 || longitude.abs() > 180) return false;
+    return true;
+  }
+
+  void confirmLocationFromWizard({
+    required double longitude,
+    required double latitude,
+    required double height,
+  }) {
+    if (!isValidGeoCoordinate(latitude, longitude)) {
+      return;
+    }
+    config!.longitude = longitude;
+    config!.latitude = latitude;
+    config!.height = height;
+    saveAll();
+    stage = AirStationConfigWizardStage.configureWifiChoice;
+    notifyListeners();
+  }
+
   Position currentPosition = Position(
     latitude: 0.0,
     longitude: 0.0,
@@ -422,6 +448,7 @@ class AirStationConfigWizardController extends ChangeNotifier {
       }
 
       bool success = await getIt<BleController>().sendAirStationConfig(dev, bytes);
+      await Future.delayed(const Duration(milliseconds: 450));
       dev.disconnect();
       if (success) {
         try {
@@ -589,10 +616,20 @@ class AirStationConfigWizardController extends ChangeNotifier {
 
   // Method to fetch current location
   Future<void> getCurrentLocation() async {
-    if(await Permission.location.request() == PermissionStatus.granted){
+    final override = getCurrentPositionForTest;
+    if (override != null) {
+      final pos = await override();
+      if (pos != null) {
+        currentPosition = pos;
+        notifyListeners();
+      }
+      return;
+    }
+    if (await Permission.location.request() == PermissionStatus.granted) {
       currentPosition = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
+      notifyListeners();
     }
   }
 }

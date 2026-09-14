@@ -51,6 +51,8 @@ import 'package:luftdaten.at/features/devices/logic/sd_ble_import_storage.dart';
 import 'package:luftdaten.at/features/measurements/logic/chart_series_preferences.dart';
 import 'package:luftdaten.at/features/measurements/logic/measurement_values_preferences.dart';
 import 'package:luftdaten.at/features/measurements/logic/thermal/body_heat_calibration.dart';
+import 'package:luftdaten.at/features/devices/logic/ble_calibration_backend.dart';
+import 'package:luftdaten.at/features/devices/logic/device_calibration_store.dart';
 import 'package:luftdaten.at/features/devices/logic/datahub_device_registration_client.dart';
 import 'package:luftdaten.at/features/measurements/logic/datahub_measurement_client.dart';
 import 'package:luftdaten.at/features/weather/logic/weather_service.dart';
@@ -90,6 +92,7 @@ void main() async {
     await GetStorage.init('currentTrip');
     await GetStorage.init('preferences');
     await GetStorage.init('bodyHeatCalibration');
+    await GetStorage.init('deviceCalibration');
     await GetStorage.init('geosphere');
     await SdBleImportStorage.ensureInitialized();
     await AppSettings.I.init();
@@ -125,8 +128,12 @@ void main() async {
     getIt.registerSingleton<BatteryInfoAggregator>(BatteryInfoAggregator());
     getIt.registerSingleton<ChartSeriesPreferences>(ChartSeriesPreferences()..init());
     getIt.registerSingleton<MeasurementValuesPreferences>(MeasurementValuesPreferences()..init());
+    getIt.registerSingleton<DeviceCalibrationStore>(DeviceCalibrationStore());
+    await getIt<DeviceCalibrationStore>().init();
+    getIt.registerSingleton<BleCalibrationBackend>(DefaultBleCalibrationBackend());
+    getIt.registerSingleton<BodyHeatCalibrationStore>(BodyHeatCalibrationStore.instance);
     getIt.registerSingleton<WeatherService>(WeatherService());
-    await BodyHeatCalibrationStore().init();
+    await BodyHeatCalibrationStore.instance.init();
 
     await AirStationConfigWizardController.init();
     await AirStationConfigManager.loadAllConfigs();

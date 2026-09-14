@@ -39,6 +39,7 @@ void initDeviceWidgetTestHarness() {
     final root = _testStorageRoot();
     if (methodCall.method == 'getApplicationDocumentsDirectory') return root;
     if (methodCall.method == 'getTemporaryDirectory') return root;
+    if (methodCall.method == 'getApplicationCacheDirectory') return root;
     return null;
   });
 

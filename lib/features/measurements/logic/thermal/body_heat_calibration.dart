@@ -8,6 +8,8 @@ class BodyHeatCalibrationStore {
   BodyHeatCalibrationStore({GetStorage? box})
       : _box = box ?? GetStorage('bodyHeatCalibration');
 
+  static final BodyHeatCalibrationStore instance = BodyHeatCalibrationStore();
+
   static const minSamples = 30;
   static const window = Duration(hours: 24);
   static const maxDtPerSecond = 0.02;
@@ -119,6 +121,11 @@ class BodyHeatCalibrationStore {
     final n = sorted.length;
     if (n.isOdd) return sorted[n ~/ 2];
     return (sorted[n ~/ 2 - 1] + sorted[n ~/ 2]) / 2;
+  }
+
+  void reset() {
+    _box.remove(_samplesKey);
+    _box.remove(_lastDeltaKey);
   }
 }
 

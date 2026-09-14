@@ -237,3 +237,18 @@ See also [DEBUGGING_IOS.md](DEBUGGING_IOS.md#mock-ble-devices-debug-builds-only)
 - **Logging:** extensive `logger` output for connection, reads, hex dumps, and JSON-vs-binary detection.
 
 For firmware-level packet layouts beyond this summary, refer to [firmware BLE docs](https://github.com/luftdaten-at/firmware/blob/improve-error-messages/docs/ble-characteristics.md) or `ble_controller_v1.dart` / `ble_controller_v2.dart` / `ble_device_status.dart` / `ble_json_parser.dart`.
+
+---
+
+## Calibration
+
+The app supports **hybrid calibration**: corrections stored on the phone and applied to **live** BLE measurements before they enter trips and uploads. Imported trip files are not retroactively corrected.
+
+| Layer | Status |
+|-------|--------|
+| **App-side offsets** | CO₂ fresh-air offset, optional temperature/humidity offsets per sensor, Badge body-heat ΔT_body for UTCI |
+| **Firmware FRC / ASC** | Reserved for a future command on the v2 command characteristic (`030ff8b1-…`); not implemented in firmware or app yet |
+
+Implementation: [`DeviceCalibrationStore`](lib/features/devices/logic/device_calibration_store.dart), [`apply_sensor_calibration.dart`](lib/features/devices/logic/apply_sensor_calibration.dart), UI on the device detail page ([`DeviceCalibrationSection`](lib/features/devices/presentation/widgets/device_calibration_section.dart)).
+
+**Reserved command byte (TBD with firmware):** `0x0A` — sensor calibration (e.g. SCD4x forced recalibration). Payload format to be defined in firmware docs before the app sends it.
