@@ -1,3 +1,4 @@
+import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/measurements/logic/chart_series_preferences.dart';
 import 'package:luftdaten.at/features/measurements/presentation/widgets/measurement_metric_entry.dart';
@@ -30,6 +31,8 @@ enum LatestMeasurementExpansionKey {
   o3,
   aqi,
   gasResistance,
+  pm01,
+  pm4,
   batteryPercentage,
   batteryVoltage,
 }
@@ -106,11 +109,6 @@ class LatestMeasurementLayout {
     MeasurableQuantity.infrared,
     MeasurableQuantity.fullSpectrum,
     MeasurableQuantity.rawLuminosity,
-  };
-
-  static const _otherPmQuantities = {
-    MeasurableQuantity.pm01,
-    MeasurableQuantity.pm4,
   };
 
   static LatestMeasurementLayoutResult group(List<MeasurementMetricEntry> entries) {
@@ -193,11 +191,12 @@ class LatestMeasurementLayout {
   }
 
   static LatestMeasurementExpansionKey expansionKeyFor(MeasurementMetricEntry entry) {
-    if (_compositePmQuantities.contains(entry.quantity) ||
-        _otherPmQuantities.contains(entry.quantity)) {
+    if (_compositePmQuantities.contains(entry.quantity)) {
       return LatestMeasurementExpansionKey.particulate;
     }
     return switch (entry.quantity) {
+      MeasurableQuantity.pm01 => LatestMeasurementExpansionKey.pm01,
+      MeasurableQuantity.pm4 => LatestMeasurementExpansionKey.pm4,
       MeasurableQuantity.uva ||
       MeasurableQuantity.uvb ||
       MeasurableQuantity.uvc ||
@@ -240,6 +239,8 @@ class LatestMeasurementLayout {
       LatestMeasurementExpansionKey.o3 => ChartSeriesChartId.o3,
       LatestMeasurementExpansionKey.aqi => ChartSeriesChartId.aqi,
       LatestMeasurementExpansionKey.gasResistance => ChartSeriesChartId.gasResistance,
+      LatestMeasurementExpansionKey.pm01 => ChartSeriesChartId.pm01,
+      LatestMeasurementExpansionKey.pm4 => ChartSeriesChartId.pm4,
       LatestMeasurementExpansionKey.batteryPercentage ||
       LatestMeasurementExpansionKey.batteryVoltage =>
         null,
@@ -259,6 +260,8 @@ class LatestMeasurementLayout {
       LatestMeasurementExpansionKey.o3 => MeasurableQuantity.o3,
       LatestMeasurementExpansionKey.aqi => MeasurableQuantity.aqi,
       LatestMeasurementExpansionKey.gasResistance => MeasurableQuantity.gasResistance,
+      LatestMeasurementExpansionKey.pm01 => MeasurableQuantity.pm01,
+      LatestMeasurementExpansionKey.pm4 => MeasurableQuantity.pm4,
       _ => null,
     };
   }
@@ -267,6 +270,7 @@ class LatestMeasurementLayout {
     LatestMeasurementLayoutResult layout, {
     required bool showBattery,
     required bool hasBattery,
+    LDDeviceModel? deviceModel,
   }) {
     final tiles = <MeasurementTileId>[];
     if (layout.hasParticulateComposite) {
@@ -284,7 +288,7 @@ class LatestMeasurementLayout {
     if (layout.hasEnvironmentContext) {
       tiles.add(MeasurementTileId.environment);
     }
-    if (layout.hasThermalComfort) {
+    if (layout.hasThermalComfort && deviceModel == LDDeviceModel.badge) {
       tiles.add(MeasurementTileId.thermal);
     }
     if (layout.gridOthers.isNotEmpty || (showBattery && hasBattery)) {

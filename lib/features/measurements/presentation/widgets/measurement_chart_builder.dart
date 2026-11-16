@@ -39,6 +39,20 @@ class MeasurementChartBuilder {
     return null;
   }
 
+  static bool _flattenedHasAny(
+    List<FlattenedDataPoint> data,
+    double? Function(FlattenedDataPoint point) selector,
+  ) {
+    return data.any((point) => selector(point) != null);
+  }
+
+  static List<FlattenedDataPoint> _flattenedWithValues(
+    List<FlattenedDataPoint> data,
+    double? Function(FlattenedDataPoint point) selector,
+  ) {
+    return data.where((point) => selector(point) != null).toList();
+  }
+
   static Widget? buildParticulateChart({
     required List<FlattenedDataPoint> data,
     required ChartSeriesPreferences preferences,
@@ -46,15 +60,16 @@ class MeasurementChartBuilder {
   }) {
     if (data.isEmpty) return null;
 
+    final hasPm1 = _flattenedHasAny(data, (p) => p.pm1);
+    final hasPm25 = _flattenedHasAny(data, (p) => p.pm25);
+    final hasPm4 = _flattenedHasAny(data, (p) => p.pm4);
+    final hasPm10 = _flattenedHasAny(data, (p) => p.pm10);
+
     final options = <ChartSeriesOption>[
-      if (data.first.pm1 != null)
-        const ChartSeriesOption(key: ChartSeriesKeys.pm1, label: 'PM1.0'),
-      if (data.first.pm25 != null)
-        const ChartSeriesOption(key: ChartSeriesKeys.pm25, label: 'PM2.5'),
-      if (data.first.pm4 != null)
-        const ChartSeriesOption(key: ChartSeriesKeys.pm4, label: 'PM4.0'),
-      if (data.first.pm10 != null)
-        const ChartSeriesOption(key: ChartSeriesKeys.pm10, label: 'PM10.0'),
+      if (hasPm1) const ChartSeriesOption(key: ChartSeriesKeys.pm1, label: 'PM1.0'),
+      if (hasPm25) const ChartSeriesOption(key: ChartSeriesKeys.pm25, label: 'PM2.5'),
+      if (hasPm4) const ChartSeriesOption(key: ChartSeriesKeys.pm4, label: 'PM4.0'),
+      if (hasPm10) const ChartSeriesOption(key: ChartSeriesKeys.pm10, label: 'PM10.0'),
     ];
     if (options.isEmpty) return null;
 
@@ -64,10 +79,10 @@ class MeasurementChartBuilder {
     final latestPm10 = _latestNonNull(data.map((e) => e.pm10));
 
     final series = <CartesianSeries<FlattenedDataPoint, DateTime>>[];
-    if (data.first.pm1 != null &&
-        preferences.isVisible(ChartSeriesChartId.particulate, ChartSeriesKeys.pm1)) {
+    if (hasPm1 && preferences.isVisible(ChartSeriesChartId.particulate, ChartSeriesKeys.pm1)) {
+      final pm1Data = _flattenedWithValues(data, (p) => p.pm1);
       series.add(LineSeries<FlattenedDataPoint, DateTime>(
-        dataSource: data,
+        dataSource: pm1Data,
         xValueMapper: (item, _) => item.timestamp,
         yValueMapper: (item, _) => item.pm1,
         name: 'PM1.0',
@@ -75,10 +90,10 @@ class MeasurementChartBuilder {
         dataLabelSettings: const DataLabelSettings(isVisible: false),
       ));
     }
-    if (data.first.pm25 != null &&
-        preferences.isVisible(ChartSeriesChartId.particulate, ChartSeriesKeys.pm25)) {
+    if (hasPm25 && preferences.isVisible(ChartSeriesChartId.particulate, ChartSeriesKeys.pm25)) {
+      final pm25Data = _flattenedWithValues(data, (p) => p.pm25);
       series.add(LineSeries<FlattenedDataPoint, DateTime>(
-        dataSource: data,
+        dataSource: pm25Data,
         xValueMapper: (item, _) => item.timestamp,
         yValueMapper: (item, _) => item.pm25,
         name: 'PM2.5',
@@ -86,10 +101,10 @@ class MeasurementChartBuilder {
         dataLabelSettings: const DataLabelSettings(isVisible: false),
       ));
     }
-    if (data.first.pm4 != null &&
-        preferences.isVisible(ChartSeriesChartId.particulate, ChartSeriesKeys.pm4)) {
+    if (hasPm4 && preferences.isVisible(ChartSeriesChartId.particulate, ChartSeriesKeys.pm4)) {
+      final pm4Data = _flattenedWithValues(data, (p) => p.pm4);
       series.add(LineSeries<FlattenedDataPoint, DateTime>(
-        dataSource: data,
+        dataSource: pm4Data,
         xValueMapper: (item, _) => item.timestamp,
         yValueMapper: (item, _) => item.pm4,
         name: 'PM4.0',
@@ -97,10 +112,10 @@ class MeasurementChartBuilder {
         dataLabelSettings: const DataLabelSettings(isVisible: false),
       ));
     }
-    if (data.first.pm10 != null &&
-        preferences.isVisible(ChartSeriesChartId.particulate, ChartSeriesKeys.pm10)) {
+    if (hasPm10 && preferences.isVisible(ChartSeriesChartId.particulate, ChartSeriesKeys.pm10)) {
+      final pm10Data = _flattenedWithValues(data, (p) => p.pm10);
       series.add(LineSeries<FlattenedDataPoint, DateTime>(
-        dataSource: data,
+        dataSource: pm10Data,
         xValueMapper: (item, _) => item.timestamp,
         yValueMapper: (item, _) => item.pm10,
         name: 'PM10.0',
@@ -1066,6 +1081,8 @@ class MeasurementChartBuilder {
       LatestMeasurementExpansionKey.o3 => ('O₃', 'ppb'),
       LatestMeasurementExpansionKey.aqi => ('Air Quality Index', 'Index'),
       LatestMeasurementExpansionKey.gasResistance => ('Gaswiderstand', 'Index'),
+      LatestMeasurementExpansionKey.pm01 => ('PM0.1', 'µg/m³'),
+      LatestMeasurementExpansionKey.pm4 => ('PM4.0', 'µg/m³'),
       _ => ('', ''),
     };
   }

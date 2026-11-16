@@ -107,6 +107,55 @@ void main() {
       expect(device.wifiSsidConfiguredOnDevice, isFalse);
       expect(device.wifiDetailOnDevice, BleWifiDetailCode.ok);
     });
+
+    test('station keeps Wi-Fi connection failed notice', () {
+      final device = BleDevice(
+        model: LDDeviceModel.station,
+        bleName: 'Luftdaten.at-wifi-station',
+        bleMacAddress: 'AABBCCDDEE03',
+        deviceOriginalDisplayName: 'Station',
+      );
+      applyDeviceStatusBytes(device, [1, 50, 38, 0x03, 0x02]);
+      expect(
+        device.operationalNotices.map((n) => n.id).toList(),
+        ['wifi_connection_failed'],
+      );
+    });
+
+    test('Air aRound strips wifi_* notices but keeps others', () {
+      final device = BleDevice(
+        model: LDDeviceModel.aRound,
+        bleName: 'Luftdaten.at-wifi-around',
+        bleMacAddress: 'AABBCCDDEE04',
+        deviceOriginalDisplayName: 'aRound',
+      );
+      applyDeviceStatusBytes(device, [1, 50, 38, 0x03, 0x03]);
+      expect(device.operationalNotices.map((n) => n.id).toList(), ['config_incomplete']);
+      expect(device.wifiDetailOnDevice, BleWifiDetailCode.connectionFailed);
+    });
+
+    test('Air Badge strips wifi_* notices but keeps no_sensor', () {
+      final device = BleDevice(
+        model: LDDeviceModel.badge,
+        bleName: 'Luftdaten.at-wifi-badge',
+        bleMacAddress: 'AABBCCDDEE05',
+        deviceOriginalDisplayName: 'Badge',
+      );
+      applyDeviceStatusBytes(device, [1, 50, 38, 0x03, 0x06]);
+      expect(device.operationalNotices.map((n) => n.id).toList(), ['no_sensor']);
+    });
+
+    test('Air Badge meas logging flag still applied', () {
+      final device = BleDevice(
+        model: LDDeviceModel.badge,
+        bleName: 'Luftdaten.at-badge-meas',
+        bleMacAddress: 'AABBCCDDEE06',
+        deviceOriginalDisplayName: 'Badge',
+      );
+      applyDeviceStatusBytes(device, [1, 50, 38, 0, 0x10]);
+      expect(device.isMeasLoggingActive, isTrue);
+      expect(device.operationalNotices, isEmpty);
+    });
   });
 
   group('BleOperationalStatusFlags', () {

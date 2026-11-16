@@ -4,6 +4,7 @@ import 'package:luftdaten.at/core/config/app_settings.dart';
 import 'package:luftdaten.at/core/core.dart';
 import 'package:luftdaten.at/core/widgets/change_notifier_builder.dart';
 import 'package:luftdaten.at/features/devices/data/battery_details.dart';
+import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/devices/logic/battery_info_aggregator.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/measurements/logic/chart_series_preferences.dart';
@@ -36,6 +37,7 @@ class LatestMeasurementPanel extends StatefulWidget {
     required this.reshapedData,
     required this.tripSensors,
     required this.chartPrefs,
+    required this.deviceModel,
   });
 
   final MeasuredDataPoint latestPoint;
@@ -44,6 +46,7 @@ class LatestMeasurementPanel extends StatefulWidget {
   final List<List<SensorDataPointWithTimestamp>> reshapedData;
   final Set<LDSensor> tripSensors;
   final ChartSeriesPreferences chartPrefs;
+  final LDDeviceModel deviceModel;
 
   @override
   State<LatestMeasurementPanel> createState() => _LatestMeasurementPanelState();
@@ -140,7 +143,9 @@ class _LatestMeasurementPanelState extends State<LatestMeasurementPanel> {
                 tripSensors: widget.tripSensors,
                 chartPrefs: widget.chartPrefs,
               ),
-            if (layout.hasThermalComfort && tileVisible(MeasurementTileId.thermal))
+            if (layout.hasThermalComfort &&
+                widget.deviceModel == LDDeviceModel.badge &&
+                tileVisible(MeasurementTileId.thermal))
               _ThermalComfortSection(
                 expandedKey: _expandedKey,
                 onToggle: _toggleExpansion,

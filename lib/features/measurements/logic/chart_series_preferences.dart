@@ -26,6 +26,8 @@ enum ChartSeriesChartId {
   o3,
   aqi,
   gasResistance,
+  pm01,
+  pm4,
 }
 
 /// Stable series keys persisted in GetStorage.

@@ -83,6 +83,7 @@ class _ChartPageState extends State<ChartPage> {
               layout,
               showBattery: AppSettings.I.showBatteryGraph,
               hasBattery: batteryData.isNotEmpty,
+              deviceModel: trip.deviceModel,
             );
             return ChangeNotifierBuilder(
               notifier: getIt<ChartSeriesPreferences>(),
@@ -129,6 +130,7 @@ class _ChartPageState extends State<ChartPage> {
                           reshapedData: reshapedData,
                           tripSensors: tripSensors,
                           chartPrefs: chartPrefs,
+                          deviceModel: trip.deviceModel,
                         ),
                       ),
                       const SizedBox(height: 90),

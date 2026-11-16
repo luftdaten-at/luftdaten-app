@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:luftdaten.at/features/devices/data/ble_device.dart';
 import 'package:luftdaten.at/features/measurements/data/measured_data.dart';
 import 'package:luftdaten.at/features/measurements/logic/chart_series_preferences.dart';
 import 'package:luftdaten.at/features/measurements/presentation/widgets/latest_measurement_layout.dart';
@@ -113,6 +114,22 @@ void main() {
       expect(
         LatestMeasurementLayout.quantityForExpansion(LatestMeasurementExpansionKey.co2),
         MeasurableQuantity.co2,
+      );
+      expect(
+        LatestMeasurementLayout.expansionKeyFor(_entry(MeasurableQuantity.pm4)),
+        LatestMeasurementExpansionKey.pm4,
+      );
+      expect(
+        LatestMeasurementLayout.chartIdForExpansion(LatestMeasurementExpansionKey.pm4),
+        ChartSeriesChartId.pm4,
+      );
+      expect(
+        LatestMeasurementLayout.quantityForExpansion(LatestMeasurementExpansionKey.pm4),
+        MeasurableQuantity.pm4,
+      );
+      expect(
+        LatestMeasurementLayout.expansionKeyFor(_entry(MeasurableQuantity.pm01)),
+        LatestMeasurementExpansionKey.pm01,
       );
     });
 
@@ -269,6 +286,7 @@ void main() {
           layout,
           showBattery: false,
           hasBattery: false,
+          deviceModel: LDDeviceModel.badge,
         ),
         [
           MeasurementTileId.particulate,
@@ -277,6 +295,30 @@ void main() {
           MeasurementTileId.light,
           MeasurementTileId.environment,
           MeasurementTileId.thermal,
+          MeasurementTileId.others,
+        ],
+      );
+    });
+
+    test('availableTiles omits UTCI thermal tile for non-badge devices', () {
+      final layout = LatestMeasurementLayout.group([
+        ...entries,
+        _entry(MeasurableQuantity.lux),
+      ]);
+
+      expect(
+        LatestMeasurementLayout.availableTiles(
+          layout,
+          showBattery: false,
+          hasBattery: false,
+          deviceModel: LDDeviceModel.aRound,
+        ),
+        [
+          MeasurementTileId.particulate,
+          MeasurementTileId.climate,
+          MeasurementTileId.uv,
+          MeasurementTileId.light,
+          MeasurementTileId.environment,
           MeasurementTileId.others,
         ],
       );

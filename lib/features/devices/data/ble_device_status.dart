@@ -131,10 +131,14 @@ class BleDeviceStatusParser {
 void applyDeviceStatusBytes(BleDevice device, List<int> raw) {
   final parsed = BleDeviceStatusParser.parse(raw);
   device.batteryDetails = parsed.battery;
-  device.operationalNotices = BleDeviceStatusParser.mergeConnectErrors(
+  var notices = BleDeviceStatusParser.mergeConnectErrors(
     parsed.notices,
     device.errors,
   );
+  if (device.model != LDDeviceModel.station) {
+    notices = notices.where((n) => !n.id.startsWith('wifi_')).toList();
+  }
+  device.operationalNotices = notices;
   if (raw.length >= 5) {
     device.wifiDetailOnDevice = BleWifiDetailCode.fromByte(raw[3]);
     final flags = BleOperationalStatusFlags.fromByte(raw[4]);
